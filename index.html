@@ -302,8 +302,22 @@ async function sbAuth(grant, body) {
   const r = await fetch(`${SB.cfg.url}/auth/v1/token?grant_type=${grant}`, { method: "POST", headers: { apikey: SB.cfg.anonKey, "content-type": "application/json" }, body: JSON.stringify(body) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(/invalid/i.test(d.error_description ?? d.msg ?? "") ? "Wrong email or password." : d.error_description || d.msg || "Couldn't sign in.");
-  store.set("aa.sb", JSON.stringify({ access: d.access_token, refresh: d.refresh_token, exp: Date.now() + (d.expires_in ?? 3600) * 1000 - 60e3, email: d.user?.email }));
+  sbStore(d);
   return d;
+}
+function sbStore(d) {
+  const email = d.user?.email ?? (() => { try { return JSON.parse(atob(d.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).email; } catch { return ""; } })();
+  store.set("aa.sb", JSON.stringify({ access: d.access_token, refresh: d.refresh_token, exp: Date.now() + (Number(d.expires_in) || 3600) * 1000 - 60e3, email }));
+}
+// While the computer is on: quietly get this browser an offline sign-in (no password; the server vouches for whoever
+// is signed in), so the site keeps working here if the computer goes off later.
+async function ensureOfflineSignIn() {
+  if (!HOSTED || !SB.cfg || OFF || (await sbToken())) return;
+  try {
+    const { tokenHash } = await api("/me/offline-token");
+    const r = await fetch(`${SB.cfg.url}/auth/v1/verify`, { method: "POST", headers: { apikey: SB.cfg.anonKey, "content-type": "application/json" }, body: JSON.stringify({ type: "email", token_hash: tokenHash }) });
+    if (r.ok) sbStore(await r.json());
+  } catch {}
 }
 async function sbToken() {
   const s = sbSession(); if (!s?.access) return null;
@@ -509,6 +523,7 @@ function renderNav() {
 
 // Offline mode needs each person's password once (it creates their sign-in for when this computer is off).
 function offlineSetupBanner() {
+  return ""; // offline sign-in is set up automatically now (ensureOfflineSignIn); kept for reference
   if (!S.offlineAvail || !S.me || S.me.offline || OFF) return "";
   return `<div class="banner" id="offSetup" style="background:var(--accent-soft, #eef2ff);color:inherit"><div>📴</div><div style="flex:1"><b>Use AutoApply even when this computer is off.</b> Confirm your password once to turn it on.
     <form class="row" style="margin-top:8px;gap:8px" onsubmit="event.preventDefault();offlineConfirm()"><input id="offPw" type="password" autocomplete="current-password" placeholder="Your AutoApply password" style="max-width:260px"><button class="btn sm primary">Turn on</button></form></div></div>`;
@@ -1742,7 +1757,8 @@ async function showLogin(mode) {
   if (offlineLogin) body = `<div class="banner"><div>📴</div><div><b>AutoApply's computer is off right now.</b> Sign in to see your jobs and applications. Anything you do waits and happens when it's back on.</div></div>
       <label class="f"><span>Email address</span><input id="lgEmail" type="email" autocomplete="username" value="${esc(AUTH.email)}" required></label>
       <label class="f"><span>Password</span><input id="lgPw" type="password" autocomplete="current-password" required></label>
-      <button class="btn primary go" type="submit">Log in</button>`;
+      <button class="btn primary go" type="submit">Log in</button>
+      <button type="button" class="btn go" id="lgLink" style="margin-top:8px">Email me a sign-in link instead</button>`;
   else if (st.offline) body = `<div class="banner"><div>⚠️</div><div><b>AutoApply is offline.</b> The computer that runs it is off or not connected right now. Try again later.</div></div><button type="button" class="btn primary go" onclick="location.reload()">Try again</button>`;
   else if (AUTH.step === "email" && AUTH.mode === "login") body = `${google}<label class="f"><span>Email address</span><input id="lgEmail" type="email" autocomplete="username" placeholder="you@example.com" value="${esc(AUTH.email)}" required></label>
       <button class="btn primary go" type="submit">Continue →</button>`;
@@ -1762,6 +1778,11 @@ async function showLogin(mode) {
   el.querySelectorAll("[data-lg]").forEach((x) => x.onclick = () => { AUTH = { mode: x.dataset.lg, step: "email", email: $("#lgEmail")?.value.trim() || AUTH.email, name: "" }; showLogin(); });
   el.querySelector("[data-lg-back]")?.addEventListener("click", () => { AUTH = { ...AUTH, step: "email" }; showLogin(); });
   $("#lgGoogle")?.addEventListener("click", () => { location.href = `${sb.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(location.href.split("#")[0])}`; });
+  $("#lgLink")?.addEventListener("click", async () => {
+    const email = $("#lgEmail").value.trim(); if (!email) return toast("Type your email address first", true);
+    const r = await fetch(`${SB.cfg.url}/auth/v1/otp?redirect_to=${encodeURIComponent(location.href.split("#")[0])}`, { method: "POST", headers: { apikey: SB.cfg.anonKey, "content-type": "application/json" }, body: JSON.stringify({ email, create_user: false }) });
+    if (r.ok) toast("Check your email for a sign-in link. Open it on this device."); else toast("Couldn't send the link. Ask the person who runs AutoApply to check this email has access.", true);
+  });
   $("#lgForgot")?.addEventListener("click", async () => {
     try { await api("/auth/reset", { method: "POST", body: { email: AUTH.email, redirectTo: location.href.split("#")[0] } }); toast("Check your email for a password reset link."); } catch (e) { fail(e); }
   });
@@ -1811,6 +1832,8 @@ async function boot() {
     API = (cfg.apiBase ?? "").replace(/\/$/, "");
     SB.cfg = cfg.supabase?.url && cfg.supabase?.anonKey ? { url: cfg.supabase.url.replace(/\/$/, ""), anonKey: cfg.supabase.anonKey } : null;
     const up = API && await fetch(`${API}/api/auth/state`, { headers: authHeader(), signal: AbortSignal.timeout(10000) }).then((r) => r.status < 500).catch(() => false);
+    const h = new URLSearchParams(location.hash.slice(1));
+    if (SB.cfg && h.get("access_token") && h.get("refresh_token")) { sbStore({ access_token: h.get("access_token"), refresh_token: h.get("refresh_token"), expires_in: h.get("expires_in") }); if (!up) history.replaceState(null, "", location.pathname + location.search); }
     if (!up) return SB.cfg && sbSession() ? goOffline().catch((e) => { fail(e); showLogin(); }) : showLogin();
   }
   // back from "Continue with Google" (Supabase puts the token after #)
@@ -1824,6 +1847,7 @@ async function boot() {
   if (st.account.status === "pending") return showPending();
   S.me = st.account; S.offlineAvail = !!st.supabase;
   await loadUsers(); await render(); pollTasks();
+  ensureOfflineSignIn();
 }
 boot().catch((e) => { if (!$("#login")) $("#main").innerHTML = `<div class="card">Could not load: ${esc(e.message)}</div>`; });
 </script>
