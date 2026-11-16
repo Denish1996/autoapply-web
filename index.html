@@ -141,7 +141,9 @@ details.log summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
 .feedhead { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; } .feedhead .views { display: flex; gap: 22px; }
 .feedhead .views button { border: 0; background: none; font: inherit; font-size: 30px; font-weight: 700; color: var(--muted); opacity: .55; cursor: pointer; padding: 0; letter-spacing: -.02em; display: flex; align-items: center; gap: 6px; }
 .feedhead .views button.on { color: var(--ink); opacity: 1; } .feedhead .badge { font-size: 12px; background: var(--ink); color: var(--panel); border-radius: 999px; min-width: 20px; height: 20px; display: inline-grid; place-items: center; padding: 0 6px; }
-.chipbox { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 6px 6px 6px 10px; background: var(--panel); }
+.chipbox { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 24px; padding: 8px 8px 8px 12px; background: var(--panel); box-sizing: border-box; width: 100%; overflow: hidden; } /* rounded corners that still hold several rows of chips */
+.chipbox:focus-within { border-color: var(--accent); }
+.tchip { max-width: 100%; } .tchip > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chipbox input { flex: 1; min-width: 180px; border: 0; background: none; outline: none; padding: 6px; } .chipbox .btn { border-radius: 999px; }
 .tchip { display: inline-flex; align-items: center; gap: 4px; background: var(--chip); border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 13px; } .tchip button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; }
 .filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 4px; }
@@ -154,10 +156,12 @@ details.log summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
 .jrow:hover { background: var(--chip); } .jmain { cursor: pointer; min-width: 0; } .jt { font-weight: 600; font-size: 15.5px; } .jm { color: var(--muted); font-size: 13px; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .clogo { width: 36px; height: 36px; border-radius: 10px; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; flex: none; }
 .ibtn { width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; font-size: 15px; } .ibtn.send:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
-.fside { position: sticky; top: 16px; display: grid; gap: 14px; } .sbox { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.fside { position: sticky; top: 16px; display: grid; gap: 14px; min-width: 0; } .sbox { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
 .shead { display: flex; gap: 8px; align-items: center; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 650; margin-bottom: 8px; } .shead a { margin-left: auto; }
 .logos { display: flex; flex-wrap: wrap; gap: 6px; } .logos .clogo { width: 30px; height: 30px; font-size: 11px; border-radius: 999px; }
-.sitem { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; padding: 6px 0; cursor: pointer; font-size: 12.5px; } .sitem .clogo { width: 30px; height: 30px; font-size: 11px; } .sitem b { font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px; } .sitem .warn { color: var(--warn); }
+.sitem > span:last-child { white-space: nowrap; font-size: 11.5px; }
+.sbox { min-width: 0; overflow: hidden; }
+.sitem { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; min-width: 0; gap: 8px; align-items: center; padding: 6px 0; cursor: pointer; font-size: 12.5px; } .sitem .clogo { width: 30px; height: 30px; font-size: 11px; } .sitem b { font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px; } .sitem .warn { color: var(--warn); }
 a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 @media (max-width: 900px) { .feedgrid { grid-template-columns: 1fr; } .fside { position: static; } }
 .claudesw { display: grid; gap: 4px; font-size: 12px; } .claudesw .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
@@ -746,6 +750,10 @@ document.addEventListener("click", (e) => {
 // ---------------- views ----------------
 const VIEWS = {};
 
+// Filter menus close when you click anywhere else or press Escape (like any dropdown).
+document.addEventListener("click", (e) => { if (!e.target.closest("details.fchip")) document.querySelectorAll("details.fchip[open]").forEach((d) => { d.open = false; }); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll("details.fchip[open]").forEach((d) => { d.open = false; }); });
+
 // ---------------- Jobs (modelled on Tsenta's Jobs page) ----------------
 // Jobs: every job that fits the search terms; For you: strong matches; Saved: bookmarked. Search-term chips edit the
 // person's search (used by Find new jobs too); filters narrow the list; the side panel shows applied / in progress / up next.
@@ -772,7 +780,7 @@ VIEWS.jobs = async (v) => {
   v.innerHTML = `<div class="feedgrid"><div>
     <div class="feedhead"><div class="views">${[["all", "Jobs", d.counts.all], ["foryou", "For you", d.counts.foryou], ["saved", "Saved", d.counts.saved]].map(([k, l, n]) => `<button data-view="${k}" class="${f.view === k ? "on" : ""}">${l}${k !== "all" && n ? `<span class="badge">${n}</span>` : ""}</button>`).join("")}</div>
       <span class="spacer"></span><button class="btn sm" id="discover" title="Search all employer boards again with these terms">🔎 Find new jobs</button></div>
-    <div class="chipbox" id="chipbox">${terms.map((t) => `<span class="tchip">${esc(t)}<button data-rmterm="${esc(t)}" aria-label="Remove">×</button></span>`).join("")}
+    <div class="chipbox" id="chipbox">${terms.map((t) => `<span class="tchip"><span>${esc(t)}</span><button data-rmterm="${esc(t)}" aria-label="Remove">×</button></span>`).join("")}
       <input id="termIn" placeholder="${terms.length ? "Add another, or paste a job link" : "Add a job title, skill or company — or paste a job link"}">
       <button class="btn sm" id="addOwn">＋ Add your own job</button></div>
     <div class="filters">
@@ -822,7 +830,11 @@ VIEWS.jobs = async (v) => {
     e.stopPropagation();
     try { await api(`${U()}/jobs/${encodeURIComponent(b.dataset.save)}/save`, { method: "POST", body: { saved: b.dataset.on !== "1" } }); render(); } catch (err) { fail(err); }
   });
-  // filter pop-overs
+  // filter pop-overs: only one open at a time
+  v.querySelectorAll("details.fchip").forEach((dt) => dt.addEventListener("toggle", () => {
+    if (dt.open) v.querySelectorAll("details.fchip[open]").forEach((o) => { if (o !== dt) o.open = false; });
+    if (dt.open) dt.querySelector(".pop input")?.focus();
+  }));
   const pop = (id, html, wire) => { const p = v.querySelector(`[data-pop="${id}"]`); p.innerHTML = html; wire?.(p); };
   const set = (patch) => { Object.assign(f, patch); render(); };
   pop("days", [[0, "Any time"], [1, "Past 24 hours"], [3, "Past 3 days"], [7, "Past week"], [30, "Past month"]].map(([k, l]) => `<button data-v="${k}" class="${f.days === k ? "on" : ""}">${l}</button>`).join(""), (p) => p.querySelectorAll("[data-v]").forEach((b) => b.onclick = () => set({ days: Number(b.dataset.v) })));
