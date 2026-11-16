@@ -1831,6 +1831,11 @@ async function boot() {
     const cfg = await fetch("config.json", { cache: "no-store" }).then((r) => r.json()).catch(() => ({}));
     API = (cfg.apiBase ?? "").replace(/\/$/, "");
     SB.cfg = cfg.supabase?.url && cfg.supabase?.anonKey ? { url: cfg.supabase.url.replace(/\/$/, ""), anonKey: cfg.supabase.anonKey } : null;
+    // the running AutoApply (this PC or the cloud server) publishes its current address to Supabase on each start
+    if (SB.cfg) {
+      const live = await fetch(`${SB.cfg.url}/storage/v1/object/public/autoapply-public/site.json?t=${Date.now()}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      if (live?.apiBase) API = live.apiBase.replace(/\/$/, "");
+    }
     const up = API && await fetch(`${API}/api/auth/state`, { headers: authHeader(), signal: AbortSignal.timeout(10000) }).then((r) => r.status < 500).catch(() => false);
     const h = new URLSearchParams(location.hash.slice(1));
     if (SB.cfg && h.get("access_token") && h.get("refresh_token")) { sbStore({ access_token: h.get("access_token"), refresh_token: h.get("refresh_token"), expires_in: h.get("expires_in") }); if (!up) history.replaceState(null, "", location.pathname + location.search); }
