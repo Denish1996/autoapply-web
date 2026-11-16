@@ -236,6 +236,8 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 12px; } .tabs button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; }
 .tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; } .tabs button .n { opacity: .7; margin-left: 4px; }
 @media (max-width: 800px) { .app { grid-template-columns: 1fr; } aside { position: static; height: auto; } main { padding: 18px 16px 140px; } .job { grid-template-columns: 52px 1fr; } .job .acts { grid-column: 1 / -1; flex-wrap: wrap; } .hide-sm { display: none; } }
+#offbar { display: flex; gap: 12px; align-items: center; padding: 10px 20px; background: var(--warn-soft); color: var(--warn); font-size: 14px; border-bottom: 1px solid var(--line, rgba(0,0,0,.08)); }
+#offbar > div { flex: 1; }
 </style>
 </head>
 <body>
@@ -266,10 +268,11 @@ const store = { get: (k) => { try { return localStorage.getItem(k); } catch { re
 
 // Served by this computer: same origin, signed in with a cookie. Served by GitHub Pages: config.json says where the
 // server is (its Cloudflare address) and the session token travels in an Authorization header.
-const HOSTED = /\.github\.io$/.test(location.hostname);
+const HOSTED = /\.github\.io$/.test(location.hostname) || !!document.querySelector('meta[name="autoapply-hosted"]'); // the offline test page sets this
 let API = "";
 const authHeader = () => { const t = HOSTED && store.get("aa.token"); return t ? { authorization: `Bearer ${t}` } : {}; };
 async function api(path, opts = {}) {
+  if (OFF) return offApi(path, opts);
   let res;
   try { res = await fetch(`${API}/api${path}`, { ...opts, headers: { "content-type": "application/json", "x-autoapply": "1", ...authHeader(), ...(opts.headers ?? {}) }, body: opts.body && typeof opts.body !== "string" ? JSON.stringify(opts.body) : opts.body }); }
   catch { throw Object.assign(new Error("AutoApply is offline — the computer that runs it is off or not online right now."), { offline: true }); }
@@ -278,6 +281,131 @@ async function api(path, opts = {}) {
   if (res.status === 403 && data?.error === "pending") { showPending(); throw new Error("Waiting for approval."); }
   if (!res.ok) throw new Error(data?.error ?? res.statusText);
   return data;
+}
+
+// ---------------- offline mode ----------------
+// When the AutoApply computer is off, the GitHub page signs in to Supabase and shows the copy that computer saved
+// there (refreshed every few minutes while it's on). Things people do are saved as waiting actions; the computer
+// carries them out, as the person who asked, when it's back on. Passwords and owner settings never go this way.
+let OFF = null;
+const SB = { cfg: null };
+const OFF_QUEUE = [["PUT", /^\/(search|profile|answers|learned)$/], ["POST", /^\/jobs\/[^/]+\/(save|status|stage)$/], ["POST", /^\/inbox$/], ["POST", /^\/tasks$/], ["POST", /^\/resumes\/[^/]+\/default$/]];
+const offErr = () => Object.assign(new Error("This needs the AutoApply computer to be on. Try again when it's back."), { offline: true });
+const sbSession = () => { try { return JSON.parse(store.get("aa.sb") || "null"); } catch { return null; } };
+async function sbAuth(grant, body) {
+  const r = await fetch(`${SB.cfg.url}/auth/v1/token?grant_type=${grant}`, { method: "POST", headers: { apikey: SB.cfg.anonKey, "content-type": "application/json" }, body: JSON.stringify(body) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(/invalid/i.test(d.error_description ?? d.msg ?? "") ? "Wrong email or password." : d.error_description || d.msg || "Couldn't sign in.");
+  store.set("aa.sb", JSON.stringify({ access: d.access_token, refresh: d.refresh_token, exp: Date.now() + (d.expires_in ?? 3600) * 1000 - 60e3, email: d.user?.email }));
+  return d;
+}
+async function sbToken() {
+  const s = sbSession(); if (!s?.access) return null;
+  if (Date.now() < s.exp) return s.access;
+  try { await sbAuth("refresh_token", { refresh_token: s.refresh }); return sbSession().access; } catch { store.set("aa.sb", ""); return null; }
+}
+async function sb(method, q, body) {
+  const t = await sbToken();
+  if (!t) { showLogin(); throw new Error("Please sign in."); }
+  const r = await fetch(`${SB.cfg.url}/rest/v1/${q}`, { method, headers: { apikey: SB.cfg.anonKey, authorization: `Bearer ${t}`, "content-type": "application/json", prefer: "return=minimal" }, body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 401) { store.set("aa.sb", ""); showLogin(); throw new Error("Please sign in."); }
+  if (!r.ok) throw new Error(`Offline copy: ${(await r.text()).slice(0, 160)}`);
+  return r.status === 204 || r.status === 201 ? null : r.json();
+}
+async function goOffline() {
+  if (!(await sbToken())) return showLogin();
+  const [rows, status, pending] = await Promise.all([
+    sb("GET", "autoapply_mirror?select=workspace,key,data,updated_at"),
+    sb("GET", "autoapply_status?select=last_seen").catch(() => []),
+    sb("GET", "autoapply_queue?select=id,workspace,method,path&status=eq.pending&order=id.asc").catch(() => []),
+  ]);
+  const data = {}; let copiedAt = 0;
+  for (const r of rows ?? []) { (data[r.workspace] ??= {})[r.key] = r.data; copiedAt = Math.max(copiedAt, Date.parse(r.updated_at) || 0); }
+  OFF = { data, lastSeen: status?.[0]?.last_seen ?? null, copiedAt, pending: pending ?? [], email: sbSession()?.email ?? "" };
+  OFF.users = Object.keys(data).filter((id) => data[id].summary).map((id) => data[id].meta ?? { id, name: id });
+  S.me = { email: OFF.email, name: OFF.email, role: "member", workspaces: OFF.users.map((u) => u.id), offline: true };
+  $("#login")?.remove();
+  await loadUsers(); await render(); offBanner();
+  // check every minute whether the computer is back
+  setInterval(async () => {
+    if (!API || $("#offBack")) return;
+    const up = await fetch(`${API}/api/auth/state`, { headers: authHeader(), signal: AbortSignal.timeout(8000) }).then((r) => r.ok).catch(() => false);
+    if (up) $("#offbar").innerHTML = `<span>✅</span><div><b>AutoApply's computer is back on.</b></div><button class="btn sm primary" id="offBack" onclick="location.reload()">Refresh</button>`;
+  }, 60e3);
+}
+function offBanner() {
+  let el = $("#offbar");
+  if (!el) { el = document.createElement("div"); el.id = "offbar"; document.body.prepend(el); }
+  const n = OFF.pending.length;
+  el.innerHTML = `<span>📴</span><div><b>AutoApply's computer is off${OFF.lastSeen ? ` (last on ${esc(agoText(OFF.lastSeen))})` : ""}.</b> You're seeing the copy from ${OFF.copiedAt ? esc(agoText(new Date(OFF.copiedAt).toISOString())) : "earlier"}. Anything you do is saved and happens when it's back on.${n ? ` <b>${n} waiting.</b>` : ""}</div>`;
+}
+const offBody = (b) => (typeof b === "string" ? JSON.parse(b || "{}") : b ?? {});
+const offJobs = (D) => [D["feed:all"]?.rows ?? [], D["feed:saved"]?.rows ?? [], D["jobs:open"] ?? [], D["jobs:applications"] ?? []];
+function offFind(D, id) { for (const list of offJobs(D)) { const j = list.find((x) => x.id === id); if (j) return j; } return null; }
+function offPatchJob(D, id, patch) { let hit = null; for (const list of offJobs(D)) for (const j of list) if (j.id === id) { Object.assign(j, patch); hit = j; } return hit; }
+// The same filters as the server's job feed, run on the saved copy.
+function offFeed(D, q) {
+  const all = D["feed:all"] ?? { rows: [], companies: [], countries: [], side: {} };
+  const qa = (k) => (q.get(k) ?? "").split(",").map((s) => s.trim()).filter(Boolean), lc = (s) => String(s ?? "").toLowerCase();
+  const days = +q.get("days") || 0, min = +q.get("min") || 0, maxexp = +q.get("maxexp") || 0, pay = +q.get("pay") || 0, work = q.get("workplace") || "", degree = q.get("degree") || "";
+  const locs = qa("loc"), cos = qa("companies").map(lc), excl = qa("exclude").map(lc), emp = qa("emp");
+  const when = (j) => Date.parse(j.postedAt ?? 0) || 0, deg = ["bachelor", "master", "phd"];
+  const fits = (j) => (q.get("all") === "1" || j.autoApply)
+    && (!days || Date.now() - when(j) <= days * 864e5) && (!min || (j.score ?? 0) >= min)
+    && (!locs.length || (j.places ?? []).some((p) => locs.includes(p)))
+    && (!work || (work === "remote" ? /remote/i.test(j.location ?? "") : work === "hybrid" ? /hybrid/i.test(`${j.location} ${j.remote ?? ""}`) : !/remote|hybrid/i.test(`${j.location} ${j.remote ?? ""}`)))
+    && (!cos.length || cos.includes(lc(j.company))) && !excl.some((x) => `${lc(j.title)} ${lc(j.company)} ${lc(j.location)}`.includes(x))
+    && (!maxexp || j.facts?.years == null || j.facts.years <= maxexp) && !(q.get("visa") === "1" && j.facts?.noSponsorship) && !(q.get("noclear") === "1" && j.facts?.clearance)
+    && (!emp.length || emp.includes(j.employment)) && (!pay || j.facts?.payMax == null || j.facts.payMax >= pay)
+    && (!degree || !j.facts?.degree || deg.indexOf(j.facts.degree) <= deg.indexOf(degree));
+  const minScore = D.summary?.search?.minScore ?? 80, forYou = (j) => (j.score ?? 0) >= minScore;
+  const open = all.rows.filter((j) => !["submitted", "rejected", "discovered", "skipped", "queued"].includes(j.status));
+  const base = open.filter(fits), saved = (D["feed:saved"]?.rows ?? []).filter((j) => j.saved && j.status !== "submitted");
+  const view = q.get("view") || "all";
+  const rows = view === "saved" ? saved.filter(fits) : view === "foryou" ? base.filter(forYou) : base;
+  rows.sort((a, b) => (q.get("sort") === "newest" ? when(b) - when(a) || (b.score ?? 0) - (a.score ?? 0) : (b.score ?? 0) - (a.score ?? 0) || when(b) - when(a)));
+  const sr = D.summary?.search ?? {}; // search terms as the server works them out (match.js searchTerms)
+  const terms = [...new Set([...(sr.keywords ?? []), ...(sr.strictTitles ? [] : sr.titleInclude ?? [])].map((x) => String(x).trim()).filter(Boolean))];
+  return { ...all, terms, view, total: rows.length, rows: rows.slice(0, 300), counts: { all: base.length, foryou: base.filter(forYou).length, saved: saved.length } };
+}
+async function offApi(path, opts) {
+  const method = (opts.method ?? "GET").toUpperCase();
+  const [p, qs] = path.split("?"), q = new URLSearchParams(qs ?? "");
+  const m = p.match(/^\/users\/([^/]+)(\/.*)?$/), ws = m && decodeURIComponent(m[1]), rel = m?.[2] ?? "", D = ws ? OFF.data[ws] : null;
+  if (method === "GET") {
+    if (p === "/auth/state") return { account: S.me, supabase: null };
+    if (p === "/users") return OFF.users;
+    if (p === "/settings") return { backend: null, offline: true };
+    if (p === "/tasks") return [];
+    if (!D) throw offErr();
+    if (!rel) return D.summary;
+    if (rel === "/feed") return offFeed(D, q);
+    if (rel === "/jobs") return D[`jobs:${q.get("status")}`] ?? [];
+    const jm = rel.match(/^\/jobs\/([^/]+)$/);
+    if (jm) { const j = offFind(D, decodeURIComponent(jm[1])); if (!j) throw offErr(); return { ...j, receipts: [] }; }
+    if (rel === "/readiness") return { ready: true, missing: [], blockers: [] }; // checked again when the computer runs it
+    if (D[rel.slice(1)] !== undefined) return D[rel.slice(1)];
+    throw offErr();
+  }
+  if (!D || !OFF_QUEUE.some(([mm, re]) => mm === method && re.test(rel))) throw offErr();
+  const body = offBody(opts.body);
+  await sb("POST", "autoapply_queue", { workspace: ws, method, path: p, body });
+  OFF.pending.push({ workspace: ws, method, path: p });
+  // show the change straight away
+  const jm = rel.match(/^\/jobs\/([^/]+)\/(\w+)$/), id = jm && decodeURIComponent(jm[1]);
+  let out = { ok: true, queued: true, requeued: [] };
+  if (/^\/(search|profile|answers)$/.test(rel)) { D.summary[rel.slice(1)] = body; out = D.summary; }
+  else if (jm?.[2] === "save") { const j = offPatchJob(D, id, { saved: !!body.saved }); const sv = (D["feed:saved"] ??= { rows: [] }); sv.rows = sv.rows.filter((x) => x.id !== id); if (body.saved && j) sv.rows.push(j); out = j ?? out; }
+  else if (jm) out = offPatchJob(D, id, jm[2] === "stage" ? { stage: body.stage } : { status: body.status }) ?? out;
+  else if (rel === "/inbox") D.inbox = (D.inbox ?? []).filter((it) => it.key !== body.key);
+  else if (rel === "/tasks") {
+    const side = ((D["feed:all"] ??= { rows: [], side: {} }).side ??= {});
+    for (const jid of body.jobIds ?? []) { const j = offPatchJob(D, jid, { status: "queued" }); if (j) (side.inProgress ??= []).unshift({ id: j.id, company: j.company, title: j.title, status: "waiting for computer" }); }
+    out = { id: "queued", status: "queued" };
+  }
+  offBanner();
+  setTimeout(() => toast(rel === "/tasks" ? "Saved. AutoApply will apply as soon as its computer is back on." : "Saved. It happens when AutoApply's computer is back on."), 400);
+  return out;
 }
 
 // On GitHub Pages, links and images that point at /api/… (PDFs, screenshots, CSV) are loaded from the server with the
@@ -364,7 +492,7 @@ document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-aimode]"); if (b) {
     try { S.user = await api(`${U()}/search`, { method: "PUT", body: { ...S.user.search, aiMode: b.dataset.aimode } }); renderClaudeSwitch(); toast({ off: "Claude is off — no tokens are used", ask: "Claude only when you allow it", auto: "Claude may be used automatically" }[b.dataset.aimode]); if (S.tab === "profile") render(); } catch (err) { fail(err); }
   }
-  if (e.target.id === "signOut") { await api("/auth/logout", { method: "POST", body: {} }).catch(() => {}); store.set("aa.token", ""); location.reload(); }
+  if (e.target.id === "signOut") { await api("/auth/logout", { method: "POST", body: {} }).catch(() => {}); store.set("aa.token", ""); store.set("aa.sb", ""); location.reload(); }
 });
 
 function renderNav() {
@@ -603,13 +731,13 @@ async function applyForMe(id, { dry } = {}) {
   const resumeId = document.querySelector(`[data-resume-for="${CSS.escape(id)}"]`)?.value || j.resumeId;
   if (!dry && !(await ensureReady([id]))) return;
   // One click: no confirmation — AutoApply fills and submits the application by itself.
-  if (!dry) toast(`Applying to ${j.title} at ${j.company}…`);
+  if (!dry && !OFF) toast(`Applying to ${j.title} at ${j.company}…`);
   startTask({ type: "run", jobIds: [id], resumeId, dryRun: !!dry });
 }
 async function applyMany(ids) {
   if (!ids.length) return toast("No jobs to apply to", true);
   if (!(await ensureReady(ids))) return;
-  toast(`Applying to ${ids.length} job${ids.length > 1 ? "s" : ""}…`);
+  if (!OFF) toast(`Applying to ${ids.length} job${ids.length > 1 ? "s" : ""}…`);
   startTask({ type: "run", jobIds: ids });
 }
 const findPeople = async (ids) => {
@@ -815,7 +943,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.q
 const FEED_DEFAULT = { view: "all", days: 0, loc: [], workplace: "", companies: [], exclude: [], min: 0, sort: "", maxexp: 0, visa: false, noclear: false, emp: [], pay: 0, degree: "", all: false };
 function loadFeed() { try { return { ...FEED_DEFAULT, ...JSON.parse(store.get(`aa.feed.${S.userId}`) || "{}") }; } catch { return { ...FEED_DEFAULT }; } }
 function saveFeed() { store.set(`aa.feed.${S.userId}`, JSON.stringify(S.feed)); }
-const agoText = (t) => { const ms = Date.now() - Date.parse(t); if (!t || Number.isNaN(ms)) return ""; const m = Math.floor(ms / 60e3), h = Math.floor(m / 60), d = Math.floor(h / 24); return m < 60 ? `${Math.max(1, m)} minutes ago` : h < 24 ? `${h} hour${h > 1 ? "s" : ""} ago` : d === 1 ? "1 day ago" : d < 30 ? `${d} days ago` : `${Math.floor(d / 30)} months ago`; };
+const agoText = (t) => { const ms = Date.now() - Date.parse(t); if (!t || Number.isNaN(ms)) return ""; const m = Math.floor(ms / 60e3), h = Math.floor(m / 60), d = Math.floor(h / 24); return m < 2 ? "1 minute ago" : m < 60 ? `${m} minutes ago` : h < 24 ? `${h} hour${h > 1 ? "s" : ""} ago` : d === 1 ? "1 day ago" : d < 30 ? `${d} days ago` : `${Math.floor(d / 30)} months ago`; };
 const logoFor = (name = "?") => { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360; const ini = name.replace(/[^A-Za-z0-9 ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?"; return `<div class="clogo" style="background:hsl(${h} 55% 45%)" title="${esc(name)}">${esc(ini)}</div>`; };
 function feedQuery() {
   const f = S.feed, p = new URLSearchParams({ view: f.view });
@@ -1474,7 +1602,7 @@ VIEWS.online = async (v) => {
       <div class="form"><label class="f"><span>Client ID ${gm.clientIdSet ? `<span class="chip submitted">saved</span>` : ""}</span><input id="gmId" placeholder="….apps.googleusercontent.com"></label>
       <label class="f"><span>Client secret ${gm.clientSecretSet ? `<span class="chip submitted">saved</span>` : ""}</span>${pwField("gmSecret", gm.clientSecretSet ? "Saved — paste to replace" : "GOCSPX-…")}</label></div>
       <div class="row" style="margin-top:10px"><button class="btn" id="gmSave">Save</button></div></div>
-    <div class="card"><div class="card-head"><div style="font-size:22px">🗄️</div><div><h2>3 · Accounts & online backup (Supabase) <span class="chip">Optional</span></h2><p>With Supabase, sign-ins are handled by Supabase Auth and everyone's job-search data is backed up to your Supabase database every 30 minutes. Job-site passwords and browser sign-ins are never uploaded.</p></div></div>
+    <div class="card"><div class="card-head"><div style="font-size:22px">🗄️</div><div><h2>3 · Offline mode, accounts & backup (Supabase) <span class="chip">Optional</span></h2><p><b>Keeps the website working while this computer is off:</b> people see the last copy of their jobs and applications, and what they do (save, edit, Apply) happens when it is back on. With Supabase, sign-ins are handled by Supabase Auth and everyone's job-search data is backed up to your Supabase database every 30 minutes. Job-site passwords and browser sign-ins are never uploaded.</p></div></div>
       <div class="form">
         <label class="f wide"><span>Project URL</span><input id="sbUrl" value="${esc(c.supabaseUrl)}" placeholder="https://abcdefgh.supabase.co"></label>
         <label class="f"><span>anon / publishable key ${c.anonKeySet ? `<span class="chip submitted">saved</span>` : ""}</span>${pwField("sbAnon", c.anonKeySet ? "Saved — paste to replace" : "eyJ… or sb_publishable_…")}<small>For sign-in.</small></label>
@@ -1539,7 +1667,12 @@ async function showLogin(mode) {
   const T = { login: ["Welcome back", "Log in to AutoApply."], signup: ["Create your account", "Start applying in minutes."], setup: ["Set up AutoApply", "Create the owner account. You can invite family afterwards."] }[AUTH.mode];
   const who = AUTH.step !== "email" ? `<div class="who"><span>${esc(AUTH.email)}</span><a class="l" data-lg-back>Change</a></div>` : "";
   let body;
-  if (st.offline) body = `<div class="banner"><div>⚠️</div><div><b>AutoApply is offline.</b> The computer that runs it is off or not connected right now. Try again later.</div></div><button type="button" class="btn primary go" onclick="location.reload()">Try again</button>`;
+  const offlineLogin = st.offline && SB.cfg;
+  if (offlineLogin) body = `<div class="banner"><div>📴</div><div><b>AutoApply's computer is off right now.</b> Sign in to see your jobs and applications. Anything you do waits and happens when it's back on.</div></div>
+      <label class="f"><span>Email address</span><input id="lgEmail" type="email" autocomplete="username" value="${esc(AUTH.email)}" required></label>
+      <label class="f"><span>Password</span><input id="lgPw" type="password" autocomplete="current-password" required></label>
+      <button class="btn primary go" type="submit">Log in</button>`;
+  else if (st.offline) body = `<div class="banner"><div>⚠️</div><div><b>AutoApply is offline.</b> The computer that runs it is off or not connected right now. Try again later.</div></div><button type="button" class="btn primary go" onclick="location.reload()">Try again</button>`;
   else if (AUTH.step === "email" && AUTH.mode === "login") body = `${google}<label class="f"><span>Email address</span><input id="lgEmail" type="email" autocomplete="username" placeholder="you@example.com" value="${esc(AUTH.email)}" required></label>
       <button class="btn primary go" type="submit">Continue →</button>`;
   else if (AUTH.step === "password") body = `${who}<label class="f"><span>Password</span><input id="lgPw" type="password" autocomplete="current-password" required></label>
@@ -1554,7 +1687,7 @@ async function showLogin(mode) {
       ${AUTH.mode === "signup" && st.signups === "approval" && !AUTH.invited ? `<div class="fine">New accounts are approved by the person who runs AutoApply before they can apply.</div>` : ""}`;
   const foot = st.offline || AUTH.mode === "setup" ? "" : AUTH.mode === "login" ? `Don't have an account? <a class="l" data-lg="signup">Sign up</a>` : `Already have an account? <a class="l" data-lg="login">Log in</a>`;
   el.innerHTML = `${PITCH}<div class="side"><form novalidate><div class="brand mbrand"><div class="logo">⚡</div>AutoApply</div><h1>${AUTH.step === "password" && AUTH.name ? `Welcome back, ${esc(AUTH.name.split(" ")[0])}` : T[0]}</h1><p class="lead">${T[1]}</p>${body}
-    <div class="alt">${foot}</div><div class="fine">Your data stays on the AutoApply owner's computer.</div></form></div>`;
+    <div class="alt">${foot}</div><div class="fine">${offlineLogin ? "Showing the copy saved while the computer was on." : "Your data stays on the AutoApply owner's computer."}</div></form></div>`;
   el.querySelectorAll("[data-lg]").forEach((x) => x.onclick = () => { AUTH = { mode: x.dataset.lg, step: "email", email: $("#lgEmail")?.value.trim() || AUTH.email, name: "" }; showLogin(); });
   el.querySelector("[data-lg-back]")?.addEventListener("click", () => { AUTH = { ...AUTH, step: "email" }; showLogin(); });
   $("#lgGoogle")?.addEventListener("click", () => { location.href = `${sb.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(location.href.split("#")[0])}`; });
@@ -1564,6 +1697,11 @@ async function showLogin(mode) {
   el.querySelector("form").onsubmit = async (ev) => {
     ev.preventDefault();
     const btn = el.querySelector(".go"); if (btn) btn.disabled = true;
+    if (offlineLogin) {
+      try { AUTH.email = $("#lgEmail").value.trim(); await sbAuth("password", { email: AUTH.email, password: $("#lgPw").value }); await goOffline(); }
+      catch (err) { fail(err); } finally { if (btn) btn.disabled = false; }
+      return;
+    }
     try {
       if (AUTH.step === "email") AUTH.email = $("#lgEmail").value.trim();
       if (AUTH.step === "email" && AUTH.mode !== "setup") {
@@ -1573,7 +1711,10 @@ async function showLogin(mode) {
         if (AUTH.mode === "login") { AUTH = { ...AUTH, mode: "signup", step: "details", name: r.name ?? "", invited: r.invited }; toast(r.invited ? "You've been invited — choose a password to finish." : "No account for this email yet — create one."); return showLogin(); }
       }
       const route = AUTH.step === "password" ? "login" : AUTH.mode === "setup" ? "setup" : "register";
-      signedIn(await api(`/auth/${route}`, { method: "POST", body: { email: AUTH.email, password: $("#lgPw").value, name: $("#lgName")?.value.trim() } }));
+      const pw = $("#lgPw").value;
+      const r = await api(`/auth/${route}`, { method: "POST", body: { email: AUTH.email, password: pw, name: $("#lgName")?.value.trim() } });
+      if (HOSTED && SB.cfg && r.token) setTimeout(() => sbAuth("password", { email: AUTH.email, password: pw }).catch(() => {}), 4000);
+      signedIn(r);
     } catch (err) { fail(err); } finally { if (btn) btn.disabled = false; }
   };
   ($("#lgName") ?? $("#lgEmail") ?? $("#lgPw"))?.focus();
@@ -1597,7 +1738,9 @@ async function boot() {
   if (HOSTED) {
     const cfg = await fetch("config.json", { cache: "no-store" }).then((r) => r.json()).catch(() => ({}));
     API = (cfg.apiBase ?? "").replace(/\/$/, "");
-    if (!API) return showLogin();
+    SB.cfg = cfg.supabase?.url && cfg.supabase?.anonKey ? { url: cfg.supabase.url.replace(/\/$/, ""), anonKey: cfg.supabase.anonKey } : null;
+    const up = API && await fetch(`${API}/api/auth/state`, { headers: authHeader(), signal: AbortSignal.timeout(10000) }).then((r) => r.status < 500).catch(() => false);
+    if (!up) return SB.cfg && sbSession() ? goOffline().catch((e) => { fail(e); showLogin(); }) : showLogin();
   }
   // back from "Continue with Google" (Supabase puts the token after #)
   const hash = new URLSearchParams(location.hash.slice(1));
