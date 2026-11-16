@@ -4,16 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AutoApply</title>
+<script>try { document.documentElement.dataset.theme = localStorage.getItem("aa.theme") || "light"; } catch { document.documentElement.dataset.theme = "light"; }</script>
 <style>
 :root {
   --bg: #f5f6fa; --panel: #ffffff; --ink: #151821; --muted: #646d7c; --line: #e4e7ee; --accent: #5b4bf5; --accent-soft: #eeecff; --accent-ink: #fff;
   --good: #14804a; --good-soft: #e5f6ec; --warn: #9a5b00; --warn-soft: #fff3e0; --bad: #c0261c; --bad-soft: #fdecea; --chip: #f0f2f6;
   --shadow: 0 1px 2px rgba(16,24,40,.05), 0 2px 8px rgba(16,24,40,.06); --radius: 14px;
 }
+/* Light by default (like Tsenta); dark when chosen in the sidebar, or "System" on a dark system */
+:root[data-theme="dark"] { --bg: #0e1015; --panel: #171a21; --ink: #e9ecf2; --muted: #9aa3b2; --line: #272c36; --accent: #8b7dff; --accent-soft: #252244; --chip: #20242d;
+  --good: #4cd08d; --good-soft: #15291f; --warn: #f2b45a; --warn-soft: #2d2414; --bad: #ff7b70; --bad-soft: #301a19; --shadow: none; color-scheme: dark; }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #0e1015; --panel: #171a21; --ink: #e9ecf2; --muted: #9aa3b2; --line: #272c36; --accent: #8b7dff; --accent-soft: #252244; --chip: #20242d;
+  :root[data-theme="system"] { --bg: #0e1015; --panel: #171a21; --ink: #e9ecf2; --muted: #9aa3b2; --line: #272c36; --accent: #8b7dff; --accent-soft: #252244; --chip: #20242d;
     --good: #4cd08d; --good-soft: #15291f; --warn: #f2b45a; --warn-soft: #2d2414; --bad: #ff7b70; --bad-soft: #301a19; --shadow: none; color-scheme: dark; }
 }
+:root:not([data-theme]), :root[data-theme="light"] { color-scheme: light; }
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.5 "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
 a { color: var(--accent); }
@@ -25,7 +30,6 @@ aside { background: var(--panel); border-right: 1px solid var(--line); padding: 
 .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; flex: none; }
 .me select { border: 0; padding: 0; background: none; color: var(--ink); font-weight: 600; width: 100%; cursor: pointer; }
 /* drop-down lists follow the app's theme (otherwise Windows draws them white with the page's light text) */
-:root { color-scheme: light dark; }
 select option, select optgroup { background: var(--panel); color: var(--ink); }
 .me small { color: var(--muted); display: block; }
 nav { display: grid; gap: 2px; }
@@ -164,6 +168,33 @@ details.log summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
 .sitem { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; min-width: 0; gap: 8px; align-items: center; padding: 6px 0; cursor: pointer; font-size: 12.5px; } .sitem .clogo { width: 30px; height: 30px; font-size: 11px; } .sitem b { font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px; } .sitem .warn { color: var(--warn); }
 a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 @media (max-width: 900px) { .feedgrid { grid-template-columns: 1fr; } .fside { position: static; } }
+.feedmain { min-width: 0; position: relative; padding-bottom: 60px; }
+.headicons { display: flex; align-items: center; gap: 10px; } .hicon { position: relative; width: 36px; height: 36px; border-radius: 999px; border: 0; background: none; color: var(--ink); font-size: 18px; cursor: pointer; } .hicon:hover { background: var(--chip); }
+.hicon .dot { position: absolute; top: -2px; right: -4px; background: #16a34a; color: #fff; font-size: 10px; border-radius: 999px; padding: 0 5px; line-height: 16px; }
+.avatar.sm { width: 34px; height: 34px; font-size: 12px; background: #1f3d34; color: #fff; }
+.searchrow { display: flex; gap: 10px; align-items: flex-start; } .searchrow .chipbox { flex: 1; }
+.pillbtn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; } .pillbtn:hover { background: var(--chip); }
+.blackbtn { border: 0; background: var(--ink); color: var(--panel); border-radius: 999px; padding: 8px 14px; font: inherit; font-weight: 650; font-size: 13px; cursor: pointer; white-space: nowrap; } .blackbtn.sm { padding: 5px 12px; font-size: 12.5px; } .blackbtn:hover { opacity: .88; }
+.fchip-btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; } .fchip-btn.on { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.fchip .n { background: var(--panel); color: var(--ink); border-radius: 999px; padding: 0 6px; font-size: 11px; margin-left: 2px; } .fchip .caret { opacity: .6; font-size: 10px; }
+.fchip .pop .pophint { font-size: 12.5px; color: var(--muted); } .fchip .pop .wordlist { display: flex; flex-wrap: wrap; gap: 6px; }
+.fchip .pop input { width: 100%; min-width: 0; padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); font: inherit; }
+.fchip .pop .clist { max-height: 260px; overflow: auto; } .fchip .pop { min-width: 260px; max-width: 340px; }
+.linkrow { display: flex; align-items: center; gap: 16px; margin: 8px 0 10px; font-size: 13px; } .linkrow .strong { color: var(--ink); font-weight: 650; } .linkrow .muted { color: var(--muted); }
+.jk { font-size: 12px; color: var(--muted); margin-top: 2px; } .jk .good { color: var(--good); font-weight: 600; }
+.ibtn.star { border-color: transparent; opacity: 0; } .jrow:hover .ibtn.star, .ibtn.star.on { opacity: 1; }
+.leftpill { position: sticky; bottom: 14px; display: inline-flex; gap: 8px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 13px; box-shadow: var(--shadow); margin-top: 14px; }
+.fside .sbox.plain { background: none; border: 0; padding: 4px 2px; }
+.fside { border-left: 1px solid var(--line); padding-left: 22px; min-height: calc(100vh - 60px); align-content: start; }
+.srow { display: flex; justify-content: space-between; align-items: center; } .sname { font-size: 18px; font-weight: 700; } .sstat { font-size: 12.5px; }
+.sdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #9aa3b2; margin-right: 6px; } .sdot.on { background: #16a34a; }
+.orb { width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #f3f4f6, #9aa6b8 70%, #6b7686); }
+.pill { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12.5px; background: var(--panel); }
+.askbox { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 16px; padding: 6px 6px 6px 14px; background: var(--panel); margin-top: 18px; }
+.askbox input { flex: 1; border: 0; outline: none; background: none; color: var(--ink); font: inherit; padding: 8px 0; }
+.askbox button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--muted); color: #fff; font-size: 16px; cursor: pointer; } .askbox button:hover { background: var(--ink); }
+.themesw { display: grid; gap: 4px; font-size: 12px; } .themesw .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.themesw .seg button { flex: 1; border: 0; background: none; color: var(--muted); padding: 5px 4px; font: inherit; font-size: 12px; cursor: pointer; } .themesw .seg button.on { background: var(--chip); color: var(--ink); font-weight: 650; }
 .claudesw { display: grid; gap: 4px; font-size: 12px; } .claudesw .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .claudesw .seg button { flex: 1; border: 0; background: none; color: var(--muted); padding: 6px 4px; font: inherit; font-size: 12px; cursor: pointer; }
 .claudesw .seg button.on { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
@@ -200,6 +231,7 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
       <button class="btn sm" id="newUserBtn">＋ Add a person</button>
       <div class="claudesw" id="claudeSw" title="When AutoApply may use Claude (your subscription) for this person"></div>
       <div class="ai" id="aiStatus" data-tab="settings"><span class="dot" id="aiDot"></span><span id="llm">Claude AI</span></div>
+      <div class="themesw" id="themeSw"><span class="muted">Theme</span><div class="seg"><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button><button data-theme-set="system">System</button></div></div>
       <div class="acct" id="acct"></div>
     </div>
   </aside>
@@ -750,6 +782,11 @@ document.addEventListener("click", (e) => {
 // ---------------- views ----------------
 const VIEWS = {};
 
+// Theme: Light (default, like Tsenta) / Dark / System
+function paintThemeSwitch() { const t = document.documentElement.dataset.theme; document.querySelectorAll("[data-theme-set]").forEach((b) => b.classList.toggle("on", b.dataset.themeSet === t)); }
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-theme-set]"); if (!b) return; document.documentElement.dataset.theme = b.dataset.themeSet; store.set("aa.theme", b.dataset.themeSet); paintThemeSwitch(); });
+paintThemeSwitch();
+
 // Filter menus close when you click anywhere else or press Escape (like any dropdown).
 document.addEventListener("click", (e) => { if (!e.target.closest("details.fchip")) document.querySelectorAll("details.fchip[open]").forEach((d) => { d.open = false; }); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll("details.fchip[open]").forEach((d) => { d.open = false; }); });
@@ -757,62 +794,81 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.q
 // ---------------- Jobs (modelled on Tsenta's Jobs page) ----------------
 // Jobs: every job that fits the search terms; For you: strong matches; Saved: bookmarked. Search-term chips edit the
 // person's search (used by Find new jobs too); filters narrow the list; the side panel shows applied / in progress / up next.
-S.feed = S.feed ?? { view: store.get("aa.view") || "all", days: 0, loc: [], workplace: "", companies: [], exclude: [], min: 0 };
-const agoText = (t) => { const d = Math.floor((Date.now() - Date.parse(t)) / 864e5); return !t || Number.isNaN(d) ? "" : d <= 0 ? "today" : d === 1 ? "1 day ago" : d < 30 ? `${d} days ago` : `${Math.floor(d / 30)} mo ago`; };
+// Filters are remembered per person (and Exclude words are saved to their preferences, so searches skip them too).
+const FEED_DEFAULT = { view: "all", days: 0, loc: [], workplace: "", companies: [], exclude: [], min: 0, sort: "", maxexp: 0, visa: false, noclear: false, emp: [], pay: 0, degree: "", all: false };
+function loadFeed() { try { return { ...FEED_DEFAULT, ...JSON.parse(store.get(`aa.feed.${S.userId}`) || "{}") }; } catch { return { ...FEED_DEFAULT }; } }
+function saveFeed() { store.set(`aa.feed.${S.userId}`, JSON.stringify(S.feed)); }
+const agoText = (t) => { const ms = Date.now() - Date.parse(t); if (!t || Number.isNaN(ms)) return ""; const m = Math.floor(ms / 60e3), h = Math.floor(m / 60), d = Math.floor(h / 24); return m < 60 ? `${Math.max(1, m)} minutes ago` : h < 24 ? `${h} hour${h > 1 ? "s" : ""} ago` : d === 1 ? "1 day ago" : d < 30 ? `${d} days ago` : `${Math.floor(d / 30)} months ago`; };
 const logoFor = (name = "?") => { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360; const ini = name.replace(/[^A-Za-z0-9 ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?"; return `<div class="clogo" style="background:hsl(${h} 55% 45%)" title="${esc(name)}">${esc(ini)}</div>`; };
 function feedQuery() {
   const f = S.feed, p = new URLSearchParams({ view: f.view });
-  if (f.sort) p.set("sort", f.sort);
-  if (f.days) p.set("days", f.days); if (f.min) p.set("min", f.min); if (f.workplace) p.set("workplace", f.workplace);
-  for (const k of ["loc", "companies", "exclude"]) if (f[k].length) p.set(k, f[k].join(","));
+  for (const k of ["sort", "days", "min", "workplace", "maxexp", "pay", "degree"]) if (f[k]) p.set(k, f[k]);
+  for (const k of ["loc", "companies", "exclude", "emp"]) if (f[k].length) p.set(k, f[k].join(","));
+  if (f.visa) p.set("visa", "1"); if (f.noclear) p.set("noclear", "1"); if (f.all) p.set("all", "1");
   return p.toString();
 }
-const fchip = (id, label, on) => `<details class="fchip ${on ? "on" : ""}" data-f="${id}"><summary>${label} ▾</summary><div class="pop" data-pop="${id}"></div></details>`;
+const fchip = (id, label, on) => `<details class="fchip ${on ? "on" : ""}" data-f="${id}"><summary>${label}${on && typeof on === "number" ? ` <span class="n">${on}</span>` : ""} <span class="caret">▾</span></summary><div class="pop" data-pop="${id}"></div></details>`;
+const tchipBtn = (id, label, on) => `<button class="fchip-btn ${on ? "on" : ""}" data-toggle="${id}">${label}</button>`;
+const EMP = [["fulltime", "Full-time"], ["contract", "Contract"], ["parttime", "Part-time"], ["internship", "Internship"]];
 
 VIEWS.jobs = async (v) => {
+  if (S.feed?.uid !== S.userId) S.feed = { ...loadFeed(), uid: S.userId };
   const f = S.feed;
+  f.exclude = S.user.search.titleExclude ?? f.exclude; // Exclude = the person's saved exclude words
   const d = await api(`${U()}/feed?${feedQuery()}`);
   S.jobsById = Object.fromEntries(d.rows.map((j) => [j.id, j]));
   if (S.feedCount !== d.counts.all) { S.feedCount = d.counts.all; renderNav(); }
-  const terms = d.terms;
-  const strong = (j) => (j.score ?? 0) >= S.user.search.minScore;
-  const filtersOn = f.days || f.min || f.workplace || f.loc.length || f.companies.length || f.exclude.length;
-  v.innerHTML = `<div class="feedgrid"><div>
-    <div class="feedhead"><div class="views">${[["all", "Jobs", d.counts.all], ["foryou", "For you", d.counts.foryou], ["saved", "Saved", d.counts.saved]].map(([k, l, n]) => `<button data-view="${k}" class="${f.view === k ? "on" : ""}">${l}${k !== "all" && n ? `<span class="badge">${n}</span>` : ""}</button>`).join("")}</div>
-      <span class="spacer"></span><button class="btn sm" id="discover" title="Search all employer boards again with these terms">🔎 Find new jobs</button></div>
-    <div class="chipbox" id="chipbox">${terms.map((t) => `<span class="tchip"><span>${esc(t)}</span><button data-rmterm="${esc(t)}" aria-label="Remove">×</button></span>`).join("")}
-      <input id="termIn" placeholder="${terms.length ? "Add another, or paste a job link" : "Add a job title, skill or company — or paste a job link"}">
-      <button class="btn sm" id="addOwn">＋ Add your own job</button></div>
+  const terms = d.terms, s = S.user.search, st = S.user.stats;
+  const strong = (j) => (j.score ?? 0) >= s.minScore;
+  const filtersOn = f.days || f.min || f.workplace || f.loc.length || f.companies.length || f.maxexp || f.visa || f.noclear || f.emp.length || f.pay || f.degree || f.all;
+  const me = S.user.profile;
+  const leftToday = Math.max(0, (s.dailyCap ?? 0) - (st.submittedToday ?? 0));
+  v.innerHTML = `<div class="feedgrid"><div class="feedmain">
+    <div class="feedhead"><div class="views">${[["all", "Jobs"], ["foryou", "For you"], ["saved", "Saved"]].map(([k, l]) => `<button data-view="${k}" class="${f.view === k ? "on" : ""}">${l}${k === "foryou" && d.counts.foryou ? `<span class="badge">${d.counts.foryou}</span>` : ""}</button>`).join("")}</div>
+      <span class="spacer"></span>
+      <div class="headicons"><button class="hicon" id="hSearch" title="Search">⌕</button><button class="hicon" data-tab="questions" title="Needs you">✉${S.user.unansweredCount ? `<span class="dot">${S.user.unansweredCount > 9 ? "9+" : S.user.unansweredCount}</span>` : ""}</button><button class="hicon" data-tab="preferences" title="Job preferences">⚙</button><span class="avatar sm" title="${esc(me.firstName ?? "")}">${esc(`${(me.firstName ?? "?")[0] ?? ""}${(me.lastName ?? "")[0] ?? ""}`.toUpperCase())}</span></div></div>
+    <div class="searchrow"><div class="chipbox" id="chipbox">${terms.map((t) => `<span class="tchip"><span>${esc(t)}</span><button data-rmterm="${esc(t)}" aria-label="Remove ${esc(t)}">×</button></span>`).join("")}
+      <input id="termIn" placeholder="${terms.length ? "Add another, or paste a job link" : "Add a job title, skill or company — or paste a job link"}"></div>
+      <button class="pillbtn" id="addOwn">＋ Add your own job</button></div>
     <div class="filters">
-      ${fchip("days", f.days ? `Posted: ${f.days === 1 ? "24h" : `${f.days} days`}` : "Date", !!f.days)}
-      ${fchip("loc", f.loc.length ? `Location · ${f.loc.length}` : "Location", f.loc.length)}
-      ${fchip("workplace", f.workplace ? f.workplace[0].toUpperCase() + f.workplace.slice(1) : "Workplace", !!f.workplace)}
-      ${fchip("companies", f.companies.length ? `Companies · ${f.companies.length}` : "Companies", f.companies.length)}
+      ${fchip("days", f.days ? (f.days === 1 ? "Past 24 hours" : `Past ${f.days} days`) : "Date", !!f.days)}
+      ${tchipBtn("all", "Show jobs without Auto Apply", f.all)}
+      ${fchip("loc", "Location", f.loc.length)}
+      ${fchip("workplace", f.workplace ? { remote: "Remote", hybrid: "Hybrid", onsite: "On-site" }[f.workplace] : "Workplace", !!f.workplace)}
+      ${fchip("companies", "🏢 Companies", f.companies.length)}
+      ${fchip("degree", f.degree ? `Up to ${{ bachelor: "Bachelor's", master: "Master's", phd: "PhD" }[f.degree]}` : "Degree level", !!f.degree)}
+      ${fchip("maxexp", f.maxexp ? `Max ${f.maxexp} yrs experience` : "Max experience", !!f.maxexp)}
+      ${tchipBtn("visa", "Needs visa sponsorship", f.visa)}
+      ${tchipBtn("noclear", "No clearance jobs", f.noclear)}
       ${fchip("min", f.min ? `Match ${f.min}%+` : "Match", !!f.min)}
-      ${fchip("exclude", f.exclude.length ? `Exclude · ${f.exclude.length}` : "Exclude", f.exclude.length)}
-      ${fchip("sort", f.sort === "newest" ? "Sort: Newest" : "Sort: Best match", false)}
+      ${fchip("emp", "Employment type", f.emp.length)}
+      ${fchip("pay", f.pay ? `Pay $${Math.round(f.pay / 1000)}k+` : "Pay", !!f.pay)}
+      ${fchip("exclude", "Exclude", f.exclude.length)}
+      ${fchip("sort", f.sort === "newest" ? "Newest first" : "Best match", false)}
     </div>
-    <div class="row" style="margin:6px 0 10px;font-size:13px">${filtersOn ? `<a class="l" id="clearF">Clear filters</a>` : ""}<span class="muted">${d.total} job${d.total === 1 ? "" : "s"}${d.total > d.rows.length ? ` (showing ${d.rows.length})` : ""}</span>
-      <span class="spacer"></span>${d.rows.filter(strong).length ? `<button class="btn sm primary" id="top5">⚡ Apply to the top ${Math.min(5, d.rows.filter(strong).length)}</button>` : ""}</div>
+    <div class="linkrow">${filtersOn ? `<a class="l strong" id="clearF">Clear filters</a>` : `<span class="muted">Clear filters</span>`}<a class="l muted" id="useMine">Use my search</a><a class="l strong" id="tune">Ask AutoApply to tune this →</a>
+      <span class="spacer"></span><span class="muted">${d.total} job${d.total === 1 ? "" : "s"}</span>${d.rows.filter(strong).length ? `<button class="blackbtn" id="top5">Apply to the top ${Math.min(5, d.rows.filter(strong).length)}</button>` : ""}</div>
     ${d.rows.length ? `<div class="jlist">${d.rows.map((j) => `<div class="jrow">${logoFor(j.company)}
         <div class="jmain" onclick="openJob('${esc(j.id)}')"><div class="jt">${esc(j.title)}</div>
-          <div class="jm">${esc(j.company)} · ${esc(String(j.location ?? "").split(" · ").slice(0, 2).join(" · ").slice(0, 70))}${j.postedAt ? ` · ${agoText(j.postedAt)}` : ""}
-            ${j.score != null ? `<span class="chip ${strong(j) ? "submitted" : ""}">${j.score}% match</span>` : ""}${j.status !== "matched" ? statusChip(j.status) : ""}${j.alsoAt?.length ? `<span class="chip">also on ${j.alsoAt.length} other board${j.alsoAt.length > 1 ? "s" : ""}</span>` : ""}</div></div>
-        <button class="ibtn" data-save="${esc(j.id)}" data-on="${j.saved ? 1 : 0}" title="${j.saved ? "Saved" : "Save"}">${j.saved ? "★" : "☆"}</button>
-        <button class="ibtn send" data-send="${esc(j.id)}" title="Apply for me">➤</button></div>`).join("")}</div>`
-      : `<div class="card empty"><div class="big">🔎</div><p>${f.view === "saved" ? "No saved jobs yet — press ☆ on a job to keep it here." : d.counts.all ? "No jobs match these filters." : "No jobs yet. Add search terms above (e.g. ServiceNow, CMDB), then press <b>Find new jobs</b> — AutoApply searches all the employer boards it knows plus your own companies."}</p></div>`}
+          <div class="jm">${esc(j.company)} · ${j.locCount > 1 ? `${j.locCount} Locations` : esc(String(j.location ?? "").split(/\s*[·;|]\s*/)[0].slice(0, 60))}${/remote/i.test(j.location ?? "") ? " · Remote" : /hybrid/i.test(j.location ?? "") ? " · Hybrid" : ""}${j.postedAt ? ` · ${agoText(j.postedAt)}` : ""}${j.pay ? ` · ${esc(j.pay)}` : ""}
+            ${j.status !== "matched" ? statusChip(j.status) : ""}${!j.autoApply ? `<span class="chip">Apply yourself</span>` : ""}</div>
+          <div class="jk">${j.score != null ? `<span class="${strong(j) ? "good" : ""}">${j.score}% match</span>` : ""}${j.matched?.length ? ` · matches ${j.matched.slice(0, 4).map(esc).join(", ")}` : ""}</div></div>
+        <button class="ibtn star ${j.saved ? "on" : ""}" data-save="${esc(j.id)}" data-on="${j.saved ? 1 : 0}" title="${j.saved ? "Saved" : "Save"}">${j.saved ? "★" : "☆"}</button>
+        <button class="ibtn send" data-send="${esc(j.id)}" title="Apply for me"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7Z"/></svg></button></div>`).join("")}</div>`
+      : `<div class="card empty"><div class="big">🔎</div><p>${f.view === "saved" ? "No saved jobs yet — press ☆ on a job to keep it here." : d.counts.all ? "No jobs match these filters." : "No jobs yet. Add search terms above (e.g. ServiceNow, CMDB), then press ⌕ to search — AutoApply looks through all the employer boards it knows plus your own companies."}</p></div>`}
+    <div class="leftpill"><b>${leftToday}</b> applications left today <a class="l" data-tab="preferences">Change →</a></div>
   </div>
   <aside class="fside">
-    <div class="sbox"><div class="shead">Applied<span class="muted">${d.side.appliedCount}</span><a class="l" data-tab="applications">→</a></div><div class="logos">${d.side.applied.map((a) => `<span onclick="openJob('${esc(a.id)}')" style="cursor:pointer">${logoFor(a.company)}</span>`).join("") || `<span class="muted" style="font-size:12.5px">Nothing yet</span>`}</div></div>
-    <div class="sbox"><div class="shead">In progress</div>${d.side.inProgress.map((a) => `<div class="sitem" onclick="openJob('${esc(a.id)}')">${logoFor(a.company)}<div><b>${esc(a.title)}</b><div class="muted">${esc(a.company)}</div></div><span class="${a.status === "needs_input" ? "warn" : "muted"}">${esc(a.status === "applying" ? "Applying…" : STATUS[a.status] ?? a.status)}</span></div>`).join("") || `<div class="muted" style="font-size:12.5px">Nothing running</div>`}</div>
-    <div class="sbox"><div class="shead">Up next</div>${d.side.upNext.map((a) => `<div class="sitem" onclick="openJob('${esc(a.id)}')">${logoFor(a.company)}<div><b>${esc(a.title)}</b><div class="muted">${esc(a.company)}</div></div><span class="muted">${a.score}%</span></div>`).join("") || `<div class="muted" style="font-size:12.5px">Strong matches show up here</div>`}</div>
-    <div class="sbox"><div class="shead">Ask AutoApply</div>${commandBar("e.g. “show CMDB jobs in Toronto over 85%”")}</div>
+    <div class="sbox plain"><div class="srow"><div><div class="sname">AutoApply</div><div class="muted sstat"><span class="sdot ${s.autopilot?.enabled ? "on" : ""}"></span>${s.autopilot?.enabled ? "Applying on my own" : "Not applying on my own"} · <a class="l" id="apToggle">${s.autopilot?.enabled ? "Turn off" : "Turn on"}</a></div></div><div class="orb"></div></div></div>
+    <div class="sbox plain"><div class="shead">Applied<a class="l" data-tab="applications" title="All applications">→</a></div><div class="logos">${d.side.applied.map((a) => `<span onclick="openJob('${esc(a.id)}')" style="cursor:pointer">${logoFor(a.company)}</span>`).join("") || `<span class="muted" style="font-size:12.5px">Nothing yet</span>`}</div></div>
+    <div class="sbox plain"><div class="shead">In progress${d.side.inProgress.length ? `<button class="blackbtn sm" data-tab="applications">Review all</button>` : ""}</div>${d.side.inProgress.map((a) => `<div class="sitem" onclick="openJob('${esc(a.id)}')">${logoFor(a.company)}<div><b>${esc(a.title)}</b><div class="muted">${esc(a.company)}</div></div><span class="${a.status === "needs_input" ? "warn" : "muted"}">${esc(a.status === "applying" ? "Applying…" : a.status === "filled" ? "Ready to submit" : STATUS[a.status] ?? a.status)}</span></div>`).join("") || `<div class="muted" style="font-size:12.5px">Nothing in progress</div>`}</div>
+    <div class="sbox plain"><div class="shead">Up next</div>${d.side.upNext.map((a) => `<div class="sitem" onclick="openJob('${esc(a.id)}')">${logoFor(a.company)}<div><b>${esc(a.title)}</b><div class="muted">${esc(a.company)}</div></div><span class="muted">${a.score}%</span></div>`).join("") || `<div class="muted" style="font-size:12.5px">Strong matches show up here</div>`}</div>
+    <div class="sbox plain"><div class="shead">Your searches</div><div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill">${s.mode === "review" ? "Review before I submit" : "Submit for me"}</span>${(s.locations ?? []).filter((l) => l.length > 2).slice(0, 3).map((l) => `<span class="pill">${esc(l[0].toUpperCase() + l.slice(1))}</span>`).join("")}<a class="l muted" data-tab="preferences">Edit</a></div></div>
+    <div class="askbox"><input id="askIn" placeholder="Ask AutoApply anything"><button id="askGo" aria-label="Ask">↑</button></div>
   </aside></div>`;
-  wireCommand();
 
-  // views
-  v.querySelectorAll("[data-view]").forEach((b) => b.onclick = () => { f.view = b.dataset.view; store.set("aa.view", f.view); render(); });
-  // search terms: saved to the person's search (Find new jobs uses them)
+  // views, search terms
+  v.querySelectorAll("[data-view]").forEach((b) => b.onclick = () => { f.view = b.dataset.view; saveFeed(); render(); });
   const saveTerms = async (next) => { try { S.user = await api(`${U()}/search`, { method: "PUT", body: { ...S.user.search, keywords: next } }); render(); } catch (e) { fail(e); } };
   v.querySelectorAll("[data-rmterm]").forEach((b) => b.onclick = () => saveTerms(terms.filter((t) => t !== b.dataset.rmterm)));
   $("#termIn").onkeydown = (e) => {
@@ -821,34 +877,76 @@ VIEWS.jobs = async (v) => {
     if (/^https?:\/\//.test(val)) { toast("Reading the job and scoring it…"); startTask({ type: "addjob", url: val }); e.target.value = ""; return; }
     if (!terms.some((t) => t.toLowerCase() === val.toLowerCase())) saveTerms([...terms, val]);
   };
-  $("#addOwn").onclick = () => { const u = prompt("Paste the job posting link"); if (u && /^https?:\/\//.test(u.trim())) { toast("Reading the job and scoring it…"); startTask({ type: "addjob", url: u.trim() }); } };
-  $("#discover").onclick = () => startTask({ type: "discover" });
-  $("#clearF") && ($("#clearF").onclick = () => { Object.assign(f, { days: 0, loc: [], workplace: "", companies: [], exclude: [], min: 0 }); render(); });
-  $("#top5") && ($("#top5").onclick = async () => { const ids = d.rows.filter(strong).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5).map((j) => j.id); applyMany(ids); });
+  $("#chipbox").onclick = (e) => { if (!e.target.closest("button")) $("#termIn").focus(); };
+  $("#hSearch").onclick = () => modal({ title: "Search for new jobs?", body: `AutoApply searches every employer board it knows plus your own companies for: <b>${terms.map(esc).join(", ") || "all roles"}</b>.`, ok: "Search now" }).then((ok) => ok && startTask({ type: "discover" }));
+  $("#addOwn").onclick = () => modal({ title: "Add your own job", body: `<input id="ownUrl" placeholder="Paste the job posting link (https://…)" style="width:100%;margin-top:8px">`, ok: "Add job" }).then(() => {}) && setTimeout(() => {
+    const ok = document.querySelector('#modal [data-m="1"]'); const inp = $("#ownUrl"); inp?.focus();
+    if (ok) ok.addEventListener("click", () => { const u = inp.value.trim(); if (/^https?:\/\//.test(u)) { toast("Reading the job and scoring it…"); startTask({ type: "addjob", url: u }); } else toast("Paste a full job link (https://…)", true); }, { capture: true, once: true });
+  }, 0);
+  $("#clearF") && ($("#clearF").onclick = () => { Object.assign(f, { days: 0, loc: [], workplace: "", companies: [], min: 0, maxexp: 0, visa: false, noclear: false, emp: [], pay: 0, degree: "", all: false }); saveFeed(); render(); });
+  $("#useMine").onclick = () => { Object.assign(f, { loc: [] }); saveFeed(); toast("Using your saved search"); render(); };
+  $("#tune").onclick = () => $("#askIn").focus();
+  $("#top5") && ($("#top5").onclick = () => applyMany(d.rows.filter(strong).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5).map((j) => j.id)));
   v.querySelectorAll("[data-send]").forEach((b) => b.onclick = (e) => { e.stopPropagation(); applyForMe(b.dataset.send); });
-  v.querySelectorAll("[data-save]").forEach((b) => b.onclick = async (e) => {
-    e.stopPropagation();
-    try { await api(`${U()}/jobs/${encodeURIComponent(b.dataset.save)}/save`, { method: "POST", body: { saved: b.dataset.on !== "1" } }); render(); } catch (err) { fail(err); }
-  });
-  // filter pop-overs: only one open at a time
+  v.querySelectorAll("[data-save]").forEach((b) => b.onclick = async (e) => { e.stopPropagation(); try { await api(`${U()}/jobs/${encodeURIComponent(b.dataset.save)}/save`, { method: "POST", body: { saved: b.dataset.on !== "1" } }); render(); } catch (err) { fail(err); } });
+  v.querySelectorAll("[data-toggle]").forEach((b) => b.onclick = () => { f[b.dataset.toggle] = !f[b.dataset.toggle]; saveFeed(); render(); });
+  $("#apToggle").onclick = async () => { try { S.user = await api(`${U()}/search`, { method: "PUT", body: { ...s, autopilot: { ...(s.autopilot ?? { everyHours: 6, minScore: 80 }), enabled: !s.autopilot?.enabled } } }); toast(S.user.search.autopilot?.enabled ? `Autopilot on: every ${S.user.search.autopilot.everyHours} h it finds jobs and applies to ${S.user.search.autopilot.minScore}%+ matches` : "Autopilot off"); render(); } catch (e) { fail(e); } };
+  // "Ask AutoApply anything": the command service turns the request into filters and an action
+  const ask = async () => {
+    const text = $("#askIn").value.trim(); if (!text) return;
+    $("#askGo").disabled = true;
+    try {
+      const r = await api(`${U()}/command`, { method: "POST", body: { text } });
+      if (r.action === "clear") Object.assign(f, { loc: [], companies: [], min: 0, workplace: "" });
+      else Object.assign(f, { companies: (r.filter.companies ?? []).map((c) => c.toLowerCase()), loc: r.filter.locations ?? [], min: r.filter.minScore || 0, workplace: r.filter.remoteOnly ? "remote" : f.workplace });
+      saveFeed();
+      toast(r.reply);
+      if (r.action === "find_jobs") startTask({ type: "discover" });
+      if (r.action === "show_applications") { S.tab = "applications"; store.set("aa.tab", S.tab); }
+      if (r.action === "apply") await applyMany(r.matchIds);
+      if (r.action === "find_contacts") findPeople(r.matchIds);
+      render();
+    } catch (e) { fail(e); } finally { const b = $("#askGo"); if (b) b.disabled = false; }
+  };
+  $("#askGo").onclick = ask; $("#askIn").onkeydown = (e) => { if (e.key === "Enter") ask(); };
+
+  // filter menus: only one open at a time
   v.querySelectorAll("details.fchip").forEach((dt) => dt.addEventListener("toggle", () => {
-    if (dt.open) v.querySelectorAll("details.fchip[open]").forEach((o) => { if (o !== dt) o.open = false; });
-    if (dt.open) dt.querySelector(".pop input")?.focus();
+    if (!dt.open) return;
+    v.querySelectorAll("details.fchip[open]").forEach((o) => { if (o !== dt) o.open = false; });
+    setTimeout(() => dt.querySelector(".pop input:not([type=checkbox])")?.focus(), 0);
   }));
   const pop = (id, html, wire) => { const p = v.querySelector(`[data-pop="${id}"]`); p.innerHTML = html; wire?.(p); };
-  const set = (patch) => { Object.assign(f, patch); render(); };
-  pop("days", [[0, "Any time"], [1, "Past 24 hours"], [3, "Past 3 days"], [7, "Past week"], [30, "Past month"]].map(([k, l]) => `<button data-v="${k}" class="${f.days === k ? "on" : ""}">${l}</button>`).join(""), (p) => p.querySelectorAll("[data-v]").forEach((b) => b.onclick = () => set({ days: Number(b.dataset.v) })));
-  pop("sort", [["", "Best match"], ["newest", "Newest"]].map(([k, l]) => `<button data-v="${k}" class="${(f.sort ?? "") === k ? "on" : ""}">${l}</button>`).join(""), (p) => p.querySelectorAll("[data-v]").forEach((b) => b.onclick = () => set({ sort: b.dataset.v })));
-  pop("workplace", [["", "Any"], ["remote", "Remote"], ["hybrid", "Hybrid"], ["onsite", "On-site"]].map(([k, l]) => `<button data-v="${k}" class="${f.workplace === k ? "on" : ""}">${l}</button>`).join(""), (p) => p.querySelectorAll("[data-v]").forEach((b) => b.onclick = () => set({ workplace: b.dataset.v })));
-  pop("min", [[0, "Any"], [60, "60%+"], [70, "70%+"], [80, "80%+"], [90, "90%+"]].map(([k, l]) => `<button data-v="${k}" class="${f.min === k ? "on" : ""}">${l}</button>`).join(""), (p) => p.querySelectorAll("[data-v]").forEach((b) => b.onclick = () => set({ min: Number(b.dataset.v) })));
-  const listPop = (id, placeholder) => pop(id, `<input placeholder="${placeholder}" value="${esc(f[id].join(", "))}"><button class="btn sm primary" data-apply>Apply</button>`, (p) => {
-    const go = () => set({ [id]: p.querySelector("input").value.split(",").map((s) => s.trim()).filter(Boolean) });
-    p.querySelector("[data-apply]").onclick = go; p.querySelector("input").onkeydown = (e) => { if (e.key === "Enter") go(); };
+  const set = (patch) => { Object.assign(f, patch); saveFeed(); render(); };
+  const choices = (id, list, cur) => pop(id, list.map(([k, l]) => `<button data-v="${k}" class="${String(cur) === String(k) ? "on" : ""}">${l}${String(cur) === String(k) ? " ✓" : ""}</button>`).join(""), (p) => p.querySelectorAll("[data-v]").forEach((b) => b.onclick = () => set({ [id]: /^\d+$/.test(b.dataset.v) ? Number(b.dataset.v) : b.dataset.v })));
+  choices("days", [[0, "Any time"], [1, "Past 24 hours"], [3, "Past 3 days"], [7, "Past week"], [30, "Past month"]], f.days);
+  choices("workplace", [["", "Any"], ["remote", "Remote"], ["hybrid", "Hybrid"], ["onsite", "On-site"]], f.workplace);
+  choices("degree", [["", "Any"], ["bachelor", "Up to a Bachelor's"], ["master", "Up to a Master's"], ["phd", "Up to a PhD"]], f.degree);
+  choices("maxexp", [[0, "Any"], [2, "2 years"], [3, "3 years"], [5, "5 years"], [7, "7 years"], [10, "10 years"]], f.maxexp);
+  choices("min", [[0, "Any"], [50, "50%+"], [60, "60%+"], [70, "70%+"], [80, "80%+"], [90, "90%+"]], f.min);
+  choices("pay", [[0, "Any"], [60000, "$60k+"], [80000, "$80k+"], [100000, "$100k+"], [120000, "$120k+"], [150000, "$150k+"]], f.pay);
+  choices("sort", [["", "Best match"], ["newest", "Newest first"]], f.sort);
+  // words: Location (cities/regions) and Exclude (saved to preferences: discovery skips them too)
+  const words = (id, hint, placeholder, onSave) => pop(id, `<div class="pophint">${hint}</div>
+      <div class="wordlist">${f[id].map((w) => `<span class="tchip"><span>${esc(w)}</span><button data-rmw="${esc(w)}">×</button></span>`).join("") || `<span class="muted" style="font-size:12.5px">None yet</span>`}</div>
+      <div class="row" style="gap:6px;flex-wrap:nowrap"><input placeholder="${placeholder}"><button class="blackbtn sm" data-add>Add</button></div>`, (p) => {
+    const inp = p.querySelector("input");
+    const add = () => { const vals = inp.value.split(",").map((x) => x.trim()).filter(Boolean); if (!vals.length) return; onSave([...new Set([...f[id], ...vals])]); };
+    p.querySelector("[data-add]").onclick = (e) => { e.preventDefault(); add(); };
+    inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); add(); } };
+    p.querySelectorAll("[data-rmw]").forEach((b) => b.onclick = (e) => { e.preventDefault(); onSave(f[id].filter((w) => w !== b.dataset.rmw)); });
   });
-  listPop("loc", "Toronto, Ontario, Remote");
-  listPop("exclude", "Words to leave out of titles: senior, intern");
-  pop("companies", `<div style="max-height:260px;overflow:auto">${d.companies.map((c) => `<label class="cpick"><input type="checkbox" value="${esc(c.name)}" ${f.companies.includes(c.name.toLowerCase()) ? "checked" : ""}> ${esc(c.name)} <span class="muted">${c.n}</span></label>`).join("")}</div><button class="btn sm primary" data-apply>Apply</button>`,
-    (p) => p.querySelector("[data-apply]").onclick = () => set({ companies: [...p.querySelectorAll("input:checked")].map((x) => x.value.toLowerCase()) }));
+  words("loc", "Only show jobs in these places (city, province or “Remote”).", "e.g. Toronto, Remote", (next) => set({ loc: next }));
+  words("exclude", "Hide every job whose title, company or location contains one of these words. Saved to your preferences, so new searches skip them too.", "e.g. senior, intern, sales", async (next) => {
+    try { S.user = await api(`${U()}/search`, { method: "PUT", body: { ...S.user.search, titleExclude: next } }); set({ exclude: next }); } catch (e) { fail(e); }
+  });
+  pop("emp", EMP.map(([k, l]) => `<label class="cpick"><input type="checkbox" value="${k}" ${f.emp.includes(k) ? "checked" : ""}> ${l}</label>`).join("") + `<button class="blackbtn sm" data-apply>Apply</button>`,
+    (p) => p.querySelector("[data-apply]").onclick = () => set({ emp: [...p.querySelectorAll("input:checked")].map((x) => x.value) }));
+  pop("companies", `<input placeholder="Filter companies…" data-cf><div class="clist">${d.companies.map((c) => `<label class="cpick"><input type="checkbox" value="${esc(c.name)}" ${f.companies.includes(c.name.toLowerCase()) ? "checked" : ""}> ${esc(c.name)} <span class="muted">${c.n}</span></label>`).join("")}</div><button class="blackbtn sm" data-apply>Apply</button>`,
+    (p) => {
+      p.querySelector("[data-cf]").oninput = (e) => p.querySelectorAll(".cpick").forEach((l) => { l.style.display = l.textContent.toLowerCase().includes(e.target.value.toLowerCase()) ? "" : "none"; });
+      p.querySelector("[data-apply]").onclick = () => set({ companies: [...p.querySelectorAll(".clist input:checked")].map((x) => x.value.toLowerCase()) });
+    });
 };
 
 // Tracker, like Tsenta's: All / In flight / Needs you / Failed / Skipped / Applied, and a pipeline for applied jobs.
@@ -1011,11 +1109,27 @@ VIEWS.profile = async (v) => {
   api(`${U()}/mail`).then((m) => {
     const box = $("#mailCard .muted:last-child"); if (!box) return;
     const local = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
-    box.outerHTML = !m.clientReady ? `<p class="muted" style="margin:0">Not set up yet: the owner adds a Google OAuth client in <b>Online access → Gmail</b> (one time, see docs/NEEDS_FROM_USER.md).</p>`
-      : m.connected ? `<div class="row"><span class="chip submitted">● Connected${m.email ? `: ${esc(m.email)}` : ""}</span><span class="muted" style="font-size:12.5px">${m.lastSyncAt ? `checked ${esc(new Date(m.lastSyncAt).toLocaleString())}` : "not checked yet"}</span>
-          <button class="btn sm" id="mailSync">Check email now</button><button class="btn sm ghost danger" id="mailOff">Disconnect</button></div>
+    const anyOn = m.connected || m.imap;
+    box.outerHTML = `
+      ${anyOn ? `<div class="row"><span class="chip submitted">● Reading ${esc(m.imap?.user ?? m.email ?? "your email")}</span><span class="muted" style="font-size:12.5px">${m.lastSyncAt ? `checked ${esc(new Date(m.lastSyncAt).toLocaleString())}` : "not checked yet"}</span>
+          <button class="btn sm" id="mailSync">Check email now</button>${m.imap ? `<button class="btn sm ghost danger" id="imapOff">Disconnect</button>` : ""}${m.connected ? `<button class="btn sm ghost danger" id="mailOff">Disconnect Google</button>` : ""}</div>
           ${m.unmatched?.length ? `<details style="margin-top:10px"><summary class="muted" style="cursor:pointer">${m.unmatched.length} job emails that didn't match an application</summary>${m.unmatched.map((u) => `<div style="font-size:12.5px;padding:4px 0">${esc(u.subject)} <span class="muted">— ${esc(u.from)}</span></div>`).join("")}</details>` : ""}`
-      : `<div class="row"><span class="chip">○ Not connected</span>${local ? `<button class="btn primary" id="mailOn">Connect Gmail</button>` : `<span class="muted" style="font-size:12.5px">Connect it on the computer that runs AutoApply (Google only allows sign-in back to that computer).</span>`}</div>`;
+      : `<div class="mailopt"><b>Easiest: connect with an app password</b> <span class="chip matched">1 minute</span>
+          <ol class="muted" style="margin:6px 0 8px;padding-left:18px;font-size:13px"><li>Open <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a> (Google asks you to sign in; 2-Step Verification must be on).</li><li>Name it “AutoApply”, press Create, and copy the 16-letter password.</li><li>Paste it here. It's stored only on this computer and only used to <i>read</i> job email.</li></ol>
+          <div class="row" style="flex-wrap:nowrap"><input id="imapEmail" value="${esc(p.email ?? "")}" placeholder="you@gmail.com" style="max-width:240px"><div style="flex:1;max-width:240px">${pwField("imapPass", "16-letter app password")}</div><button class="btn primary" id="imapOn">Connect</button></div>
+          ${m.clientReady && local ? `<div class="muted" style="font-size:12.5px;margin-top:8px">Or <a class="l" id="mailOn">sign in with Google</a> instead.</div>` : ""}</div>`}
+      <details class="mailopt" style="margin-top:12px" ${m.alias ? "open" : ""}><summary style="cursor:pointer"><b>Job-application address, like Tsenta</b> <span class="muted" style="font-size:12.5px">— optional, needs a domain on Cloudflare</span></summary>
+        <p class="muted" style="font-size:13px;margin:6px 0">Applications use an address such as <i>${esc((p.firstName ?? "me").toLowerCase())}@jobs.yourdomain.com</i>. Its mail comes to AutoApply first (codes entered and verify links clicked automatically), then is forwarded to your real inbox. Set-up steps: SHARING.md → “Job-application address”.</p>
+        <div class="row" style="flex-wrap:nowrap"><input id="aliasIn" value="${esc(m.alias ?? "")}" placeholder="${esc((p.firstName ?? "me").toLowerCase())}@jobs.yourdomain.com" style="max-width:300px"><button class="btn" id="aliasSave">Save</button></div>
+        <label class="perm" style="border:0;padding:6px 0 0"><span class="switch"><input id="aliasUse" type="checkbox" ${m.useAlias ? "checked" : ""} ${m.alias ? "" : "disabled"}><span></span></span><span class="txt"><b>Use this address on applications</b><small>Turn on once the Cloudflare forwarding works (send a test email to it first).</small></span></label>
+        ${m.inboundReady ? `<div class="muted" style="font-size:12px">Worker key: shown to the owner after saving an address.</div>` : ""}</details>`;
+    $("#imapOn") && ($("#imapOn").onclick = async () => {
+      toast("Checking the app password…");
+      try { await api(`${U()}/mail/imap`, { method: "POST", body: { email: $("#imapEmail").value.trim(), appPassword: $("#imapPass").value } }); toast("✓ Connected — verification codes and recruiter replies are now handled automatically"); render(); } catch (e) { fail(e); }
+    });
+    $("#imapOff") && ($("#imapOff").onclick = async () => { await api(`${U()}/mail/imap`, { method: "POST", body: { remove: true } }).catch(fail); render(); });
+    $("#aliasSave").onclick = async () => { try { const r = await api(`${U()}/mail/alias`, { method: "POST", body: { alias: $("#aliasIn").value.trim() } }); if (r.inboundKey) modal({ title: "Saved", body: `Put this key in the Cloudflare Email Worker as <b>AUTOAPPLY_KEY</b>:<br><code style="user-select:all;word-break:break-all">${esc(r.inboundKey)}</code>`, ok: "Done", cancel: "" }); render(); } catch (e) { fail(e); } };
+    $("#aliasUse").onchange = async (e) => { try { await api(`${U()}/mail/alias`, { method: "POST", body: { useAlias: e.target.checked } }); toast(e.target.checked ? "Applications now use your job-application address" : "Applications use your own email again"); } catch (err) { fail(err); } };
     $("#mailOn") && ($("#mailOn").onclick = async () => { try { location.href = (await api(`${U()}/mail/connect`, { method: "POST", body: {} })).url; } catch (e) { fail(e); } });
     $("#mailSync") && ($("#mailSync").onclick = async () => { toast("Checking email…"); try { const r = await api(`${U()}/mail/sync`, { method: "POST", body: {} }); toast(`Checked ${r.scanned} new emails: ${r.routed.length} filed, ${r.stageChanges} stage changes, ${r.drafts} reply drafts`); render(); } catch (e) { fail(e); } });
     $("#mailOff") && ($("#mailOff").onclick = async () => { await api(`${U()}/mail/disconnect`, { method: "POST", body: {} }).catch(fail); render(); });
