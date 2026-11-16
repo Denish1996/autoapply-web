@@ -38,7 +38,7 @@ nav button.on .n { background: var(--panel); color: var(--accent); }
 .side-foot { margin-top: auto; display: grid; gap: 8px; }
 .ai { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); flex: none; } .dot.on { background: var(--good); }
-main { padding: 28px 32px 140px; max-width: 1120px; width: 100%; }
+main { padding: 28px 40px 140px; width: 100%; min-width: 0; } /* full width on desktop, like Tsenta (no narrow column) */
 h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -.02em; }
 h2 { font-size: 16px; margin: 0 0 4px; }
 h3 { font-size: 14px; margin: 0; }
@@ -137,7 +137,7 @@ details.log summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
 .toast.err { background: var(--bad); color: #fff; }
 .kv { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 8px; align-items: start; margin-bottom: 8px; }
 .tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
-.feedgrid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 26px; align-items: start; }
+.feedgrid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; align-items: start; }
 .feedhead { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; } .feedhead .views { display: flex; gap: 22px; }
 .feedhead .views button { border: 0; background: none; font: inherit; font-size: 30px; font-weight: 700; color: var(--muted); opacity: .55; cursor: pointer; padding: 0; letter-spacing: -.02em; display: flex; align-items: center; gap: 6px; }
 .feedhead .views button.on { color: var(--ink); opacity: 1; } .feedhead .badge { font-size: 12px; background: var(--ink); color: var(--panel); border-radius: 999px; min-width: 20px; height: 20px; display: inline-grid; place-items: center; padding: 0 6px; }
@@ -159,7 +159,7 @@ details.log summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
 .logos { display: flex; flex-wrap: wrap; gap: 6px; } .logos .clogo { width: 30px; height: 30px; font-size: 11px; border-radius: 999px; }
 .sitem { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; padding: 6px 0; cursor: pointer; font-size: 12.5px; } .sitem .clogo { width: 30px; height: 30px; font-size: 11px; } .sitem b { font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px; } .sitem .warn { color: var(--warn); }
 a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
-@media (max-width: 1100px) { .feedgrid { grid-template-columns: 1fr; } .fside { position: static; } }
+@media (max-width: 900px) { .feedgrid { grid-template-columns: 1fr; } .fside { position: static; } }
 .claudesw { display: grid; gap: 4px; font-size: 12px; } .claudesw .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .claudesw .seg button { flex: 1; border: 0; background: none; color: var(--muted); padding: 6px 4px; font: inherit; font-size: 12px; cursor: pointer; }
 .claudesw .seg button.on { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
