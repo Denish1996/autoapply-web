@@ -460,8 +460,24 @@ const ALL_TABS = [["jobs", "🎯", "Jobs"], ["applications", "📋", "Applicatio
 let TABS = ALL_TABS.filter((t) => !t[3]);
 const isAdmin = () => ["owner", "admin"].includes(S.me?.role);
 const U = () => `/users/${encodeURIComponent(S.userId)}`;
-const STATUS = { matched: "Ready to apply", submitted: "Applied", needs_input: "Needs your input", failed: "Didn't go through", filled: "Preview ready", skipped: "Skipped", discovered: "New", rejected: "Not a match" };
+const STATUS = { matched: "Ready to apply", submitted: "Applied", needs_input: "Needs your input", failed: "Didn't go through", filled: "Preview ready", skipped: "Skipped", discovered: "New", rejected: "Not a match", paused: "Waiting for the job site" };
 const statusChip = (s) => `<span class="chip ${esc(s)}">${esc(STATUS[s] ?? s)}</span>`;
+
+// Job-site health for everyone on this AutoApply: today / last 7 days, paused sites, hourly checks, shared fixes.
+function healthTable(stats) {
+  const h = stats.health ?? [], fx = stats.fixes ?? { count: 0, recent: [] };
+  const rate = (t) => (t.rate == null ? `<span class="muted">${t.attempts ? `${t.attempts} tried` : "–"}</span>` : `<span class="chip ${t.rate >= 80 ? "submitted" : t.rate >= 50 ? "filled" : "failed"}">${t.rate}%</span> <span class="muted" style="font-size:12px">${t.submitted} of ${t.submitted + t.failed}</span>`);
+  const when = (iso) => { const m = Math.round((Date.now() - Date.parse(iso)) / 60e3); return m < 60 ? `${Math.max(1, m)} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : new Date(iso).toLocaleDateString(); };
+  const check = (s) => (s.canary ? `${s.canary.ok ? "✓ form works" : `✗ ${esc(s.canary.error ?? "failed")}`} <span class="muted">· ${when(s.canary.at)}</span>` : (stats.canarySites ?? []).includes(s.ats) ? `<span class="muted">not checked yet</span>` : `<span class="muted">needs an account, not checked</span>`);
+  const btn = (s) => (!stats.canManage ? "" : `${s.paused ? `<button class="btn sm" data-site="${esc(s.ats)}" data-do="resume">Resume</button>` : `<button class="btn sm ghost" data-site="${esc(s.ats)}" data-do="pause">Pause</button>`}${(stats.canarySites ?? []).includes(s.ats) ? ` <button class="btn sm ghost" data-site="${esc(s.ats)}" data-do="check">Check now</button>` : ""}`);
+  return `<h3 style="margin:12px 0 2px;font-size:14px">All job sites, everyone together</h3>
+    <div class="muted" style="font-size:12.5px;margin-bottom:6px">A site is paused by itself when fewer than ${stats.pauseBelow ?? 40}% of recent applications go through. Every hour one site is tested on a real form that is filled but never sent.</div>
+    ${h.length ? `<table><thead><tr><th>Site</th><th>Today</th><th>7 days</th><th>Status</th><th class="hide-sm">Hourly check</th><th></th></tr></thead><tbody>
+      ${h.map((s) => `<tr><td><b>${esc(s.name)}</b></td><td>${rate(s.today)}</td><td>${rate(s.week)}</td><td>${s.paused ? `<span class="chip failed" title="${esc(s.paused.reason)}">Paused</span>` : `<span class="chip submitted">On</span>`}</td><td class="hide-sm" style="font-size:12.5px">${check(s)}</td><td style="text-align:right;white-space:nowrap">${btn(s)}</td></tr>${s.paused ? `<tr><td colspan="6" class="muted" style="font-size:12.5px;border-top:0;padding-top:0">Paused ${when(s.paused.at)}: ${esc(s.paused.reason)}. It is tried again by itself within a day.</td></tr>` : ""}`).join("")}</tbody></table>`
+      : `<p class="muted">No applications sent yet, so there is nothing to show.</p>`}
+    <details style="margin-top:10px"><summary style="cursor:pointer;font-size:13.5px"><b>Shared fixes: ${fx.count}</b> <span class="muted">· problems solved once on a job site and reused for everyone</span></summary>
+      ${fx.recent.length ? fx.recent.map((f) => `<div style="font-size:12.5px;padding:5px 0;border-top:1px solid var(--line)"><span class="chip">${esc(f.site ?? "")}</span> ${f.type === "field" ? `the question “${esc(f.label)}” is filled <b>${esc(f.how)}</b>` : esc(f.note || f.how)} <span class="muted">· used ${f.uses}×</span></div>`).join("") : `<p class="muted" style="font-size:12.5px">None yet. When a stuck step is solved on one site, the fix is saved here.</p>`}</details>`;
+}
 
 function toast(msg, err) {
   const el = document.createElement("div"); el.className = `toast ${err ? "err" : ""}`; el.textContent = msg;
@@ -1332,7 +1348,11 @@ VIEWS.applications = async (v) => {
       <td class="hide-sm muted">${esc(new Date(r.submittedAt ?? r.updatedAt ?? Date.now()).toLocaleDateString())}</td><td>${r.status === "submitted" ? stageSelect(r) : statusChip(r.status)}</td>
       <td style="text-align:right;white-space:nowrap">${r.status === "submitted" ? `<button class="btn sm ghost" data-act="people" data-id="${esc(r.id)}">👥 Find people</button>` : actionButtons(r)}<button class="btn sm" onclick="openJob('${esc(r.id)}')">Details</button></td></tr>`).join("")}</tbody></table>`
     : `<div class="card empty"><div class="big">📋</div><p>${everything.length ? "Nothing here." : "No applications yet. Go to <b>Job matches</b> and press <b>Apply for me</b>."}</p></div>`}`;
-  if (stats && (stats.ats.length || stats.e2e)) v.insertAdjacentHTML("beforeend", `<details class="card" style="margin-top:14px"><summary style="cursor:pointer"><b>Success rate by job site</b>${stats.e2e ? ` <span class="muted" style="font-size:12.5px">· test suite on mock sites: ${stats.e2e.passed}/${stats.e2e.total} (${stats.e2e.successRate}%) on ${esc(new Date(stats.e2e.at).toLocaleDateString())}</span>` : ""}</summary>
+  const pausedSites = (stats?.health ?? []).filter((s) => s.paused);
+  if (pausedSites.length) v.insertAdjacentHTML("beforeend", `<div class="card" style="margin-top:14px;border-color:#e0a800"><b>⏸ Paused: ${esc(pausedSites.map((s) => s.name).join(", "))}</b><div class="muted" style="font-size:13px;margin-top:4px">Applications on ${pausedSites.length === 1 ? "this job site" : "these job sites"} kept failing, so AutoApply stopped sending them instead of wasting yours. Jobs there wait in your list and are applied to automatically once the site works again.</div></div>`);
+  if (stats && (stats.ats.length || stats.e2e || stats.health?.length || stats.fixes?.count)) v.insertAdjacentHTML("beforeend", `<details class="card" style="margin-top:14px" ${pausedSites.length ? "open" : ""}><summary style="cursor:pointer"><b>Success rate by job site</b>${stats.e2e ? ` <span class="muted" style="font-size:12.5px">· test suite on mock sites: ${stats.e2e.passed}/${stats.e2e.total} (${stats.e2e.successRate}%) on ${esc(new Date(stats.e2e.at).toLocaleDateString())}</span>` : ""}</summary>
+    ${healthTable(stats)}
+    <h3 style="margin:14px 0 6px;font-size:14px">${esc(S.user.profile.firstName)}'s applications</h3>
     ${stats.ats.length ? `<table style="margin-top:10px"><thead><tr><th>Site</th><th>Jobs</th><th>Submitted</th><th>Success</th><th class="hide-sm">Attempts (needs you / failed)</th></tr></thead><tbody>
       ${stats.ats.map((s) => `<tr><td><b>${esc(s.ats)}</b></td><td>${s.jobs}</td><td>${s.jobsSubmitted}</td><td><span class="chip ${s.jobRate >= 80 ? "submitted" : s.jobRate >= 50 ? "filled" : "failed"}">${s.jobRate}%</span></td><td class="hide-sm muted">${s.attempts} (${s.needsInput} / ${s.failed})</td></tr>`).join("")}</tbody></table>`
       : `<p class="muted">No real applications yet.</p>`}
@@ -1340,6 +1360,14 @@ VIEWS.applications = async (v) => {
   </details>`);
   wireCommand(); wireFilters();
   v.querySelectorAll("[data-track]").forEach((el) => el.onclick = () => { S.track = el.dataset.track; store.set("aa.track", S.track); S.filter = structuredClone(EMPTY_FILTER); render(); });
+  v.querySelectorAll("[data-site]").forEach((el) => el.onclick = async () => {
+    el.disabled = true;
+    try {
+      if (el.dataset.do === "check") { toast("Checking… this takes a minute or two."); const r = await api(`/health/canary/${el.dataset.site}`, { method: "POST" }); toast(r.ok ? "The check passed: the form opens and fills." : r.skipped ? `Not checked: ${r.skipped}` : `The check failed: ${r.error ?? "the form could not be filled"}`, r.ok === false); }
+      else await api(`/health/${el.dataset.site}/${el.dataset.do}`, { method: "POST" });
+    } catch (e) { toast(e.message, true); }
+    render();
+  });
   v.querySelectorAll("[data-stagefilter]").forEach((el) => el.onclick = () => { S.track = "applied"; S.filter = { ...structuredClone(EMPTY_FILTER), stages: [el.dataset.stagefilter] }; render(); });
 };
 
