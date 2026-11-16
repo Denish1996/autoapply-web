@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoApply</title>
+<style>
+:root {
+  --bg: #f5f6fa; --panel: #ffffff; --ink: #151821; --muted: #646d7c; --line: #e4e7ee; --accent: #5b4bf5; --accent-soft: #eeecff; --accent-ink: #fff;
+  --good: #14804a; --good-soft: #e5f6ec; --warn: #9a5b00; --warn-soft: #fff3e0; --bad: #c0261c; --bad-soft: #fdecea; --chip: #f0f2f6;
+  --shadow: 0 1px 2px rgba(16,24,40,.05), 0 2px 8px rgba(16,24,40,.06); --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e1015; --panel: #171a21; --ink: #e9ecf2; --muted: #9aa3b2; --line: #272c36; --accent: #8b7dff; --accent-soft: #252244; --chip: #20242d;
+    --good: #4cd08d; --good-soft: #15291f; --warn: #f2b45a; --warn-soft: #2d2414; --bad: #ff7b70; --bad-soft: #301a19; --shadow: none; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.5 "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+a { color: var(--accent); }
+.app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+aside { background: var(--panel); border-right: 1px solid var(--line); padding: 18px 14px; display: flex; flex-direction: column; gap: 16px; position: sticky; top: 0; height: 100vh; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 750; font-size: 18px; letter-spacing: -.02em; padding: 2px 6px; }
+.logo { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), #b05bf5); color: #fff; display: grid; place-items: center; font-size: 15px; }
+.me { display: flex; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; flex: none; }
+.me select { border: 0; padding: 0; background: none; color: var(--ink); font-weight: 600; width: 100%; cursor: pointer; }
+/* drop-down lists follow the app's theme (otherwise Windows draws them white with the page's light text) */
+:root { color-scheme: light dark; }
+select option, select optgroup { background: var(--panel); color: var(--ink); }
+.me small { color: var(--muted); display: block; }
+nav { display: grid; gap: 2px; }
+nav button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: none; color: var(--ink); padding: 9px 10px; border-radius: 10px; cursor: pointer; font: inherit; }
+nav button:hover { background: var(--chip); }
+nav button.on { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
+nav .ic { width: 18px; text-align: center; }
+nav .n { margin-left: auto; font-size: 12px; background: var(--chip); color: var(--muted); border-radius: 999px; padding: 0 7px; }
+nav button.on .n { background: var(--panel); color: var(--accent); }
+.side-foot { margin-top: auto; display: grid; gap: 8px; }
+.ai { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); flex: none; } .dot.on { background: var(--good); }
+main { padding: 28px 32px 140px; max-width: 1120px; width: 100%; }
+h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -.02em; }
+h2 { font-size: 16px; margin: 0 0 4px; }
+h3 { font-size: 14px; margin: 0; }
+.sub { color: var(--muted); margin: 0 0 20px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.spacer { flex: 1; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
+.card + .card, .section + .section { margin-top: 14px; }
+.card-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+.card-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+.stat b { display: block; font-size: 24px; letter-spacing: -.02em; }
+.stat span { color: var(--muted); font-size: 12.5px; }
+button.btn, .btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 8px 14px; border-radius: 10px; cursor: pointer; font: inherit; font-weight: 550; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { border-color: transparent; background: none; color: var(--muted); }
+.btn.danger { color: var(--bad); }
+.btn.sm { padding: 5px 10px; font-size: 12.5px; border-radius: 8px; }
+.btn:disabled { opacity: .5; cursor: default; }
+input, select, textarea { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; width: 100%; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+textarea { min-height: 90px; resize: vertical; }
+label.f { display: grid; gap: 5px; font-size: 13px; }
+label.f > span { font-weight: 600; color: var(--ink); }
+label.f > small { color: var(--muted); font-size: 12px; }
+.form { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.form .wide { grid-column: 1 / -1; }
+.pw { position: relative; display: flex; }
+.pw input { padding-right: 42px; }
+.pw .eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); border: 0; background: none; cursor: pointer; padding: 6px 8px; color: var(--muted); border-radius: 8px; }
+.pw .eye:hover { background: var(--chip); color: var(--ink); }
+/* permission toggles */
+.perm { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-top: 1px solid var(--line); }
+.perm:first-of-type { border-top: 0; padding-top: 4px; }
+.perm .txt { flex: 1; } .perm .txt b { display: block; font-weight: 600; } .perm .txt small { color: var(--muted); }
+.aimode { flex: 1 1 180px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; font-weight: 600; } .aimode small { display: block; font-weight: 400; color: var(--muted); margin-top: 3px; font-size: 12px; } .aimode.on { border-color: var(--accent); background: var(--accent-soft); }
+.switch { position: relative; width: 42px; height: 24px; flex: none; margin-top: 2px; }
+.switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.switch span { position: absolute; inset: 0; background: var(--line); border-radius: 999px; transition: .15s; cursor: pointer; }
+.switch span::after { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: .15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.switch input:checked + span { background: var(--accent); }
+.switch input:checked + span::after { transform: translateX(18px); }
+.seg { display: inline-flex; background: var(--chip); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: none; padding: 6px 12px; border-radius: 8px; font: inherit; cursor: pointer; color: var(--muted); }
+.seg button.on { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: var(--shadow); }
+/* job cards */
+.jobs { display: grid; gap: 10px; }
+.job { display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+.job:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.ring { --p: 0; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--c, var(--good)) calc(var(--p) * 1%), var(--chip) 0); }
+.ring b { width: 42px; height: 42px; border-radius: 50%; background: var(--panel); display: grid; place-items: center; font-size: 13px; }
+.job .title { font-weight: 650; cursor: pointer; } .job .title:hover { color: var(--accent); }
+.job .meta { color: var(--muted); font-size: 13px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 2px; }
+.job .acts { display: flex; gap: 6px; align-items: center; }
+.job select { width: auto; padding: 5px 8px; font-size: 12.5px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 9px; font-size: 12px; background: var(--chip); color: var(--muted); font-weight: 550; }
+.chip.submitted { background: var(--good-soft); color: var(--good); }
+.chip.failed, .chip.needs_input { background: var(--bad-soft); color: var(--bad); }
+.chip.filled, .chip.skipped, .chip.running { background: var(--warn-soft); color: var(--warn); }
+.chip.matched { background: var(--accent-soft); color: var(--accent); }
+table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; background: var(--chip); }
+tr:last-child td { border-bottom: 0; }
+td.t { font-weight: 600; cursor: pointer; } td.t:hover { color: var(--accent); }
+.muted { color: var(--muted); }
+.banner { display: flex; gap: 12px; align-items: center; border-radius: var(--radius); padding: 12px 16px; margin-bottom: 18px; background: var(--warn-soft); color: var(--warn); }
+.banner.info { background: var(--accent-soft); color: var(--accent); }
+.banner ul { margin: 2px 0 0; padding-left: 18px; }
+.empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+.empty .big { font-size: 34px; }
+.drawer-bg { position: fixed; inset: 0; background: rgba(10,12,18,.35); z-index: 19; }
+.drawer { position: fixed; top: 0; right: 0; width: min(640px, 100%); height: 100vh; background: var(--panel); border-left: 1px solid var(--line); padding: 22px; overflow: auto; z-index: 20; }
+.drawer h2 { margin-top: 18px; }
+.drawer pre { white-space: pre-wrap; font: 13px/1.55 system-ui, sans-serif; background: var(--chip); padding: 12px; border-radius: 10px; max-height: 360px; overflow: auto; }
+.drawer img { width: 100%; border: 1px solid var(--line); border-radius: 10px; margin: 6px 0; }
+.qa { display: grid; gap: 6px; }
+.qa div { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.modal-bg { position: fixed; inset: 0; background: rgba(10,12,18,.45); z-index: 40; display: grid; place-items: center; padding: 16px; }
+.modal { background: var(--panel); border-radius: 18px; padding: 22px; width: min(460px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.modal .row { margin-top: 16px; justify-content: flex-end; }
+.taskpanel { position: fixed; bottom: 16px; right: 16px; width: min(480px, calc(100% - 32px)); z-index: 30; }
+.taskpanel .card { padding: 14px 16px; box-shadow: 0 10px 30px rgba(16,24,40,.18); }
+.progress { height: 4px; background: var(--chip); border-radius: 4px; overflow: hidden; margin: 8px 0; }
+.progress i { display: block; height: 100%; width: 40%; background: var(--accent); border-radius: 4px; animation: slide 1.2s ease-in-out infinite; }
+@keyframes slide { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
+details.log summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+.log { font: 12px/1.45 ui-monospace, Consolas, monospace; background: var(--chip); border-radius: 10px; padding: 8px; max-height: 200px; overflow: auto; white-space: pre-wrap; margin: 6px 0; }
+.prompt { border: 1.5px solid var(--accent); background: var(--accent-soft); border-radius: 12px; padding: 12px; margin-top: 10px; display: grid; gap: 8px; }
+.toasts { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50; display: grid; gap: 8px; }
+.toast { background: var(--ink); color: var(--panel); padding: 10px 16px; border-radius: 10px; font-weight: 550; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+.toast.err { background: var(--bad); color: #fff; }
+.kv { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 8px; align-items: start; margin-bottom: 8px; }
+.tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.claudesw { display: grid; gap: 4px; font-size: 12px; } .claudesw .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.claudesw .seg button { flex: 1; border: 0; background: none; color: var(--muted); padding: 6px 4px; font: inherit; font-size: 12px; cursor: pointer; }
+.claudesw .seg button.on { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
+.acct { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; } .acct b { color: var(--ink); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct a { margin-left: auto; color: var(--accent); cursor: pointer; }
+.auth { position: fixed; inset: 0; z-index: 50; display: grid; grid-template-columns: 1fr 1fr; background: var(--panel); overflow: auto; }
+.auth .pitch { background: linear-gradient(160deg, var(--accent-soft), var(--bg) 70%); padding: 40px 56px; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
+.auth .pitch .brand { font-size: 18px; } .auth .pitch .mid { margin: auto 0; max-width: 460px; }
+.auth .pitch small { letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-size: 11px; font-weight: 650; }
+.auth .pitch h2 { font-size: 40px; line-height: 1.1; margin: 12px 0 14px; letter-spacing: -.02em; } .auth .pitch p { color: var(--muted); margin: 0 0 22px; }
+.auth .pitch ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; } .auth .pitch li::before { content: "✓"; color: var(--accent); font-weight: 700; margin-right: 10px; }
+.auth .side { display: grid; place-items: center; padding: 32px 20px; } .auth form { width: 100%; max-width: 380px; }
+.auth h1 { font-size: 26px; text-align: center; margin: 0 0 6px; } .auth .lead { text-align: center; color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+.auth .oauth { width: 100%; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.auth .oauth:hover { background: var(--chip); } .auth .or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; margin: 20px 0; } .auth .or::before, .auth .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.auth .f { margin-top: 12px; } .auth .go { width: 100%; justify-content: center; margin-top: 18px; padding: 12px; border-radius: 999px; font-size: 15px; }
+.auth .alt { margin-top: 16px; font-size: 13.5px; text-align: center; color: var(--muted); } .auth a.l { color: var(--accent); cursor: pointer; font-weight: 600; text-decoration: none; }
+.auth .who { display: flex; justify-content: space-between; align-items: center; background: var(--chip); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+.auth .fine { margin-top: 18px; font-size: 12px; text-align: center; color: var(--muted); }
+.auth .mbrand { display: none; justify-content: center; margin-bottom: 18px; }
+@media (max-width: 860px) { .auth { grid-template-columns: 1fr; } .auth .pitch { display: none; } .auth .mbrand { display: flex; } }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 12px; } .tabs button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; } .tabs button .n { opacity: .7; margin-left: 4px; }
+@media (max-width: 800px) { .app { grid-template-columns: 1fr; } aside { position: static; height: auto; } main { padding: 18px 16px 140px; } .job { grid-template-columns: 52px 1fr; } .job .acts { grid-column: 1 / -1; flex-wrap: wrap; } .hide-sm { display: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><div class="logo">⚡</div>AutoApply</div>
+    <div class="me"><div class="avatar" id="avatar">?</div><div style="min-width:0;flex:1"><small>Applying as</small><select id="userSel" title="Switch user"></select></div></div>
+    <nav id="nav"></nav>
+    <div class="side-foot">
+      <button class="btn sm" id="newUserBtn">＋ Add a person</button>
+      <div class="claudesw" id="claudeSw" title="When AutoApply may use Claude (your subscription) for this person"></div>
+      <div class="ai" id="aiStatus" data-tab="settings"><span class="dot" id="aiDot"></span><span id="llm">Claude AI</span></div>
+      <div class="acct" id="acct"></div>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+<div id="drawer"></div>
+<div id="modal"></div>
+<div class="taskpanel" id="taskpanel"></div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+
+// Served by this computer: same origin, signed in with a cookie. Served by GitHub Pages: config.json says where the
+// server is (its Cloudflare address) and the session token travels in an Authorization header.
+const HOSTED = /\.github\.io$/.test(location.hostname);
+let API = "";
+const authHeader = () => { const t = HOSTED && store.get("aa.token"); return t ? { authorization: `Bearer ${t}` } : {}; };
+async function api(path, opts = {}) {
+  let res;
+  try { res = await fetch(`${API}/api${path}`, { ...opts, headers: { "content-type": "application/json", "x-autoapply": "1", ...authHeader(), ...(opts.headers ?? {}) }, body: opts.body && typeof opts.body !== "string" ? JSON.stringify(opts.body) : opts.body }); }
+  catch { throw Object.assign(new Error("AutoApply is offline — the computer that runs it is off or not online right now."), { offline: true }); }
+  const data = res.headers.get("content-type")?.includes("json") ? await res.json() : await res.text();
+  if (res.status === 401 && !path.startsWith("/auth/")) { showLogin(); throw new Error("Please sign in."); }
+  if (res.status === 403 && data?.error === "pending") { showPending(); throw new Error("Waiting for approval."); }
+  if (!res.ok) throw new Error(data?.error ?? res.statusText);
+  return data;
+}
+
+// On GitHub Pages, links and images that point at /api/… (PDFs, screenshots, CSV) are loaded from the server with the
+// sign-in token, then shown from memory.
+async function apiBlob(href) {
+  const r = await fetch(API + href, { headers: authHeader() });
+  if (!r.ok) throw new Error(`Couldn't open the file (${r.status})`);
+  return URL.createObjectURL(await r.blob());
+}
+if (HOSTED) {
+  document.addEventListener("click", async (e) => {
+    const a = e.target.closest('a[href^="/api/"]'); if (!a) return;
+    e.preventDefault();
+    try { const u = await apiBlob(a.getAttribute("href")); const x = Object.assign(document.createElement("a"), { href: u, target: "_blank", rel: "noopener" }); if (a.hasAttribute("download") || /format=csv/.test(a.href)) x.download = "saved-answers.csv"; x.click(); } catch (err) { fail(err); }
+  }, true);
+  new MutationObserver(() => document.querySelectorAll('img[src^="/api/"]').forEach(async (img) => {
+    const src = img.getAttribute("src"); img.removeAttribute("src");
+    try { img.src = await apiBlob(src); } catch {}
+  })).observe(document.documentElement, { childList: true, subtree: true });
+}
+
+const S = { users: [], userId: store.get("aa.user"), user: null, tab: store.get("aa.tab") || "jobs", tasks: [], settings: null };
+const ALL_TABS = [["jobs", "🎯", "Job matches"], ["applications", "📋", "Applications"], ["resumes", "📄", "Resumes"], ["profile", "👤", "Profile"], ["preferences", "⚙️", "Job preferences"], ["questions", "💬", "Questions"], ["settings", "🔑", "AI & settings"], ["team", "👪", "Family & access", "admin"], ["online", "🌐", "Online access", "admin"]];
+let TABS = ALL_TABS.filter((t) => !t[3]);
+const isAdmin = () => ["owner", "admin"].includes(S.me?.role);
+const U = () => `/users/${encodeURIComponent(S.userId)}`;
+const STATUS = { matched: "Ready to apply", submitted: "Applied", needs_input: "Needs your input", failed: "Didn't go through", filled: "Preview ready", skipped: "Skipped", discovered: "New", rejected: "Not a match" };
+const statusChip = (s) => `<span class="chip ${esc(s)}">${esc(STATUS[s] ?? s)}</span>`;
+
+function toast(msg, err) {
+  const el = document.createElement("div"); el.className = `toast ${err ? "err" : ""}`; el.textContent = msg;
+  $("#toasts").append(el); setTimeout(() => el.remove(), err ? 6000 : 3000);
+}
+const fail = (e) => toast(e.message ?? String(e), true);
+
+function modal({ title, body, ok = "OK", cancel = "Cancel" }) {
+  return new Promise((resolve) => {
+    $("#modal").innerHTML = `<div class="modal-bg"><div class="modal"><h2>${title}</h2><div class="muted" style="margin-top:6px">${body}</div>
+      <div class="row">${cancel ? `<button class="btn" data-m="0">${cancel}</button>` : ""}<button class="btn primary" data-m="1">${ok}</button></div></div></div>`;
+    $("#modal").querySelectorAll("[data-m]").forEach((b) => b.onclick = () => { $("#modal").innerHTML = ""; resolve(b.dataset.m === "1"); });
+  });
+}
+
+// password field with an eye toggle; `reveal` loads a saved value the first time it is shown
+function pwField(id, placeholder, reveal) {
+  return `<div class="pw"><input id="${id}" type="password" autocomplete="new-password" placeholder="${esc(placeholder)}">
+    <button type="button" class="eye" data-eye="${id}" title="Show / hide" aria-label="Show or hide">👁</button></div>`;
+}
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-eye]"); if (!b) return;
+  const inp = document.getElementById(b.dataset.eye);
+  if (inp.type === "password") {
+    if (!inp.value && inp.dataset.reveal === "ats") {
+      try { inp.value = (await api(`${U()}/secrets`)).atsPassword; } catch (err) { return fail(err); }
+    }
+    inp.type = "text"; b.textContent = "🙈";
+  } else { inp.type = "password"; b.textContent = "👁"; }
+});
+
+// ---------------- shell ----------------
+async function loadUsers() {
+  S.users = await api("/users");
+  if (!S.users.find((u) => u.id === S.userId)) S.userId = S.users[0]?.id ?? null;
+  $("#userSel").innerHTML = S.users.map((u) => `<option value="${esc(u.id)}" ${u.id === S.userId ? "selected" : ""}>${esc(u.name)}</option>`).join("") || `<option>No one yet</option>`;
+  if (S.userId) { store.set("aa.user", S.userId); S.user = await api(U()); } else S.user = null;
+  S.settings = await api("/settings").catch(() => null);
+  const be = S.settings?.backend;
+  $("#aiDot").classList.toggle("on", !!be);
+  $("#llm").textContent = be === "subscription" ? "Claude AI · your subscription" : be === "api" ? "Claude AI · API key" : "Claude AI off — connect it";
+  const p = S.user?.profile;
+  $("#avatar").textContent = p ? `${(p.firstName ?? "?")[0] ?? ""}${(p.lastName ?? "")[0] ?? ""}`.toUpperCase() : "?";
+  TABS = ALL_TABS.filter((t) => !t[3] || isAdmin());
+  if (!TABS.some(([id]) => id === S.tab)) S.tab = "jobs";
+  $("#acct").innerHTML = S.me ? `<span>👤</span><b title="${esc(S.me.email)}">${esc(S.me.name || S.me.email)}</b><a id="signOut">Sign out</a>` : "";
+  renderClaudeSwitch();
+}
+
+// Quick Claude switch for the person being applied for: Off / Ask first / Automatic (same as Profile → Permissions).
+function renderClaudeSwitch() {
+  const m = S.user?.search?.aiMode;
+  $("#claudeSw").innerHTML = S.user ? `<span class="muted">Use Claude (subscription)</span><div class="seg">${[["off", "Off"], ["ask", "Ask first"], ["auto", "Auto"]].map(([k, l]) => `<button data-aimode="${k}" class="${m === k ? "on" : ""}">${l}</button>`).join("")}</div>` : "";
+}
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-aimode]"); if (b) {
+    try { S.user = await api(`${U()}/search`, { method: "PUT", body: { ...S.user.search, aiMode: b.dataset.aimode } }); renderClaudeSwitch(); toast({ off: "Claude is off — no tokens are used", ask: "Claude only when you allow it", auto: "Claude may be used automatically" }[b.dataset.aimode]); if (S.tab === "profile") render(); } catch (err) { fail(err); }
+  }
+  if (e.target.id === "signOut") { await api("/auth/logout", { method: "POST", body: {} }).catch(() => {}); store.set("aa.token", ""); location.reload(); }
+});
+
+function renderNav() {
+  const st = S.user?.stats ?? {};
+  const counts = { jobs: (st.matched ?? 0) + (st.needs_input ?? 0) + (st.failed ?? 0) + (st.filled ?? 0) + (st.skipped ?? 0), applications: st.submitted, resumes: S.user?.resumes.length, questions: S.user?.unansweredCount };
+  $("#nav").innerHTML = TABS.map(([id, ic, name]) => `<button data-tab="${id}" class="${S.tab === id ? "on" : ""}"><span class="ic">${ic}</span>${name}${counts[id] ? `<span class="n">${counts[id]}</span>` : ""}</button>`).join("");
+}
+
+function setupBanner() {
+  const probs = [...(S.user.problems ?? [])];
+  if (!S.settings?.backend) probs.push("Claude AI not connected — sign in with your Claude subscription in AI & settings (AI answers for open questions are off)");
+  if (!probs.length) return "";
+  return `<div class="banner"><div>⚠️</div><div><b>Finish setup to let AutoApply apply for ${esc(S.user.profile.firstName)}</b><ul>${probs.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div></div>`;
+}
+
+async function render() {
+  renderNav();
+  const m = $("#main");
+  if (!S.user && !["settings", "team", "online"].includes(S.tab)) { m.innerHTML = `<div class="card empty"><div class="big">👋</div><h1>Welcome to AutoApply</h1><p>Add the first person to apply for.</p><button class="btn primary" onclick="newUser()">＋ Add a person</button></div>`; return; }
+  m.innerHTML = (S.user ? setupBanner() : "") + `<div id="view"></div>`;
+  await VIEWS[S.tab]($("#view")).catch(fail);
+}
+
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-tab]");
+  if (t) { if (S.tab !== t.dataset.tab) { S.filter = structuredClone(EMPTY_FILTER); S.cmdReply = ""; } S.tab = t.dataset.tab; store.set("aa.tab", S.tab); closeDrawer(); render(); }
+});
+$("#userSel").addEventListener("change", async (e) => { S.userId = e.target.value; await loadUsers(); closeDrawer(); render(); pollTasks(); });
+$("#newUserBtn").addEventListener("click", () => newUser());
+
+async function newUser() {
+  $("#modal").innerHTML = `<div class="modal-bg"><div class="modal"><h2>Add a person</h2><p class="muted">AutoApply keeps a separate profile, resumes and applications for each person.</p>
+    <div class="form" style="grid-template-columns:1fr 1fr"><label class="f"><span>First name</span><input id="nuF"></label><label class="f"><span>Last name</span><input id="nuL"></label>
+    <label class="f wide"><span>Email</span><input id="nuE" type="email"></label></div>
+    <div class="row"><button class="btn" id="nuC">Cancel</button><button class="btn primary" id="nuOk">Create</button></div></div></div>`;
+  $("#nuC").onclick = () => { $("#modal").innerHTML = ""; };
+  $("#nuOk").onclick = async () => {
+    if (!$("#nuF").value.trim()) return toast("Add a first name", true);
+    try { const u = await api("/users", { method: "POST", body: { firstName: $("#nuF").value.trim(), lastName: $("#nuL").value.trim(), email: $("#nuE").value.trim() } }); $("#modal").innerHTML = ""; S.userId = u.id; S.tab = "resumes"; await loadUsers(); render(); toast("Person added — upload a resume next"); }
+    catch (err) { fail(err); }
+  };
+}
+window.newUser = newUser;
+
+// ---------------- tasks ----------------
+async function startTask(body) {
+  try { await api(`${U()}/tasks`, { method: "POST", body }); pollTasks(true); }
+  catch (err) { fail(err); }
+}
+let pollTimer = null;
+async function pollTasks(force) {
+  clearTimeout(pollTimer);
+  if (!S.userId) return;
+  const tasks = await api(`/tasks?user=${encodeURIComponent(S.userId)}`).catch(() => []);
+  const running = tasks.find((t) => t.status === "running");
+  const latest = running ?? tasks[0];
+  const wasRunning = S.tasks.some((t) => t.status === "running");
+  S.tasks = tasks;
+  renderTask(latest, !!running || force);
+  if (wasRunning && !running) { await loadUsers(); render(); }
+  if (running) pollTimer = setTimeout(pollTasks, 1200);
+}
+let taskHidden = false;
+// What happened to each job in a run, and exactly what is still needed for the ones that stopped.
+function fixButton(text) {
+  if (/password/i.test(text)) return `<button class="btn sm" data-tab="profile">Set password</button>`;
+  if (/claude|ai /i.test(text) && /sign|connect/i.test(text)) return `<button class="btn sm" data-tab="settings">Connect Claude</button>`;
+  if (/profile|address|postal|phone|email/i.test(text)) return `<button class="btn sm" data-tab="profile">Open profile</button>`;
+  return "";
+}
+function outcomeList(items) {
+  if (!items?.length) return "";
+  return `<div style="display:grid;gap:8px;margin-top:10px;max-height:260px;overflow:auto">${items.map((it) => {
+    const needs = [...(it.missing ?? [])];
+    const why = it.error ?? it.note ?? "";
+    const pwHost = it.status !== "submitted" ? it.passwordHost : null;
+    const fix = pwHost ? "" : fixButton([...needs, why].join(" "));
+    return `<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px">
+      ${pwHost ? `<div style="font-size:12.5px;margin:4px 0">You already have an account at <b>${esc(pwHost.split(".")[0])}</b> with your own password. Type it once — AutoApply signs in with it from now on.</div>
+        <div class="row">${pwField(`sitepw-${it.id}`, `Your ${pwHost.split(".")[0]} password`)}<button class="btn sm primary" data-sitepw="${esc(it.id)}" data-host="${esc(pwHost)}">Save & try again</button></div>` : ""}
+      <div class="row"><b style="flex:1;min-width:0">${esc(it.title ?? "")}<span class="muted" style="font-weight:400"> · ${esc(it.company ?? "")}</span></b>${statusChip(it.status)}</div>
+      ${it.status !== "submitted" && (needs.length || why) ? `<div style="font-size:12.5px;margin-top:4px">${needs.length ? `<b>Needs:</b><ul style="margin:2px 0 0;padding-left:18px">${needs.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}${why && !needs.length ? esc(why) : why && needs.length ? `<div class="muted">${esc(why)}</div>` : ""}</div>` : ""}
+      <div class="row" style="margin-top:6px">${fix}${it.id ? `<button class="btn sm ghost" onclick="openJob('${esc(it.id)}')">Details</button>` : ""}${it.status !== "submitted" && it.id ? `<button class="btn sm ghost" data-act="apply" data-id="${esc(it.id)}">Try again</button>` : ""}</div></div>`;
+  }).join("")}</div>`;
+}
+function lastLine(t) { return [...t.log].reverse().find((l) => l.trim()) ?? ""; }
+function renderTask(t, show) {
+  const el = $("#taskpanel");
+  if (!t || (taskHidden && !show)) { el.innerHTML = ""; el.dataset.sig = ""; return; }
+  if (show) taskHidden = false;
+  const p = t.prompt;
+  let promptHtml = "";
+  if (p) {
+    const info = p.info ?? {};
+    if (info.kind === "review") {
+      promptHtml = `<div class="prompt"><b>Ready to submit — take a look?</b><div class="muted">${esc(info.summary ?? "")}</div>
+        ${info.missing?.length ? `<div style="color:var(--bad)">Still required: ${info.missing.map(esc).join("; ")}</div>` : ""}
+        <div class="muted">The filled application is open in the browser window. Change anything you like there, then:</div>
+        <div class="row"><button class="btn primary" data-resp="s">Submit application</button><button class="btn" data-resp="k">Skip this job</button><button class="btn ghost" data-resp="q">Stop</button></div></div>`;
+    } else if (info.kind === "resume") {
+      promptHtml = `<div class="prompt"><b>Use the resume tailored for this job?</b>
+        <ul style="margin:0;padding-left:18px">${(info.changes ?? []).map((c) => `<li>${esc(c)}</li>`).join("")}</ul>
+        <a target="_blank" href="/api${U()}/receipts/${encodeURIComponent(info.receiptId)}/${encodeURIComponent(info.pdf)}">Preview tailored PDF ↗</a>
+        <div class="row"><button class="btn primary" data-resp="y">Use tailored resume</button><button class="btn" data-resp="n">Use my original</button></div></div>`;
+    } else if (info.kind === "password") {
+      promptHtml = `<div class="prompt"><b>🔐 You already have an account at ${esc((info.host ?? "this site").split(".")[0])}</b>
+        <div>${info.rejected ? `The password saved for <b>${esc(info.host ?? "")}</b> didn't work. Type the right one.` : `An account for <b>${esc(info.email ?? "")}</b> already exists at <b>${esc(info.host ?? "")}</b> with your own password. Type it once — AutoApply remembers it and signs in by itself from now on.`}</div>
+        ${pwField("taskPw", "Your password on this site")}
+        <div class="row"><button class="btn primary" id="taskPwSave">Save & continue</button><button class="btn" data-resp="k">Skip this job</button></div></div>`;
+    } else if (info.kind === "questions") {
+      const qs = info.questions ?? [];
+      const input = (q) => {
+        const id = `qa-${q.id}`;
+        if (q.options?.length) {
+          const multi = /checkbox-group|multi/.test(q.kind);
+          if (multi) return `<div class="qopts">${q.options.map((o, i) => `<label class="row" style="gap:6px;font-size:13px"><input type="checkbox" style="width:auto" name="${id}" value="${esc(o)}">${esc(o)}</label>`).join("")}</div>`;
+          return `<select id="${id}"><option value="">Choose…</option>${q.options.map((o) => `<option>${esc(o)}</option>`).join("")}</select>`;
+        }
+        if (q.kind === "checkbox") return `<select id="${id}"><option value="">Choose…</option><option value="true">Yes, tick it</option><option value="false">No</option></select>`;
+        if (q.kind === "date") return `<input id="${id}" placeholder="MM/YYYY or MM/DD/YYYY">`;
+        return q.kind === "textarea" ? `<textarea id="${id}" rows="3"></textarea>` : `<input id="${id}">`;
+      };
+      promptHtml = `<div class="prompt"><b>❓ ${qs.length} new question${qs.length > 1 ? "s" : ""} — ${esc(info.job ?? "")}</b>
+        <div class="muted" style="font-size:12.5px">AutoApply hasn't seen ${qs.length > 1 ? "these" : "this"} before. Your answer${qs.length > 1 ? "s are" : " is"} remembered, so you won't be asked again.</div>
+        <div style="display:grid;gap:10px;max-height:300px;overflow:auto">${qs.map((q) => `<label class="f" style="display:grid;gap:4px"><span style="font-size:13px">${esc(q.label)}</span>${input(q)}</label>`).join("")}</div>
+        <div class="row"><button class="btn primary" id="qaSave">Save & continue</button>
+          ${info.aiMode === "ask" ? `<button class="btn" id="qaClaude" ${info.claudeReady ? "" : "disabled title=\"Connect Claude in AI & settings first\""}>✨ Ask Claude (uses subscription)</button>` : ""}
+          <button class="btn ghost" data-resp="k">Skip this job</button></div></div>`;
+    } else if (info.kind === "click") {
+      promptHtml = `<div class="prompt"><b>👆 One click needed: "${esc(info.button)}"</b>
+        <div>${esc((info.host ?? "").split(".")[0])}'s Workday only accepts this button from a person. Your email and password are already filled in — switch to the browser window and click <b>${esc(info.button)}</b>. That's all: AutoApply finishes and submits the application by itself.</div>
+        <div class="row"><button class="btn ghost" data-resp="k">Skip this job</button></div></div>`;
+    } else if (info.kind === "verify") {
+      promptHtml = `<div class="prompt"><b>✉️ Verify your email</b><div>${esc(info.host ?? "The job site")} sent a verification email to <b>${esc(info.email ?? "")}</b>. Open it and click the link, then continue.</div>
+        <div class="row"><button class="btn primary" data-resp="">I've verified — continue</button><button class="btn" data-resp="k">Skip this job</button></div></div>`;
+    } else {
+      promptHtml = `<div class="prompt"><b>${esc(p.question)}</b>${info.messages?.length ? `<div class="muted">${info.messages.map(esc).join("<br>")}</div>` : ""}
+        <div class="row"><button class="btn primary" data-resp="">Continue</button><button class="btn" data-resp="k">Skip</button></div></div>`;
+    }
+  }
+  const running = t.status === "running";
+  const html = `<div class="card"><div class="row"><b>${running ? "⏳" : t.status === "failed" ? "⚠️" : "✅"} ${esc(t.label)}</b><span class="spacer"></span>
+    ${running ? `<button class="btn sm danger" id="stopTask">Stop</button>` : `<button class="btn sm ghost" id="hideTask">✕</button>`}</div>
+    ${running && !p ? `<div class="progress"><i></i></div><div class="muted" style="font-size:13px">${esc(lastLine(t))}</div>` : ""}
+    ${["discover", "addjob", "autopilot"].includes(t.type) && t.result?.message ? `<div style="margin-top:6px"><b>${esc(t.result.message)}</b>${t.result.newMatches ? `<div class="row" style="margin-top:6px"><button class="btn sm primary" data-jobstab-open="open">See new matches</button></div>` : ""}${t.result.rejected ? `<div class="muted" style="font-size:12.5px;margin-top:4px">Jobs that don't fit your preferences aren't listed — type in the search box to look through them too.</div>` : ""}</div>` : ""}
+    ${t.result?.counts ? `<div class="muted" style="margin-top:6px">${esc(Object.entries(t.result.counts).map(([k, n]) => `${n} ${STATUS[k] ?? k}`).join(" · ") || t.result.message || "Nothing to do")}</div>` : ""}
+    ${outcomeList(t.result?.items ?? (t.result?.status ? [t.result] : []))}
+    ${t.status === "failed" && t.error ? `<div style="color:var(--bad);margin-top:6px">${esc(t.error)}</div>` : ""}
+    ${promptHtml}
+    <details class="log" ${running ? "" : ""}><summary>Activity log</summary><div class="log" id="tasklog">${esc(t.log.slice(-80).join("\n"))}</div></details>
+    <div class="row">${t.result?.pdf ? `<a class="btn sm" target="_blank" href="/api${U()}/receipts/${encodeURIComponent(t.result.jobId)}/${encodeURIComponent(t.result.pdf)}">Open tailored resume ↗</a>` : ""}
+    ${t.result?.receiptDir ? `<button class="btn sm" onclick="openJob('${esc(t.result.id)}')">View application details</button>` : ""}</div></div>`;
+  // The panel refreshes every second while a run is going. Never redraw what hasn't changed, and when it has,
+  // keep whatever the user is typing (password boxes, etc.), where the cursor is, and whether the log is open.
+  const sig = `${t.id}|${p?.id ?? ""}|${html}`;
+  if (el.dataset.sig === sig) return;
+  const keep = {};
+  el.querySelectorAll("input[id], select[id], textarea[id]").forEach((i) => { keep[i.id] = { value: i.value, type: i.type, focused: document.activeElement === i, s: i.selectionStart, e: i.selectionEnd }; });
+  const ticked = [...el.querySelectorAll("input[type=checkbox][name]:checked")].map((b) => `${b.name}\u0000${b.value}`);
+  const logOpen = el.querySelector("details.log")?.open;
+  const samePrompt = el.dataset.prompt === (p?.id ?? "");
+  el.innerHTML = html;
+  el.dataset.sig = sig; el.dataset.prompt = p?.id ?? "";
+  for (const [id, k] of Object.entries(keep)) {
+    const i = document.getElementById(id);
+    if (!i || ((id === "taskPw" || id.startsWith("qa-")) && !samePrompt)) continue;
+    i.value = k.value; if (i.tagName === "INPUT") i.type = k.type;
+    const eye = el.querySelector(`[data-eye="${CSS.escape(id)}"]`); if (eye) eye.textContent = k.type === "text" ? "🙈" : "👁";
+    if (k.focused) { i.focus(); try { i.setSelectionRange(k.s, k.e); } catch { /* not a text box */ } }
+  }
+  if (samePrompt) el.querySelectorAll("input[type=checkbox][name]").forEach((b) => { if (ticked.includes(`${b.name}\u0000${b.value}`)) b.checked = true; });
+  if (logOpen) el.querySelector("details.log").open = true;
+  const lg = $("#tasklog"); if (lg) lg.scrollTop = lg.scrollHeight;
+  el.querySelectorAll("[data-sitepw]").forEach((b) => b.onclick = async () => {
+    const pw = document.getElementById(`sitepw-${b.dataset.sitepw}`)?.value;
+    if (!pw) return toast("Type the password first", true);
+    try {
+      S.user = await api(`${U()}/secrets`, { method: "PUT", body: { host: b.dataset.host, password: pw } });
+      toast("Password saved — applying again"); applyForMe(b.dataset.sitepw);
+    } catch (e) { fail(e); }
+  });
+  $("#taskPw")?.addEventListener("keydown", (e) => { if (e.key === "Enter") $("#taskPwSave")?.click(); });
+  const respond = async (value) => { await api(`/tasks/${t.id}/respond`, { method: "POST", body: { promptId: p.id, value } }).catch(fail); pollTasks(true); };
+  $("#qaSave")?.addEventListener("click", () => {
+    const answers = {};
+    for (const q of p.info.questions ?? []) {
+      const boxes = [...el.querySelectorAll(`input[name="qa-${CSS.escape(q.id)}"]:checked`)];
+      const v = boxes.length ? boxes.map((b) => b.value) : document.getElementById(`qa-${q.id}`)?.value?.trim();
+      if (v === "true") answers[q.id] = true; else if (v === "false") answers[q.id] = false; else if (v && v.length) answers[q.id] = v;
+    }
+    const missing = (p.info.questions ?? []).filter((q) => answers[q.id] == null);
+    if (missing.length) return toast(`Please answer: ${missing.map((q) => q.label.slice(0, 40)).join("; ")}`, true);
+    respond(JSON.stringify({ answers }));
+  });
+  $("#qaClaude")?.addEventListener("click", () => respond(JSON.stringify({ useClaude: true })));
+  $("#taskPwSave")?.addEventListener("click", async () => {
+    const pw = $("#taskPw").value; if (!pw) return toast("Type a password first", true);
+    try {
+      S.user = await api(`${U()}/secrets`, { method: "PUT", body: { host: p.info?.host, password: pw } });
+      await api(`/tasks/${t.id}/respond`, { method: "POST", body: { promptId: p.id, value: "ok" } });
+      toast("Password saved — continuing"); pollTasks(true);
+    } catch (e) { fail(e); }
+  });
+  el.querySelectorAll("[data-resp]").forEach((b) => b.onclick = async () => {
+    await api(`/tasks/${t.id}/respond`, { method: "POST", body: { promptId: p.id, value: b.dataset.resp } }).catch(fail);
+    pollTasks(true);
+  });
+  $("#stopTask")?.addEventListener("click", async () => { if (await modal({ title: "Stop?", body: "AutoApply stops after the current step.", ok: "Stop" })) { await api(`/tasks/${t.id}/stop`, { method: "POST", body: {} }); pollTasks(true); } });
+  $("#hideTask")?.addEventListener("click", () => { taskHidden = true; el.innerHTML = ""; });
+}
+
+// ---------------- apply ----------------
+// Like Tsenta: check everything an application needs *before* starting, ask for any gaps once, then run without stopping.
+async function ensureReady(jobIds) {
+  const q = jobIds?.length ? `?jobIds=${encodeURIComponent(jobIds.join(","))}` : "";
+  const r = await api(`${U()}/readiness${q}`).catch(() => ({ ready: true, missing: [], blockers: [] }));
+  if (r.blockers?.length) { toast(r.blockers.join(" · "), true); return false; }
+  if (!r.missing?.length) return true;
+  return new Promise((resolve) => {
+    $("#modal").innerHTML = `<div class="modal-bg"><div class="modal" style="width:min(560px,100%)"><h2>Just once: a few details</h2>
+      <p class="muted">Job sites ask for these. Add them now and AutoApply never has to stop mid-application to ask. They're saved to ${esc(S.user.profile.firstName)}'s profile.</p>
+      <div class="form" id="readyForm" style="grid-template-columns:1fr 1fr">${r.missing.map((m) => inputFor([m.key, m.label, m.type])).join("")}</div>
+      <div class="row"><button class="btn" id="rdCancel">Cancel</button><button class="btn primary" id="rdOk">Save & apply</button></div></div></div>`;
+    $("#rdCancel").onclick = () => { $("#modal").innerHTML = ""; resolve(false); };
+    $("#rdOk").onclick = async () => {
+      const body = collect($("#readyForm"), S.user.profile);
+      const still = r.missing.filter((m) => { const v = m.key.split(".").reduce((x, k) => x?.[k], body); return v == null || v === ""; });
+      if (still.length) return toast(`Please fill: ${still.map((m) => m.label).join(", ")}`, true);
+      try { S.user = await api(`${U()}/profile`, { method: "PUT", body }); $("#modal").innerHTML = ""; resolve(true); } catch (e) { fail(e); }
+    };
+  });
+}
+
+async function applyForMe(id, { dry } = {}) {
+  const j = S.jobsById?.[id] ?? await api(`${U()}/jobs/${encodeURIComponent(id)}`);
+  const resumeId = document.querySelector(`[data-resume-for="${CSS.escape(id)}"]`)?.value || j.resumeId;
+  if (!dry && !(await ensureReady([id]))) return;
+  // One click: no confirmation — AutoApply fills and submits the application by itself.
+  if (!dry) toast(`Applying to ${j.title} at ${j.company}…`);
+  startTask({ type: "run", jobIds: [id], resumeId, dryRun: !!dry });
+}
+async function applyMany(ids) {
+  if (!ids.length) return toast("No jobs to apply to", true);
+  if (!(await ensureReady(ids))) return;
+  toast(`Applying to ${ids.length} job${ids.length > 1 ? "s" : ""}…`);
+  startTask({ type: "run", jobIds: ids });
+}
+const findPeople = async (ids) => {
+  const mode = S.user.search.aiMode;
+  if (mode === "ask" && !(await modal({ title: "Use Claude to find people?", body: `Looking up the recruiter and hiring manager searches the web with Claude and uses your Claude subscription (${Math.min(ids.length, 5)} job${ids.length > 1 ? "s" : ""}). Continue?`, ok: "Yes, use Claude", cancel: "Cancel" }))) return;
+  toast(mode === "off" ? "Claude is off — preparing LinkedIn searches only" : "Searching for recruiters and hiring managers…");
+  startTask({ type: "contacts", jobIds: ids.slice(0, 5) });
+};
+document.addEventListener("change", (e) => {
+  if (!["aiMode", "tailorMode"].includes(e.target.name)) return;
+  document.querySelectorAll(".aimode").forEach((l) => l.classList.toggle("on", l.querySelector("input").checked));
+});
+window.applyForMe = applyForMe; window.findPeople = findPeople;
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const id = b.dataset.id;
+  const resumeId = document.querySelector(`[data-resume-for="${CSS.escape(id)}"]`)?.value;
+  if (b.dataset.act === "apply") applyForMe(id);
+  if (b.dataset.act === "dry") applyForMe(id, { dry: true });
+  if (b.dataset.act === "tailor") startTask({ type: "tailor", jobId: id, resumeId });
+  if (b.dataset.act === "people") findPeople([id]);
+  if (b.dataset.act === "tomatches" || b.dataset.act === "anyway") {
+    api(`${U()}/jobs/${encodeURIComponent(id)}/status`, { method: "POST", body: { status: "matched" } }).then(async () => {
+      await loadUsers();
+      if (b.dataset.act === "anyway") { closeDrawer(); render(); applyForMe(id); } else { render(); toast("Moved to Job matches"); }
+    }).catch(fail);
+  }
+  if (b.dataset.act === "undo") api(`${U()}/jobs/${encodeURIComponent(id)}/status`, { method: "POST", body: { status: "matched" } }).then(async () => { await loadUsers(); closeDrawer(); render(); toast("Moved back to Job matches"); }).catch(fail);
+  if (b.dataset.copy) { navigator.clipboard?.writeText(b.dataset.copy).then(() => toast("Copied"), () => toast("Copy failed", true)); }
+});
+
+function actionButtons(j) {
+  if (j.status === "submitted") return `${statusChip("submitted")}<button class="btn sm" data-act="people" data-id="${esc(j.id)}">👥 Find people</button>`;
+  return `<button class="btn sm ghost" data-act="people" data-id="${esc(j.id)}" title="Find the recruiter and hiring manager">👥</button>
+    <button class="btn sm ghost" data-act="tailor" data-id="${esc(j.id)}" title="Make a tailored resume for this job">Tailor</button>
+    <button class="btn sm" data-act="dry" data-id="${esc(j.id)}" title="Fill the application without submitting">Preview</button>
+    <button class="btn sm primary" data-act="apply" data-id="${esc(j.id)}">⚡ ${["matched", "discovered"].includes(j.status) ? "Apply for me" : "Try again"}</button>`;
+}
+
+// ---------------- people to contact (networking) ----------------
+function peopleSection(j) {
+  const c = j.contacts;
+  const head = `<div class="row" style="margin-top:22px"><h2 style="flex:1;margin:0">👥 People to contact</h2><button class="btn sm" data-act="people" data-id="${esc(j.id)}">${c ? "Search again" : "Find recruiter & hiring manager"}</button></div>`;
+  if (!c) return head + `<p class="muted" style="font-size:13px">Finds the recruiter and the likely hiring manager for this role from public profiles, and drafts a short LinkedIn note and email. AutoApply never sends anything — you choose who to contact.</p>`;
+  const roleChip = (r) => `<span class="chip ${r === "hiring manager" ? "matched" : r === "recruiter" ? "submitted" : ""}">${esc(r)}</span>`;
+  return head + `${c.notes ? `<details style="margin:6px 0 10px"><summary class="muted" style="cursor:pointer;font-size:12.5px">How these were found and how sure it is</summary><div class="muted" style="font-size:12.5px;white-space:pre-wrap;margin-top:6px">${esc(c.notes.replace(/\*\*/g, ""))}</div></details>` : ""}
+    ${c.contacts?.length ? `<div style="display:grid;gap:8px">${c.contacts.map((p) => `<div class="card" style="padding:10px 12px"><div class="row"><b style="flex:1">${esc(p.name)}</b>${roleChip(p.role)}<span class="chip">${esc(p.confidence)} confidence</span></div>
+      <div class="muted" style="font-size:13px">${esc(p.title)}</div><div style="font-size:12.5px;margin:4px 0">${esc(p.why)}</div>
+      <div class="row"><a class="btn sm" href="${esc(p.profileUrl)}" target="_blank" rel="noopener">Open profile ↗</a></div></div>`).join("")}</div>` : `<p class="muted">No one found with confidence. Try the searches below.</p>`}
+    <div class="row" style="margin-top:8px">${(c.links ?? []).map((l) => `<a class="btn sm ghost" href="${esc(l.url)}" target="_blank" rel="noopener">🔎 ${esc(l.label)}</a>`).join("")}</div>
+    ${c.linkedinNote ? `<h3 style="margin-top:14px">LinkedIn note <span class="muted" style="font-weight:400">(${c.linkedinNote.length}/300)</span></h3><pre>${esc(c.linkedinNote)}</pre><button class="btn sm" data-copy="${esc(c.linkedinNote)}">Copy note</button>` : ""}
+    ${c.emailBody ? `<h3 style="margin-top:14px">Email</h3><pre><b>${esc(c.emailSubject ?? "")}</b>\n\n${esc(c.emailBody)}</pre><button class="btn sm" data-copy="${esc(`${c.emailSubject ?? ""}\n\n${c.emailBody}`)}">Copy email</button>` : ""}`;
+}
+
+// ---------------- drawer ----------------
+function closeDrawer() { $("#drawer").innerHTML = ""; }
+async function openJob(id) {
+  const j = await api(`${U()}/jobs/${encodeURIComponent(id)}`);
+  const r = (f) => `/api${U()}/receipts/${encodeURIComponent(id)}/${encodeURIComponent(f)}`;
+  const imgs = j.receipts.filter((f) => f.endsWith(".png"));
+  const docs = j.receipts.filter((f) => !f.endsWith(".png") && f !== "answers.json");
+  const answers = j.receipts.includes("answers.json") ? await fetch(r("answers.json")).then((x) => x.json()).catch(() => null) : null;
+  const fit = j.fit ?? {};
+  $("#drawer").innerHTML = `<div class="drawer-bg" onclick="closeDrawer()"></div><div class="drawer">
+    <div class="row"><div style="flex:1"><h1>${esc(j.title)}</h1><div class="muted">${esc(j.company)} · ${esc(j.location ?? "")} · <a href="${esc(j.url)}" target="_blank" rel="noopener">View posting ↗</a></div></div><button class="btn sm ghost" onclick="closeDrawer()">✕</button></div>
+    <div class="row" style="margin-top:12px">${j.score != null ? `<span class="chip matched">${j.score}% match</span>` : ""}${statusChip(j.status)}${j.status === "submitted" ? stageChip(j.stage) : ""}${j.ats ? `<span class="chip">${esc(j.ats)}</span>` : ""}</div>
+    ${j.error || j.note || j.missing?.length ? `<div class="banner ${j.status === "submitted" ? "info" : ""}" style="margin:14px 0 0"><div>${j.status === "submitted" ? "✅" : "ℹ️"}</div><div>${esc(j.error ?? j.note ?? "")}${j.missing?.length ? `<div><b>Needs:</b> ${j.missing.map(esc).join("; ")}</div>` : ""}</div></div>` : ""}
+    <div class="row" style="margin-top:14px">${actionButtons(j)}${j.status === "submitted" ? `${stageSelect(j)}<button class="btn sm ghost" data-act="undo" data-id="${esc(j.id)}">Mark as not applied</button>` : ""}</div>
+    ${peopleSection(j)}
+    ${fit.summary ? `<h2>Why it's a match</h2><p>${esc(fit.summary)}</p>` : ""}
+    ${fit.strengths?.length ? `<p><b>Strengths:</b> ${fit.strengths.map(esc).join("; ")}</p>` : ""}${fit.gaps?.length ? `<p><b>Gaps:</b> ${fit.gaps.map(esc).join("; ")}</p>` : ""}
+    ${answers?.answers?.length ? `<h2>Answers given</h2><div class="qa">${answers.answers.map((a) => `<div><span class="muted">${esc(a.question)}</span><span>${a.answer == null ? `<span class="muted">—</span>` : esc(Array.isArray(a.answer) ? a.answer[0] : a.answer)}${a.source === "claude" ? ` <span class="chip">AI</span>` : a.source === "judgment" ? ` <span class="chip">best judgment</span>` : a.source === "learned" ? ` <span class="chip">from memory</span>` : ""}</span></div>`).join("")}</div>` : ""}
+    ${docs.length ? `<h2>Documents</h2><div class="row">${docs.map((f) => `<a class="btn sm" target="_blank" href="${r(f)}">${esc(f)}</a>`).join("")}</div>` : ""}
+    ${imgs.length ? `<h2>Screenshots</h2>` + imgs.map((f) => `<div class="muted" style="font-size:12px">${esc(f.replace(".png", ""))}</div><a target="_blank" href="${r(f)}"><img loading="lazy" src="${r(f)}" alt="${esc(f)}"></a>`).join("") : ""}
+    ${j.description ? `<h2>Job description</h2><pre>${esc(j.description)}</pre>` : ""}
+  </div>`;
+}
+window.openJob = openJob; window.closeDrawer = closeDrawer;
+
+// ---------------- after applying: stages ----------------
+const STAGES = [["applied", "Applied"], ["viewed", "Viewed"], ["replied", "Replied"], ["interviewing", "Interview"], ["offer", "Offer"], ["rejected", "Rejected"], ["ghosted", "No reply"]];
+const stageChip = (s = "applied") => `<span class="chip ${s === "offer" || s === "interviewing" ? "submitted" : s === "rejected" ? "failed" : s === "ghosted" ? "skipped" : "matched"}">${esc(Object.fromEntries(STAGES)[s] ?? s)}</span>`;
+const stageSelect = (j) => `<select data-stage-for="${esc(j.id)}" style="width:auto;padding:5px 8px;font-size:12.5px">${STAGES.map(([k, l]) => `<option value="${k}" ${(j.stage ?? "applied") === k ? "selected" : ""}>${l}</option>`).join("")}</select>`;
+document.addEventListener("change", async (e) => {
+  const sel = e.target.closest("[data-stage-for]"); if (!sel) return;
+  try { await api(`${U()}/jobs/${encodeURIComponent(sel.dataset.stageFor)}/stage`, { method: "POST", body: { stage: sel.value } }); toast(`Moved to ${sel.options[sel.selectedIndex].text}`); if (S.tab === "applications") render(); } catch (err) { fail(err); }
+});
+
+function resumeSelect(j) {
+  if (S.user.resumes.length < 2) return "";
+  return `<select data-resume-for="${esc(j.id)}" title="Resume to use">${S.user.resumes.map((r) => `<option value="${esc(r.id)}" ${r.id === j.resumeId ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select>`;
+}
+const ring = (score) => `<div class="ring" style="--p:${score ?? 0};--c:${(score ?? 0) >= 80 ? "var(--good)" : "var(--warn)"}"><b>${score ?? "–"}%</b></div>`;
+
+// ---------------- filters + command box ----------------
+const EMPTY_FILTER = { text: "", companies: [], locations: [], minScore: 0, statuses: [], ats: [], remoteOnly: false, stages: [] };
+S.filter = S.filter ?? structuredClone(EMPTY_FILTER);
+function applyFilter(jobs, f = S.filter) {
+  const lc = (x) => String(x ?? "").toLowerCase();
+  const words = lc(f.text).split(/\s+/).filter(Boolean);
+  return jobs.filter((j) => words.every((w) => lc(`${j.title} ${j.company}`).includes(w))
+    && (!f.companies?.length || f.companies.some((c) => lc(j.company).includes(lc(c))))
+    && (!f.locations?.length || f.locations.some((l) => lc(j.location).includes(lc(l))))
+    && (!f.minScore || (j.score ?? 0) >= f.minScore)
+    && (!f.statuses?.length || f.statuses.includes(j.status))
+    && (!f.ats?.length || f.ats.includes(j.ats))
+    && (!f.remoteOnly || /remote/i.test(j.location ?? ""))
+    && (!f.stages?.length || f.stages.includes(j.stage ?? "applied")));
+}
+const filterActive = () => JSON.stringify(S.filter) !== JSON.stringify(EMPTY_FILTER);
+function commandBar(placeholder) {
+  return `<div class="card" style="margin-bottom:12px;padding:12px 14px"><div class="row"><span style="font-size:18px">✨</span>
+      <input id="cmd" placeholder="${esc(placeholder)}" style="flex:1;min-width:200px"><button class="btn primary" id="cmdGo">Ask</button></div>
+      <div id="cmdReply" class="muted" style="font-size:13px;margin-top:6px">${esc(S.cmdReply ?? "")}</div></div>`;
+}
+function wireCommand() {
+  const go = async () => {
+    const text = $("#cmd").value.trim(); if (!text) return;
+    $("#cmdReply").textContent = "Thinking…"; $("#cmdGo").disabled = true;
+    try {
+      const r = await api(`${U()}/command`, { method: "POST", body: { text } });
+      S.filter = r.action === "clear" ? structuredClone(EMPTY_FILTER) : { ...EMPTY_FILTER, ...r.filter };
+      S.cmdReply = `${r.reply}${r.action !== "clear" ? ` (${r.count} job${r.count === 1 ? "" : "s"})` : ""}`;
+      if (r.action === "find_jobs") startTask({ type: "discover" });
+      if (r.action === "show_applications" && S.tab !== "applications") { S.tab = "applications"; store.set("aa.tab", S.tab); }
+      if (r.action === "apply") { const ids = (await api(`${U()}/jobs?status=open`)).filter((j) => r.matchIds.includes(j.id) && j.status !== "submitted").map((j) => j.id); await applyMany(ids); }
+      if (r.action === "find_contacts") findPeople(r.matchIds);
+      render();
+    } catch (e) { $("#cmdReply").textContent = e.message; } finally { const b = $("#cmdGo"); if (b) b.disabled = false; }
+  };
+  $("#cmdGo").onclick = go;
+  $("#cmd").onkeydown = (e) => { if (e.key === "Enter") go(); };
+}
+function filterBar(jobs, { stages } = {}) {
+  const f = S.filter;
+  const companies = [...new Set(jobs.map((j) => j.company))].sort();
+  const atsList = [...new Set(jobs.map((j) => j.ats).filter(Boolean))].sort();
+  const opt = (v, cur, l = v) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(l)}</option>`;
+  return `<div class="row" style="margin-bottom:12px;gap:6px">
+    <input id="fText" placeholder="Search title or company" value="${esc(f.text)}" style="max-width:220px">
+    <select id="fCompany" style="width:auto"><option value="">All companies</option>${companies.map((c) => opt(c, f.companies[0])).join("")}</select>
+    ${stages ? `<select id="fStage" style="width:auto"><option value="">All stages</option>${STAGES.map(([k, l]) => opt(k, f.stages[0], l)).join("")}</select>`
+      : `<select id="fStatus" style="width:auto"><option value="">Any status</option>${[["matched", "Ready to apply"], ["needs_input", "Needs your input"], ["failed", "Didn't go through"], ["filled", "Preview ready"], ["skipped", "Skipped"]].map(([k, l]) => opt(k, f.statuses[0], l)).join("")}</select>
+      <select id="fScore" style="width:auto"><option value="0">Any match</option>${[70, 80, 85, 90].map((n) => opt(String(n), String(f.minScore), `${n}%+`)).join("")}</select>`}
+    <select id="fAts" style="width:auto"><option value="">Any site</option>${atsList.map((a) => opt(a, f.ats[0])).join("")}</select>
+    <label class="row" style="gap:4px;font-size:13px"><input type="checkbox" id="fRemote" style="width:auto" ${f.remoteOnly ? "checked" : ""}>Remote</label>
+    ${filterActive() ? `<button class="btn sm ghost" id="fClear">✕ Clear filters</button>` : ""}</div>`;
+}
+function wireFilters() {
+  const set = (k, v) => { S.filter = { ...S.filter, [k]: v }; S.cmdReply = ""; render(); };
+  let t; $("#fText")?.addEventListener("input", (e) => { clearTimeout(t); t = setTimeout(() => set("text", e.target.value), 350); });
+  $("#fCompany")?.addEventListener("change", (e) => set("companies", e.target.value ? [e.target.value] : []));
+  $("#fStatus")?.addEventListener("change", (e) => set("statuses", e.target.value ? [e.target.value] : []));
+  $("#fStage")?.addEventListener("change", (e) => set("stages", e.target.value ? [e.target.value] : []));
+  $("#fScore")?.addEventListener("change", (e) => set("minScore", Number(e.target.value)));
+  $("#fAts")?.addEventListener("change", (e) => set("ats", e.target.value ? [e.target.value] : []));
+  $("#fRemote")?.addEventListener("change", (e) => set("remoteOnly", e.target.checked));
+  $("#fClear")?.addEventListener("click", () => { S.filter = structuredClone(EMPTY_FILTER); S.cmdReply = ""; render(); });
+  const ft = $("#fText"); if (ft && document.activeElement !== ft && S.filter.text) { ft.focus(); ft.setSelectionRange(ft.value.length, ft.value.length); }
+}
+
+// Plain-language reason a found job was hidden.
+function friendlyReason(r = "") {
+  if (/titleInclude|title does not/.test(r)) return "the title has none of your job-title words (Job preferences → titles)";
+  const ex = r.match(/excluded "(.+?)"/); if (ex) return `the title contains "${ex[1]}", which you excluded`;
+  if (/location/.test(r)) return `it's outside your locations (${r.replace(/^location\s*/, "").replace(/ not in your locations$/, "")})`;
+  return r || "didn't fit your preferences";
+}
+document.addEventListener("click", (e) => {
+  const o = e.target.closest("[data-jobstab-open]");
+  if (o) { S.tab = "jobs"; S.filter = structuredClone(EMPTY_FILTER); closeDrawer(); render(); }
+});
+
+// ---------------- views ----------------
+const VIEWS = {};
+
+VIEWS.jobs = async (v) => {
+  // One list, like Tsenta's Matches: jobs that fit, best match first. Jobs the search found but that don't fit the
+  // preferences stay out of it — typing in the search box also looks through those, labelled "outside your preferences".
+  const jobs = await api(`${U()}/jobs?status=open`);
+  let extra = [];
+  if (S.filter.text?.trim()) extra = applyFilter((await api(`${U()}/jobs?status=rejected`)).map((j) => ({ ...j, outside: true })));
+  S.jobsById = Object.fromEntries([...jobs, ...extra].map((j) => [j.id, j]));
+  const st = S.user.stats;
+  const shown = [...applyFilter(jobs), ...extra.slice(0, 100)];
+  const isNew = (j) => j.foundAt && Date.now() - Date.parse(j.foundAt) < 36 * 3600e3;
+  const ready = shown.filter((j) => j.status !== "submitted"); // includes jobs that need another try
+  v.innerHTML = `<div class="row"><div><h1>Job matches</h1><p class="sub">Roles that fit ${esc(S.user.profile.firstName)}'s profile. Press <b>Apply for me</b> once — AutoApply fills and submits the whole application.</p></div></div>
+    <div class="stats">
+      <div class="stat"><b>${st.matched ?? 0}</b><span>ready to apply</span></div>
+      <div class="stat"><b>${st.submitted ?? 0}</b><span>applied</span></div>
+      <div class="stat"><b>${st.submittedToday ?? 0}<span class="muted" style="font-size:14px"> / ${S.user.search.dailyCap}</span></b><span>applied today</span></div>
+      <div class="stat"><b>${(st.needs_input ?? 0) + (st.failed ?? 0)}</b><span>need attention</span></div>
+    </div>
+    ${commandBar("Ask AutoApply… e.g. “show CMDB jobs in Toronto over 85%”, “apply to all BMO jobs”, “find the hiring manager for the RBC role”")}
+    <div class="card" style="margin-bottom:12px"><div class="row">
+      <button class="btn" id="discover">🔎 Find new jobs</button>
+      <button class="btn primary" id="runAll">⚡ ${filterActive() ? `Apply to these ${ready.length}` : "Auto apply to all matches"}</button>
+      <span class="spacer"></span>
+      <input id="url" placeholder="Paste any job link…" style="max-width:260px">
+      <button class="btn" id="urlAdd" title="Score it and add it to this list">＋ Add to matches</button>
+      <button class="btn" id="urlApply">Apply now</button>
+    </div></div>
+    ${filterBar(jobs)}
+    ${shown.length ? `<div class="muted" style="font-size:12.5px;margin-bottom:6px">${shown.length} of ${jobs.length} jobs${jobs.some(isNew) ? ` · <span class="chip matched">NEW</span> = found in the last search` : ""}</div><div class="jobs">${shown.map((j) => `<div class="job">${ring(j.score)}
+        <div style="min-width:0"><div class="title" onclick="openJob('${esc(j.id)}')">${isNew(j) && j.status === "matched" ? `<span class="chip matched" style="margin-right:6px">NEW</span>` : ""}${esc(j.title)}</div>
+          <div class="meta"><b>${esc(j.company)}</b> · ${esc((j.location ?? "").slice(0, 120))} ${j.outside ? `<span class="chip filled">Outside your preferences</span>` : j.status !== "matched" ? statusChip(j.status) : ""}${j.contacts?.contacts?.length ? ` <span class="chip">👥 ${j.contacts.contacts.length}</span>` : ""}</div>
+          ${j.outside ? `<div class="muted" style="font-size:12.5px;margin-top:3px">Not in your matches because ${esc(friendlyReason(j.reason))}</div>`
+            : j.status !== "matched" && (j.error || j.note || j.missing?.length) ? `<div class="muted" style="font-size:12.5px;margin-top:3px">${esc(j.missing?.length ? `Needs: ${j.missing.join("; ")}` : j.error ?? j.note)}</div>` : ""}</div>
+        <div class="acts">${j.outside ? `<button class="btn sm primary" data-act="anyway" data-id="${esc(j.id)}">⚡ Apply anyway</button>` : `${resumeSelect(j)}${actionButtons(j)}`}</div></div>`).join("")}</div>`
+      : `<div class="card empty"><div class="big">🔎</div><p>${jobs.length ? "No jobs match these filters." : "No jobs here yet. Set up companies and titles in <b>Job preferences</b>, then press <b>Find new jobs</b>."}</p></div>`}`;
+  wireCommand(); wireFilters();
+  $("#discover").onclick = () => startTask({ type: "discover" });
+  $("#runAll").onclick = async () => {
+    if (filterActive()) return applyMany(ready.map((j) => j.id));
+    if (!(await ensureReady([]))) return;
+    toast(`Applying to your best matches (up to ${S.user.search.dailyCap} today)…`); startTask({ type: "run" });
+  };
+  $("#urlAdd").onclick = () => {
+    const url = $("#url").value.trim(); if (!/^https?:\/\//.test(url)) return toast("Paste a full job link (https://…)", true);
+    toast("Reading the job and scoring it…"); startTask({ type: "addjob", url });
+  };
+  $("#urlApply").onclick = async () => {
+    const url = $("#url").value.trim(); if (!/^https?:\/\//.test(url)) return toast("Paste a full job link (https://…)", true);
+    if (!(await ensureReady([]))) return;
+    toast("Applying…"); startTask({ type: "apply", url });
+  };
+};
+
+// Tracker, like Tsenta's: All / In flight / Needs you / Failed / Skipped / Applied, and a pipeline for applied jobs.
+const TRACK = [["all", "All"], ["inflight", "In flight"], ["needs", "Needs you"], ["failed", "Failed"], ["skipped", "Skipped"], ["applied", "Applied"]];
+S.track = store.get("aa.track") || "all";
+VIEWS.applications = async (v) => {
+  const everything = (await api(`${U()}/jobs?status=applications`)).filter((r) => r.status !== "discovered");
+  const running = new Set(S.tasks.filter((t) => t.status === "running" && ["run", "apply", "autopilot"].includes(t.type)).flatMap((t) => t.jobIds ?? []));
+  const inTrack = (r, k) => k === "all" ? true : k === "inflight" ? running.has(r.id) || r.status === "filled" : k === "needs" ? r.status === "needs_input" : k === "failed" ? r.status === "failed" : k === "skipped" ? r.status === "skipped" : r.status === "submitted";
+  const counts = Object.fromEntries(TRACK.map(([k]) => [k, everything.filter((r) => inTrack(r, k)).length]));
+  const all = everything.filter((r) => inTrack(r, S.track));
+  const applied = everything.filter((r) => r.status === "submitted");
+  const rows = applyFilter(all);
+  const by = applied.reduce((m, r) => ((m[r.stage ?? "applied"] = (m[r.stage ?? "applied"] ?? 0) + 1), m), {});
+  v.innerHTML = `<h1>Applications</h1><p class="sub">Every job AutoApply worked on for ${esc(S.user.profile.firstName)}. Move applied jobs along as you hear back — changing a stage never contacts the employer.</p>
+    <div class="stats">${STAGES.filter(([k]) => k !== "ghosted").map(([k, l]) => `<div class="stat" style="cursor:pointer" data-stagefilter="${k}"><b>${by[k] ?? 0}</b><span>${l}</span></div>`).join("")}</div>
+    <div class="tabs">${TRACK.map(([k, l]) => `<button data-track="${k}" class="${S.track === k ? "on" : ""}">${l}<span class="n">${counts[k]}</span></button>`).join("")}</div>
+    ${commandBar("Ask AutoApply… e.g. “show my interviews”, “find recruiters for my BMO applications”")}
+    ${filterBar(all, { stages: S.track === "applied" })}
+    ${rows.length ? `<table><thead><tr><th>Role</th><th class="hide-sm">Date</th><th>Status</th><th></th></tr></thead><tbody>
+    ${rows.map((r) => `<tr><td class="t" onclick="openJob('${esc(r.id)}')">${esc(r.title)}<div class="muted" style="font-weight:400">${esc(r.company)}${r.contacts?.contacts?.length ? ` · 👥 ${r.contacts.contacts.length} people` : ""}${r.status !== "submitted" && (r.missing?.length || r.error || r.note) ? `<br><span style="font-size:12px">${esc(r.missing?.length ? `Needs: ${r.missing.join("; ")}` : r.error ?? r.note)}</span>` : ""}</div></td>
+      <td class="hide-sm muted">${esc(new Date(r.submittedAt ?? r.updatedAt ?? Date.now()).toLocaleDateString())}</td><td>${r.status === "submitted" ? stageSelect(r) : statusChip(r.status)}</td>
+      <td style="text-align:right;white-space:nowrap">${r.status === "submitted" ? `<button class="btn sm ghost" data-act="people" data-id="${esc(r.id)}">👥 Find people</button>` : actionButtons(r)}<button class="btn sm" onclick="openJob('${esc(r.id)}')">Details</button></td></tr>`).join("")}</tbody></table>`
+    : `<div class="card empty"><div class="big">📋</div><p>${everything.length ? "Nothing here." : "No applications yet. Go to <b>Job matches</b> and press <b>Apply for me</b>."}</p></div>`}`;
+  wireCommand(); wireFilters();
+  v.querySelectorAll("[data-track]").forEach((el) => el.onclick = () => { S.track = el.dataset.track; store.set("aa.track", S.track); S.filter = structuredClone(EMPTY_FILTER); render(); });
+  v.querySelectorAll("[data-stagefilter]").forEach((el) => el.onclick = () => { S.track = "applied"; S.filter = { ...structuredClone(EMPTY_FILTER), stages: [el.dataset.stagefilter] }; render(); });
+};
+
+VIEWS.resumes = async (v) => {
+  const rs = S.user.resumes;
+  v.innerHTML = `<h1>Resumes</h1><p class="sub">Keep one or more resumes. Each job uses the resume whose target titles fit it best, otherwise the default.</p>
+    <div class="grid">${rs.map((r) => `<div class="card"><div class="row"><span style="font-size:22px">📄</span><b style="flex:1">${esc(r.name)}</b>${r.isDefault ? `<span class="chip matched">Default</span>` : ""}</div>
+      <p class="muted" style="margin:8px 0">${r.targetTitles.length ? `Used for: ${r.targetTitles.map(esc).join(", ")}` : "Used for all jobs"}</p>
+      <p style="margin:6px 0;font-size:13px">${r.hasPdf ? "✅ PDF" : "<span style='color:var(--bad)'>✗ No PDF</span>"} · ${r.textLength ? "✅ Text for tailoring" : "<span style='color:var(--warn)'>No text (needed for tailoring)</span>"}</p>
+      <div class="row">${r.hasPdf ? `<a class="btn sm" target="_blank" href="/api${U()}/resumes/${encodeURIComponent(r.id)}/pdf">View</a>` : ""}
+        <button class="btn sm" data-edit="${esc(r.id)}">Edit</button>
+        ${r.isDefault ? "" : `<button class="btn sm" data-def="${esc(r.id)}">Make default</button>`}
+        <button class="btn sm ghost danger" data-del="${esc(r.id)}">Delete</button></div></div>`).join("")}</div>
+    <div class="card" style="margin-top:16px"><h2 id="formTitle">Add a resume</h2><p class="muted" style="margin-top:0">Upload the PDF employers will see, and paste its text so AutoApply can tailor it and answer questions.</p><div class="form">
+      <label class="f"><span>Name</span><input id="rName" placeholder="e.g. ITOM resume"></label>
+      <label class="f"><span>Use for job titles containing</span><input id="rTitles" placeholder="cmdb, servicenow, itom"><small>Comma separated</small></label>
+      <label class="f"><span>Resume PDF</span><input id="rPdf" type="file" accept="application/pdf"></label>
+      <label class="perm" style="border:0;align-self:end;padding:0"><span class="switch"><input id="rDefault" type="checkbox"><span></span></span><span class="txt"><b>Default resume</b></span></label>
+      <label class="f wide"><span>Resume text</span><textarea id="rText" style="min-height:220px" placeholder="# Your Name&#10;City · email · phone&#10;&#10;## Experience&#10;### Title — Company&#10;- bullet"></textarea></label>
+      <div class="wide row"><button class="btn primary" id="rSave">Save resume</button></div>
+    </div></div>`;
+  let editing = null;
+  v.querySelectorAll("[data-def]").forEach((b) => b.onclick = async () => { S.user = await api(`${U()}/resumes/${encodeURIComponent(b.dataset.def)}/default`, { method: "POST", body: {} }); render(); });
+  v.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => { if (await modal({ title: "Delete this resume?", body: "This can't be undone.", ok: "Delete" })) { S.user = await api(`${U()}/resumes/${encodeURIComponent(b.dataset.del)}`, { method: "DELETE", body: {} }); render(); } });
+  v.querySelectorAll("[data-edit]").forEach((b) => b.onclick = () => {
+    const r = rs.find((x) => x.id === b.dataset.edit); editing = r.id;
+    $("#formTitle").textContent = `Edit “${r.name}”`; $("#rName").value = r.name; $("#rTitles").value = r.targetTitles.join(", "); $("#rText").value = r.text; $("#rDefault").checked = r.isDefault;
+    $("#rName").scrollIntoView({ behavior: "smooth" });
+  });
+  $("#rSave").onclick = async () => {
+    const name = $("#rName").value.trim(); if (!name) return toast("Give the resume a name", true);
+    const file = $("#rPdf").files[0];
+    let pdfBase64;
+    if (file) pdfBase64 = await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.readAsDataURL(file); });
+    if (!editing && !pdfBase64) return toast("Choose the resume PDF", true);
+    try {
+      const r = await api(`${U()}/resumes`, { method: "POST", body: { id: editing ?? undefined, name, targetTitles: $("#rTitles").value.split(",").map((s) => s.trim()).filter(Boolean), isDefault: $("#rDefault").checked, text: $("#rText").value, pdfBase64 } });
+      S.user = r.user; render(); toast("Resume saved");
+    } catch (err) { fail(err); }
+  };
+};
+
+// ---------- profile ----------
+// [key, label, type, help] — type: text | email | tel | num | list | bool | yn | select:<a|b|c> | area
+const PROFILE_SECTIONS = [
+  ["Personal details", "Used on every application.", [
+    ["firstName", "First name"], ["lastName", "Last name"], ["preferredName", "Preferred name"], ["email", "Email", "email", "Also the login for job-site accounts"],
+    ["phone", "Phone", "tel"], ["pronouns", "Pronouns"]]],
+  ["Location", "", [
+    ["location.address", "Street address", "text", "Some employers require it"], ["location.city", "City"], ["location.state", "Province / state"],
+    ["location.postalCode", "Postal code"], ["location.country", "Country"], ["location.display", "How to show your location", "text", "e.g. Toronto, ON, Canada"]]],
+  ["Links", "", [["links.linkedin", "LinkedIn"], ["links.github", "GitHub"], ["links.portfolio", "Portfolio / website"]]],
+  ["Experience & education", "", [
+    ["currentTitle", "Current job title"], ["currentCompany", "Current company"], ["yearsExperience", "Years of experience", "num"], ["skills", "Skills", "list", "Comma separated"],
+    ["education.school", "School"], ["education.degree", "Degree"], ["education.field", "Field of study"], ["education.graduationYear", "Graduation year"]]],
+  ["Work eligibility & preferences", "How screening questions get answered.", [
+    ["workAuthorization.authorized", "Legally allowed to work in this country", "yn"], ["workAuthorization.requiresSponsorship", "Needs visa sponsorship", "yn"],
+    ["workAuthorization.notes", "Status", "text", "e.g. Permanent Resident of Canada"], ["willingToRelocate", "Willing to relocate", "yn"],
+    ["workplacePreferenceAnswer", "OK with remote / hybrid / on-site", "select:Yes|No"], ["salaryExpectation", "Salary expectation"], ["availability", "Notice period / start date"],
+    ["howDidYouHear", "\"How did you hear about us?\" answer"]]],
+  ["Voluntary self-identification", "Optional diversity questions. \"Decline\" answers are the default.", [
+    ["eeo.gender", "Gender"], ["eeo.race", "Race / ethnicity"], ["eeo.hispanicLatino", "Hispanic / Latino"], ["eeo.veteran", "Veteran status"], ["eeo.disability", "Disability"]]],
+];
+const getPath = (o, k) => k.split(".").reduce((x, p) => x?.[p], o);
+function inputFor([key, label, type = "text", help]) {
+  const val = getPath(S.user.profile, key);
+  const h = help ? `<small>${esc(help)}</small>` : "";
+  if (type === "yn") return `<label class="f"><span>${esc(label)}</span><select data-key="${key}" data-type="yn"><option value="">—</option><option value="true" ${val === true ? "selected" : ""}>Yes</option><option value="false" ${val === false ? "selected" : ""}>No</option></select>${h}</label>`;
+  if (type.startsWith("select:")) return `<label class="f"><span>${esc(label)}</span><select data-key="${key}" data-type="str">${type.slice(7).split("|").map((o) => `<option ${o === val ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>${h}</label>`;
+  if (type === "list") return `<label class="f wide"><span>${esc(label)}</span><input data-key="${key}" data-type="list" value="${esc((val ?? []).join(", "))}">${h}</label>`;
+  return `<label class="f"><span>${esc(label)}</span><input data-key="${key}" data-type="${type === "num" ? "num" : "str"}" type="${type === "num" ? "number" : type === "email" ? "email" : type === "tel" ? "tel" : "text"}" value="${esc(val ?? "")}">${h}</label>`;
+}
+function collect(root, base) {
+  const out = structuredClone(base);
+  root.querySelectorAll("[data-key]").forEach((el) => {
+    const path = el.dataset.key.split(".");
+    let o = out; for (const p of path.slice(0, -1)) o = o[p] ??= {};
+    const t = el.dataset.type; const last = path.at(-1);
+    o[last] = t === "bool" ? el.checked : t === "yn" ? (el.value === "" ? null : el.value === "true") : t === "list" ? el.value.split(",").map((s) => s.trim()).filter(Boolean) : t === "num" ? (el.value === "" ? null : Number(el.value)) : (el.value === "" ? null : el.value);
+  });
+  return out;
+}
+const toggle = (id, title, help, on) => `<label class="perm"><span class="switch"><input type="checkbox" id="${id}" ${on ? "checked" : ""}><span></span></span><span class="txt"><b>${title}</b><small>${help}</small></span></label>`;
+
+VIEWS.profile = async (v) => {
+  const p = S.user.profile, s = S.user.search, perms = p.permissions ?? {};
+  const tMode = ["off", "honest", "aggressive"].includes(s.tailorMode) ? s.tailorMode : s.tailorResume === false ? "off" : "honest";
+  v.innerHTML = `<h1>Profile</h1><p class="sub">Everything AutoApply uses to fill applications for ${esc(p.firstName)}. It only uses these facts and the resume — it never makes things up.</p>
+
+    <div class="card"><div class="card-head"><div style="font-size:22px">🛡️</div><div><h2>Permissions</h2><p>What AutoApply may do on ${esc(p.firstName)}'s behalf when applying.</p></div></div>
+      ${toggle("pAuto", "One-click apply: submit for me", "When on, pressing Apply fills and submits the whole application with no further questions (Workday may still need one sign-in click). When off, you get a final look before each one is sent.", s.mode === "auto")}
+      ${toggle("pAccounts", "Create job-site accounts for me", `Workday, iCIMS and similar sites need an account per employer. AutoApply creates it with ${esc(p.email ?? "your email")} and the password below.`, perms.createAccounts !== false)}
+      ${toggle("pConsent", "Accept privacy notices and site terms for me", "Ticks \"I have read the privacy notice / terms\" boxes. Real choices (like recording interviews) are always left to you.", p.consentToApplicationNotices === true)}
+      <div class="perm" style="display:block"><b>Use my Claude subscription</b>
+        <small style="display:block;margin:2px 0 8px">Applying normally uses no AI: answers come from the profile, the resume and answers you gave before. Choose what happens with a question AutoApply hasn't seen.</small>
+        <div class="row" style="gap:6px" id="aiModeBox">${[
+          ["off", "🚫 Off", "Never use Claude. New questions are asked to you."],
+          ["ask", "✋ Ask me first", "No Claude unless you allow it. New questions are asked to you, with an “Ask Claude” button."],
+          ["auto", "⚡ Automatic", "Claude answers new questions, scores jobs and tailors resumes on its own (uses your subscription)."],
+        ].map(([k, l, h]) => `<label class="aimode ${s.aiMode === k ? "on" : ""}" title="${esc(h)}"><input type="radio" name="aiMode" value="${k}" ${s.aiMode === k ? "checked" : ""} style="width:auto"> ${l}<small>${esc(h)}</small></label>`).join("")}</div></div>
+      ${toggle("pJudge", "Pick “prefer not to answer” when it's offered", "For sensitive multiple-choice questions your profile doesn't cover, choose the decline option instead of asking you. (In Automatic mode Claude may also pick the best-fitting option.)", s.bestJudgment !== false)}
+      <div class="perm" style="display:block"><b>Tailor my resume for each job</b>
+        <small style="display:block;margin:2px 0 8px">Nothing is ever invented — only what's already on the resume. With Claude off, tailoring is done without AI.</small>
+        <div class="row" style="gap:6px">${[
+          ["off", "Off", "Send the resume exactly as uploaded."],
+          ["honest", "Honest", "Lead with the bullets and skills this job asks for."],
+          ["aggressive", "Aggressive", "Also add a key-skills line aimed at the role (Claude: rewrites bullets in the job's language)."],
+        ].map(([k, l, h]) => `<label class="aimode ${tMode === k ? "on" : ""}"><input type="radio" name="tailorMode" value="${k}" ${tMode === k ? "checked" : ""} style="width:auto"> ${l}<small>${esc(h)}</small></label>`).join("")}</div></div>
+      ${toggle("pApprove", "Use tailored resumes without asking", "When off, you see the changes and approve each tailored resume first.", s.autoApproveResume)}
+      <div class="row" style="margin-top:6px"><button class="btn primary" id="permSave">Save permissions</button></div>
+    </div>
+
+    <div class="card"><div class="card-head"><div style="font-size:22px">🔐</div><div><h2>Job-site account password</h2><p>AutoApply uses <b>${esc(p.email ?? "")}</b> and this one password on every job site (Workday and similar): it signs in where you already have an account and signs up where you don't. ${S.user.passwordGenerated ? "AutoApply created this password for you — press 👁 to see it." : "If you don't set one, AutoApply creates a strong one for you."} Saved only on this computer.</p></div></div>
+      <div class="row"><div style="flex:1;max-width:340px">${pwField("atsPw", S.user.hasAtsPassword ? "Saved — press 👁 to view" : "Choose a password")}</div>
+        <button class="btn primary" id="pwSave">${S.user.hasAtsPassword ? "Update password" : "Save password"}</button>
+        ${S.user.hasAtsPassword ? `<span class="chip submitted">✓ ${S.user.passwordGenerated ? "Created by AutoApply" : "Saved"}</span>` : `<span class="chip">Created automatically on first use</span>`}</div>
+      <p class="muted" style="font-size:12.5px;margin:8px 0 0">At least 8 characters with an uppercase letter, a lowercase letter, a number and a symbol.</p>
+      ${S.user.sitePasswordHosts?.length ? `<p class="muted" style="margin:10px 0 0;font-size:12.5px">Own password remembered for: ${S.user.sitePasswordHosts.map((h) => esc(h.split(".")[0])).join(", ")}</p>` : ""}
+      ${S.user.accounts?.length ? `<p style="margin:12px 0 0"><b>Job-site accounts:</b> ${S.user.accounts.map((a) => `<span class="chip ${a.verified ? "submitted" : "filled"}">${esc(a.host.split(".")[0])}${a.verified ? "" : " · verify email"}</span>`).join(" ")}</p>` : ""}
+    </div>
+
+    <div id="pf">${PROFILE_SECTIONS.map(([t, help, fields]) => `<div class="card"><h2>${esc(t)}</h2>${help ? `<p class="muted" style="margin:0 0 12px">${esc(help)}</p>` : `<div style="height:10px"></div>`}<div class="form">${fields.map(inputFor).join("")}</div></div>`).join("")}</div>
+    <div class="row" style="margin-top:14px"><button class="btn primary" id="pSave">Save profile</button></div>`;
+  $("#atsPw").dataset.reveal = S.user.hasAtsPassword ? "ats" : "";
+  $("#pSave").onclick = async () => { try { S.user = await api(`${U()}/profile`, { method: "PUT", body: collect($("#pf"), p) }); render(); toast("Profile saved"); } catch (e) { fail(e); } };
+  $("#pwSave").onclick = async () => {
+    const pw = $("#atsPw").value; if (!pw) return toast("Type a password first", true);
+    try { S.user = await api(`${U()}/secrets`, { method: "PUT", body: { atsPassword: pw } }); toast("Password saved"); render(); } catch (e) { fail(e); }
+  };
+  $("#permSave").onclick = async () => {
+    try {
+      await api(`${U()}/profile`, { method: "PUT", body: { ...p, consentToApplicationNotices: $("#pConsent").checked, permissions: { ...perms, createAccounts: $("#pAccounts").checked } } });
+      S.user = await api(`${U()}/search`, { method: "PUT", body: { ...s, mode: $("#pAuto").checked ? "auto" : "review", aiMode: document.querySelector("input[name=aiMode]:checked")?.value ?? "ask", bestJudgment: $("#pJudge").checked, tailorMode: document.querySelector("input[name=tailorMode]:checked")?.value ?? "honest", tailorResume: document.querySelector("input[name=tailorMode]:checked")?.value !== "off", autoApproveResume: $("#pApprove").checked } });
+      render(); toast("Permissions saved");
+    } catch (e) { fail(e); }
+  };
+};
+
+VIEWS.preferences = async (v) => {
+  const s = S.user.search;
+  const ap = S.user.autopilot ?? {};
+  const list = (a) => esc((a ?? []).join(", "));
+  v.innerHTML = `<h1>Job preferences</h1><p class="sub">What jobs to look for and how many to apply to.</p>
+    <div class="card"><h2>What to look for</h2><div style="height:10px"></div><div class="form">
+      <label class="f wide"><span>Job titles</span><input id="titleInclude" value="${list(s.titleInclude)}"><small>A job matches when its title contains one of these. Comma separated.</small></label>
+      <label class="f wide"><span>Skip titles containing</span><input id="titleExclude" value="${list(s.titleExclude)}"></label>
+      <label class="f wide"><span>Locations</span><input id="locations" value="${list(s.locations)}"></label>
+      <label class="perm" style="border:0;padding:0"><span class="switch"><input id="remoteOk" type="checkbox" ${s.remoteOk ? "checked" : ""}><span></span></span><span class="txt"><b>Include remote jobs anywhere</b></span></label>
+    </div></div>
+    <div class="card"><h2>How much to apply</h2><div style="height:10px"></div><div class="form">
+      <label class="f"><span>Applications per day (max)</span><input id="dailyCap" type="number" min="0" value="${s.dailyCap}"></label>
+      <label class="f"><span>Minimum match score</span><input id="minScore" type="number" min="0" max="100" value="${s.minScore}"><small>0–100. Higher means fewer, closer matches.</small></label>
+      <label class="perm" style="border:0;padding:0"><span class="switch"><input id="headless" type="checkbox" ${s.headless ? "checked" : ""}><span></span></span><span class="txt"><b>Apply in the background</b><small>Hide the browser window while applying</small></span></label>
+    </div></div>
+    <div class="card"><div class="card-head"><div style="font-size:22px">🛫</div><div><h2>Autopilot</h2><p>While AutoApply is running, every few hours it finds new jobs and applies to matches at or above the score below, up to the daily cap. Questions it can't answer aren't asked — those jobs wait under Applications → Needs you. ${ap.lastRunAt ? `Last run: ${esc(new Date(ap.lastRunAt).toLocaleString())}.` : ""}</p></div></div>
+      <div class="form">
+      <label class="perm" style="border:0;padding:0"><span class="switch"><input id="apOn" type="checkbox" ${s.autopilot?.enabled ? "checked" : ""}><span></span></span><span class="txt"><b>Turn on autopilot</b></span></label>
+      <label class="f"><span>Run every (hours)</span><input id="apEvery" type="number" min="1" max="72" value="${s.autopilot?.everyHours ?? 6}"></label>
+      <label class="f"><span>Only apply at this match score or higher</span><input id="apMin" type="number" min="0" max="100" value="${s.autopilot?.minScore ?? Math.max(s.minScore, 80)}"></label>
+      </div></div>
+    <div class="card"><h2>Companies to watch</h2><p class="muted" style="margin:0 0 12px">Their job boards are checked when you press Find new jobs. Comma separated.</p><div class="form">
+      <label class="f wide"><span>Workday</span><input id="c_workday" value="${list(s.companies.workday)}"><small>company.wd3.myworkdayjobs.com/SiteName</small></label>
+      <label class="f"><span>Greenhouse</span><input id="c_greenhouse" value="${list(s.companies.greenhouse)}"><small>boards.greenhouse.io/<b>name</b></small></label>
+      <label class="f"><span>Lever</span><input id="c_lever" value="${list(s.companies.lever)}"><small>jobs.lever.co/<b>name</b></small></label>
+      <label class="f"><span>Ashby</span><input id="c_ashby" value="${list(s.companies.ashby)}"><small>jobs.ashbyhq.com/<b>name</b></small></label>
+    </div></div>
+    <div class="row" style="margin-top:14px"><button class="btn primary" id="sSave">Save preferences</button></div>`;
+  const L = (id) => $(`#${id}`).value.split(",").map((x) => x.trim()).filter(Boolean);
+  $("#sSave").onclick = async () => {
+    const body = { ...s, dailyCap: Number($("#dailyCap").value), minScore: Number($("#minScore").value), remoteOk: $("#remoteOk").checked, headless: $("#headless").checked,
+      autopilot: { ...(s.autopilot ?? {}), enabled: $("#apOn").checked, everyHours: Number($("#apEvery").value) || 6, minScore: Number($("#apMin").value) || s.minScore },
+      titleInclude: L("titleInclude"), titleExclude: L("titleExclude"), locations: L("locations"),
+      companies: { ...s.companies, greenhouse: L("c_greenhouse"), lever: L("c_lever"), ashby: L("c_ashby"), workday: L("c_workday") } };
+    try { S.user = await api(`${U()}/search`, { method: "PUT", body }); render(); toast("Preferences saved"); } catch (e) { fail(e); }
+  };
+};
+
+VIEWS.questions = async (v) => {
+  const un = await api(`${U()}/unanswered`);
+  const learned = await api(`${U()}/learned`);
+  const bank = S.user.answers;
+  v.addEventListener("click", async (e) => {
+    const sv = e.target.closest("[data-lsave]"), dl = e.target.closest("[data-ldel]");
+    if (!sv && !dl) return;
+    const i = Number((sv ?? dl).dataset.lsave ?? (sv ?? dl).dataset.ldel);
+    try {
+      await api(`${U()}/learned`, { method: "PUT", body: dl ? { key: learned[i].key, remove: true } : { key: learned[i].key, answer: v.querySelector(`[data-l="${i}"]`).value } });
+      toast(dl ? "Forgotten" : "Answer updated"); render();
+    } catch (err) { fail(err); }
+  });
+  v.innerHTML = `<h1>Questions</h1><p class="sub">Questions from job sites that AutoApply couldn't answer from the profile or resume. Answer once and it's reused everywhere.</p>
+    ${un.length ? un.map((q, i) => `<div class="card"><b>${esc(q.question)}</b>
+      <div class="muted" style="margin:4px 0 10px;font-size:12.5px">Asked by: ${q.seenAt.map(esc).join(", ")}</div>
+      ${q.options?.length ? `<select data-q="${i}"><option value="">Choose…</option>${q.options.map((o) => `<option>${esc(o)}</option>`).join("")}</select>` : `<textarea data-q="${i}" style="min-height:60px" placeholder="Your answer"></textarea>`}
+      <div class="row" style="margin-top:10px"><button class="btn sm primary" data-save="${i}">Save answer</button><button class="btn sm ghost" data-dismiss="${i}">Dismiss</button></div></div>`).join("")
+      : `<div class="card empty"><div class="big">🎉</div><p>No open questions.</p></div>`}
+    <div class="card"><div class="row"><h2 style="flex:1">Answers remembered from past applications (${learned.length})</h2>
+      ${learned.length ? `<a class="btn sm" href="/api${U()}/learned?format=csv">⬇ Download (opens in Excel)</a>` : ""}</div>
+      <p class="muted" style="margin:4px 0 12px">The first time Claude answers a question it's saved here. After that the same question is answered from this list instantly, without asking Claude. Company-specific questions ("Why do you want to work here?") are always written fresh. Edit any answer to change what's given next time.</p>
+      ${learned.length ? `<div id="learned">${learned.map((e, i) => `<div class="kv" style="grid-template-columns:1fr 1.2fr auto auto"><div><b style="font-weight:550">${esc(e.question)}</b><div class="muted" style="font-size:12px">${e.source === "you" ? "edited by you" : e.source === "judgment" ? "best judgment" : "Claude"} · ${esc(e.from ?? "")}${e.uses ? ` · reused ${e.uses}×` : ""}</div></div>
+        ${e.options?.length ? `<select data-l="${i}">${e.options.map((o) => `<option ${o === e.answer ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>` : `<textarea data-l="${i}" style="min-height:40px">${esc(Array.isArray(e.answer) ? e.answer[0] : e.answer)}</textarea>`}
+        <button class="btn sm" data-lsave="${i}">Save</button><button class="btn sm ghost danger" data-ldel="${i}" title="Forget">✕</button></div>`).join("")}</div>`
+      : `<div class="muted" style="font-size:13px">Nothing yet — answers appear here after the first applications.</div>`}
+    </div>
+    <div class="card"><h2>Your own answers</h2><p class="muted" style="margin:0 0 12px">A phrase from the question → the answer to give. These always win. The longest matching phrase wins.</p>
+    <div id="bank">${Object.entries(bank).map(([k, a]) => `<div class="kv"><input value="${esc(k)}"><input value="${esc(a ?? "")}"><button class="btn sm ghost danger" data-rm>✕</button></div>`).join("")}</div>
+    <div class="row"><button class="btn sm" id="addKv">＋ Add</button><span class="spacer"></span><button class="btn primary" id="bankSave">Save answers</button></div></div>`;
+  const send = async (i, answer) => { await api(`${U()}/unanswered`, { method: "POST", body: { key: un[i].key, answer } }); await loadUsers(); render(); };
+  v.querySelectorAll("[data-save]").forEach((b) => b.onclick = () => { const val = v.querySelector(`[data-q="${b.dataset.save}"]`).value.trim(); if (!val) return toast("Type or pick an answer", true); send(Number(b.dataset.save), val); });
+  v.querySelectorAll("[data-dismiss]").forEach((b) => b.onclick = () => send(Number(b.dataset.dismiss), null));
+  v.addEventListener("click", (e) => { if (e.target.matches("[data-rm]")) e.target.closest(".kv").remove(); });
+  $("#addKv").onclick = () => $("#bank").insertAdjacentHTML("beforeend", `<div class="kv"><input placeholder="question phrase"><input placeholder="answer"><button class="btn sm ghost danger" data-rm>✕</button></div>`);
+  $("#bankSave").onclick = async () => {
+    const out = {};
+    $("#bank").querySelectorAll(".kv").forEach((r) => { const [k, a] = r.querySelectorAll("input"); if (k.value.trim()) out[k.value.trim().toLowerCase()] = a.value.trim() || null; });
+    S.user = await api(`${U()}/answers`, { method: "PUT", body: out }); render(); toast("Answers saved");
+  };
+};
+
+VIEWS.settings = async (v) => {
+  const st = S.settings ?? {};
+  const key = st.key;
+  const sub = st.backend === "subscription";
+  v.innerHTML = `<h1>AI & settings</h1><p class="sub">Claude reads each question on the job site and answers it from the resume and the job description. Answers are saved, so the same question is never sent to Claude twice.</p>
+    <div class="card"><div class="card-head"><div style="font-size:22px">✨</div><div><h2>Use my Claude subscription <span class="chip matched">Recommended · no extra cost</span></h2>
+      <p>Uses Claude Code (installed with your Claude desktop app), signed in with your own Claude account. Counts toward your plan's usage limits; no API credit is used.</p></div></div>
+      ${!st.cli ? `<div class="banner"><div>⚠️</div><div>Claude Code wasn't found on this computer. Open the Claude desktop app's Code tab once, then reload this page.</div></div>` : `
+      <div class="row" style="margin-bottom:10px">${sub ? `<span class="chip submitted">● In use</span>` : `<span class="chip">○ Not in use</span>`}<span class="muted" id="subMsg"></span></div>
+      <ol class="muted" style="margin:0 0 12px;padding-left:18px;font-size:13px"><li>Press <b>Sign in</b>. A window opens; sign in with your Claude account in the browser (one time only).</li><li>Close that window and press <b>Check connection</b>.</li></ol>
+      <div class="row"><button class="btn primary" id="subLogin">Sign in with Claude</button><button class="btn" id="subCheck">Check connection</button></div>`}
+    </div>
+    <div class="card"><div class="card-head"><div style="font-size:22px">🔑</div><div><h2>Or use an API key</h2><p>Optional. Billed per use to an Anthropic Console account.</p></div></div>
+      <div class="row" style="margin-bottom:10px">${key ? `<span class="chip ${st.backend === "api" ? "submitted" : ""}">${st.backend === "api" ? "● In use" : "○ Saved"}</span><span class="muted">Key ending in …${esc(key.last4)}</span>` : `<span class="chip">○ None</span>`}</div>
+      ${key?.source === "environment" ? "" : `<div class="row"><div style="flex:1;max-width:420px">${pwField("apiKey", key ? "Paste a new key to replace it" : "sk-ant-…")}</div>
+        <button class="btn" id="keySave">${key ? "Replace key" : "Save key"}</button>
+        ${key ? `<button class="btn ghost danger" id="keyDel">Remove</button>` : ""}</div>`}
+      <label class="f" style="margin-top:14px;max-width:420px"><span>When both are set, use</span><select id="beSel">
+        <option value="auto" ${st.aiBackend === "auto" ? "selected" : ""}>API key if saved, else my subscription</option>
+        <option value="subscription" ${st.aiBackend === "subscription" ? "selected" : ""}>Always my subscription</option>
+        <option value="api" ${st.aiBackend === "api" ? "selected" : ""}>Always the API key</option></select></label>
+    </div>`;
+  $("#beSel").onchange = async () => { S.settings = await api("/settings/backend", { method: "PUT", body: { aiBackend: $("#beSel").value } }).catch(fail); await loadUsers(); render(); };
+  $("#subLogin") && ($("#subLogin").onclick = async () => {
+    try { await api("/settings/login", { method: "POST", body: {} }); toast("Sign-in window opened — finish signing in there"); } catch (e) { fail(e); }
+  });
+  $("#subCheck") && ($("#subCheck").onclick = async () => {
+    $("#subMsg").textContent = "Checking… (takes a few seconds)";
+    const r = await api("/settings/subscription", { method: "POST", body: {} }).catch((e) => ({ ok: false, error: e.message }));
+    if (r.ok) { toast("✓ Connected to your Claude subscription"); await loadUsers(); render(); }
+    else { $("#subMsg").textContent = ""; toast(/not signed in|not logged/i.test(r.error) ? "Not signed in yet — press Sign in with Claude first" : `Couldn't connect: ${r.error}`, true); }
+  });
+  $("#keySave") && ($("#keySave").onclick = async () => {
+    const k = $("#apiKey").value.trim(); if (!k) return toast("Paste your API key first", true);
+    try { S.settings = await api("/settings", { method: "PUT", body: { anthropicApiKey: k } }); await loadUsers(); render(); toast("Key saved"); testKey(); } catch (e) { fail(e); }
+  });
+  $("#keyDel") && ($("#keyDel").onclick = async () => {
+    if (!(await modal({ title: "Remove the API key?", body: "AI answers and tailoring turn off until you add a key again.", ok: "Remove" }))) return;
+    S.settings = await api("/settings", { method: "PUT", body: { anthropicApiKey: "" } }); await loadUsers(); render();
+  });
+};
+// ---------------- family & access (owner only) ----------------
+VIEWS.team = async (v) => {
+  const { accounts, workspaces, signups } = await api("/team");
+  const wsName = (id) => id === "*" ? "Everyone" : workspaces.find((w) => w.id === id)?.name ?? id;
+  v.innerHTML = `<h1>Family & access</h1><p class="sub">Who can sign in to this AutoApply, and whose job search each person can see. Invite someone, then send them the address from <b>Online access</b>; they choose their own password the first time.</p>
+    <div class="card"><h2>People who can sign in</h2><div style="height:8px"></div>
+      <table><thead><tr><th>Person</th><th>Can see</th><th class="hide-sm">Status</th><th></th></tr></thead><tbody>
+      ${accounts.map((a) => `<tr><td><b>${esc(a.name || a.email)}</b><div class="muted">${esc(a.email)} · ${esc(a.role)}</div></td>
+        <td>${a.workspaces.map((w) => `<span class="chip">${esc(wsName(w))}</span>`).join(" ") || `<span class="muted">nobody yet</span>`}</td>
+        <td class="hide-sm">${a.status === "pending" ? `<span class="chip needs_input">Waiting for approval</span>` : a.status === "blocked" ? `<span class="chip failed">Turned off</span>` : a.joined ? `<span class="chip submitted">Active</span>` : `<span class="chip filled">Invited</span>`}${a.google ? ` <span class="chip">Google</span>` : ""}</td>
+        <td style="text-align:right;white-space:nowrap">${a.role === "owner" ? "" : `${a.status === "pending" || a.status === "blocked" ? `<button class="btn sm primary" data-status="active" data-who="${esc(a.email)}">Approve</button>` : `<button class="btn sm ghost" data-status="blocked" data-who="${esc(a.email)}">Turn off</button>`}<button class="btn sm" data-edit="${esc(a.email)}">Edit</button><button class="btn sm ghost danger" data-remove="${esc(a.email)}">Remove</button>`}</td></tr>`).join("")}
+      </tbody></table>
+      <label class="f" style="margin-top:14px;max-width:420px"><span>Who can create an account</span><select id="signupPol">
+        <option value="approval" ${signups === "approval" ? "selected" : ""}>Anyone — I approve each new account (recommended)</option>
+        <option value="invited" ${signups === "invited" ? "selected" : ""}>Only people I invite</option>
+        <option value="open" ${signups === "open" ? "selected" : ""}>Anyone, no approval</option></select>
+        <small>New people only see the job seekers you give them, or the ones they add themselves.</small></label></div>
+    <div class="card" id="inviteCard"><h2 id="invTitle">Invite someone</h2><p class="muted" style="margin:4px 0 12px">They'll only see the job seekers you tick. A person who adds a new job seeker gets access to that one automatically.</p>
+      <div class="form"><label class="f"><span>Name</span><input id="invName"></label><label class="f"><span>Email</span><input id="invEmail" type="email"></label>
+      <div class="f wide"><span>Can see</span><div class="row" style="gap:12px">${workspaces.map((w) => `<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" value="${esc(w.id)}" class="invWs" style="width:auto"> ${esc(w.name)}</label>`).join("") || `<span class="muted">No job seekers yet</span>`}</div></div>
+      <label class="perm" style="border:0;padding:0"><span class="switch"><input id="invAdmin" type="checkbox"><span></span></span><span class="txt"><b>Can manage access and settings</b><small>Makes them an admin like you</small></span></label></div>
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="invSave">Invite</button></div></div>
+    <div class="card"><h2>Your password</h2><div class="row" style="margin-top:10px"><div style="flex:1;max-width:320px">${pwField("myPw", "New password (8+ characters)")}</div><button class="btn" id="myPwSave">Change password</button></div></div>`;
+  v.querySelectorAll("[data-status]").forEach((b) => b.onclick = async () => {
+    try { await api("/team/status", { method: "POST", body: { email: b.dataset.who, status: b.dataset.status } }); toast(b.dataset.status === "active" ? "Approved — they can use AutoApply now" : "Turned off"); render(); } catch (e) { fail(e); }
+  });
+  $("#signupPol").onchange = async (e) => { try { await api("/team/signups", { method: "PUT", body: { signups: e.target.value } }); toast("Saved"); } catch (err) { fail(err); } };
+  v.querySelectorAll("[data-remove]").forEach((b) => b.onclick = async () => {
+    if (!(await modal({ title: "Remove access?", body: `${esc(b.dataset.remove)} won't be able to sign in any more. Their job-search data stays.`, ok: "Remove" }))) return;
+    try { await api(`/team/${encodeURIComponent(b.dataset.remove)}`, { method: "DELETE" }); render(); toast("Removed"); } catch (e) { fail(e); }
+  });
+  v.querySelectorAll("[data-edit]").forEach((b) => b.onclick = () => {
+    const a = accounts.find((x) => x.email === b.dataset.edit);
+    $("#invTitle").textContent = `Change ${a.name || a.email}`; $("#invName").value = a.name ?? ""; $("#invEmail").value = a.email; $("#invAdmin").checked = a.role === "admin";
+    v.querySelectorAll(".invWs").forEach((c) => c.checked = a.workspaces.includes(c.value)); $("#invSave").textContent = "Save";
+    $("#inviteCard").scrollIntoView({ behavior: "smooth" });
+  });
+  $("#invSave").onclick = async () => {
+    const email = $("#invEmail").value.trim(); if (!email.includes("@")) return toast("Type their email", true);
+    try {
+      await api("/team", { method: "POST", body: { email, name: $("#invName").value.trim(), role: $("#invAdmin").checked ? "admin" : "member", workspaces: [...v.querySelectorAll(".invWs:checked")].map((c) => c.value) } });
+      toast(`Saved. Send ${email} the address from Online access — they press “Create your password” the first time.`); render();
+    } catch (e) { fail(e); }
+  };
+  $("#myPwSave").onclick = async () => { try { await api("/me/password", { method: "POST", body: { password: $("#myPw").value } }); toast("Password changed"); $("#myPw").value = ""; } catch (e) { fail(e); } };
+};
+
+// ---------------- online access: Cloudflare + Supabase (owner only) ----------------
+VIEWS.online = async (v) => {
+  const [c, g] = await Promise.all([api("/cloud"), api("/cloud/github").catch(() => ({}))]);
+  const t = c.tunnel;
+  v.innerHTML = `<h1>Online access</h1><p class="sub">Let family use AutoApply from their own computers or phones. This computer does the applying (it must be on, with AutoApply running); everyone else just uses the website.</p>
+    <div class="card"><div class="card-head"><div style="font-size:22px">☁️</div><div><h2>1 · Web address (Cloudflare)</h2><p>Gives this dashboard a secure https:// address through Cloudflare. Only people you invited can sign in.</p></div></div>
+      ${!t.installed ? `<div class="banner"><div>⚠️</div><div>Cloudflare's connector isn't installed yet. Run <code>scripts\\share-online.ps1</code> once, then reload this page.</div></div>` : `
+      <div class="row">${t.running ? `<span class="chip submitted">● Online</span>${t.url ? `<a href="${esc(t.url)}" target="_blank" rel="noopener"><b>${esc(t.url)}</b></a><button class="btn sm" data-copy="${esc(t.url)}">Copy</button>` : `<span class="muted">Getting the address…</span>`}<button class="btn sm ghost danger" id="tunStop">Turn off</button>`
+        : `<span class="chip">○ Offline</span><button class="btn primary" id="tunStart">Go online</button>${t.error ? `<span class="muted">${esc(t.error)}</span>` : ""}`}</div>
+      <p class="muted" style="font-size:12.5px;margin:10px 0 0">${t.named ? "Using your named Cloudflare tunnel (fixed address)." : "Free quick address: it changes each time you go online. For a fixed address (e.g. jobs.yourfamily.com), create a Cloudflare tunnel and save its token as <code>cloudflareTunnelToken</code> — see SHARING.md."}</p>`}
+      <label class="f" style="margin-top:12px;max-width:520px"><span>Extra public addresses allowed (fixed Cloudflare hostnames)</span><input id="pubHosts" value="${esc(c.publicHosts.join(", "))}" placeholder="jobs.example.com"></label>
+    </div>
+    <div class="card"><div class="card-head"><div style="font-size:22px">🐙</div><div><h2>2 · Website on GitHub Pages <span class="chip matched">Free</span></h2><p>Publishes the AutoApply page (only the page — no profiles, resumes or passwords) to a public GitHub repository, at a fixed address like <b>yourname.github.io/autoapply-web</b>. It connects to this computer through the Cloudflare address above, and updates itself each time you go online.</p></div></div>
+      ${!g.installed ? `<div class="banner"><div>⚠️</div><div>GitHub's command-line tool isn't installed.</div></div>` : !g.signedIn ? `<div class="row"><span class="chip">○ Not signed in to GitHub</span><button class="btn primary" id="ghLogin">Sign in to GitHub</button><button class="btn" onclick="render()">I've signed in</button></div>
+        <p class="muted" style="font-size:12.5px;margin:8px 0 0">A window opens: press Enter, then approve in your browser with the code it shows (one time).</p>`
+      : `<div class="row"><span class="chip submitted">● GitHub: ${esc(g.login)}</span>${g.pageUrl ? `<a href="${esc(g.pageUrl)}" target="_blank" rel="noopener"><b>${esc(g.pageUrl)}</b></a><button class="btn sm" data-copy="${esc(g.pageUrl)}">Copy</button>` : ""}
+        <button class="btn ${g.pageUrl ? "" : "primary"}" id="ghPublish">${g.pageUrl ? "Update website" : "Publish website"}</button></div>
+        <p class="muted" style="font-size:12.5px;margin:8px 0 0">${t.running ? "" : "Go online first (step 1) so the website knows where to reach this computer. "}${g.publishedAt ? `Last published ${esc(new Date(g.publishedAt).toLocaleString())}. ` : ""}A new site can take a minute or two to appear the first time.</p>`}
+    </div>
+    <div class="card"><div class="card-head"><div style="font-size:22px">🗄️</div><div><h2>3 · Accounts & online backup (Supabase) <span class="chip">Optional</span></h2><p>With Supabase, sign-ins are handled by Supabase Auth and everyone's job-search data is backed up to your Supabase database every 30 minutes. Job-site passwords and browser sign-ins are never uploaded.</p></div></div>
+      <div class="form">
+        <label class="f wide"><span>Project URL</span><input id="sbUrl" value="${esc(c.supabaseUrl)}" placeholder="https://abcdefgh.supabase.co"></label>
+        <label class="f"><span>anon / publishable key ${c.anonKeySet ? `<span class="chip submitted">saved</span>` : ""}</span>${pwField("sbAnon", c.anonKeySet ? "Saved — paste to replace" : "eyJ… or sb_publishable_…")}<small>For sign-in.</small></label>
+        <label class="f"><span>service_role / secret key ${c.serviceKeySet ? `<span class="chip submitted">saved</span>` : ""}</span>${pwField("sbService", c.serviceKeySet ? "Saved — paste to replace" : "eyJ… or sb_secret_…")}<small>For backup. Stays on this computer.</small></label>
+        <label class="perm" style="border:0;padding:0"><span class="switch"><input id="sbAuto" type="checkbox" ${c.autoBackup ? "checked" : ""}><span></span></span><span class="txt"><b>Back up automatically</b><small>Every 30 minutes while AutoApply runs</small></span></label>
+        <label class="perm" style="border:0;padding:0"><span class="switch"><input id="sbGoogle" type="checkbox" ${c.google ? "checked" : ""}><span></span></span><span class="txt"><b>Show “Continue with Google”</b><small>Turn on Google under Authentication → Providers in Supabase first, and add this site to its redirect URLs</small></span></label>
+      </div>
+      <p class="muted" style="font-size:12.5px">First time: in Supabase open <b>SQL editor</b>, paste the contents of <code>supabase/schema.sql</code> and press Run.${c.lastBackupAt ? ` Last backup: ${esc(new Date(c.lastBackupAt).toLocaleString())} (${c.lastBackupFiles} files).` : ""}</p>
+      <div class="row"><button class="btn primary" id="sbSave">Save</button><button class="btn" id="sbTest" ${c.serviceKeySet ? "" : "disabled"}>Test connection</button><button class="btn" id="sbBackup" ${c.serviceKeySet ? "" : "disabled"}>Back up now</button><button class="btn ghost" id="sbRestore" ${c.serviceKeySet ? "" : "disabled"}>Restore from Supabase…</button></div>
+    </div>`;
+  const call = async (p, body = {}, msg) => { try { const r = await api(p, { method: "POST", body }); if (msg) toast(msg(r)); render(); } catch (e) { fail(e); } };
+  $("#ghLogin") && ($("#ghLogin").onclick = async () => { try { await api("/cloud/github/login", { method: "POST", body: {} }); toast("GitHub sign-in window opened"); } catch (e) { fail(e); } });
+  $("#ghPublish") && ($("#ghPublish").onclick = () => { toast("Publishing to GitHub…"); call("/cloud/github/publish", {}, (r) => `Published: ${r.pageUrl}`); });
+  $("#tunStart") && ($("#tunStart").onclick = () => { toast("Going online… (takes a few seconds)"); call("/cloud/tunnel", { action: "start" }, (r) => r.url ? `Online at ${r.url}` : "Started"); });
+  $("#tunStop") && ($("#tunStop").onclick = () => call("/cloud/tunnel", { action: "stop" }, () => "Offline"));
+  $("#sbSave").onclick = async () => {
+    const body = { supabaseUrl: $("#sbUrl").value.trim(), autoBackup: $("#sbAuto").checked, google: $("#sbGoogle").checked, publicHosts: $("#pubHosts").value.split(",").map((s) => s.trim()).filter(Boolean) };
+    if ($("#sbAnon").value.trim()) body.anonKey = $("#sbAnon").value.trim();
+    if ($("#sbService").value.trim()) body.serviceKey = $("#sbService").value.trim();
+    try { await api("/cloud", { method: "PUT", body }); toast("Saved"); render(); } catch (e) { fail(e); }
+  };
+  $("#sbTest").onclick = () => call("/cloud/test", {}, () => "✓ Supabase is connected and the table is ready");
+  $("#sbBackup").onclick = () => { toast("Backing up…"); call("/cloud/backup", {}, (r) => `Backed up ${r.files} files for ${r.workspaces} people`); };
+  $("#sbRestore").onclick = async () => {
+    if (!(await modal({ title: "Restore from Supabase?", body: "Files on this computer are replaced by the copies in Supabase (job-site passwords and browser sign-ins are not touched).", ok: "Restore" }))) return;
+    call("/cloud/restore", {}, (r) => `Restored ${r.files} files for ${r.workspaces} people`); await loadUsers();
+  };
+};
+
+async function testKey() {
+  toast("Testing connection…");
+  const r = await api("/settings/test", { method: "POST", body: {} }).catch((e) => ({ ok: false, error: e.message }));
+  r.ok ? toast("✓ Claude AI is working") : toast(`Claude AI test failed: ${r.error}`, true);
+}
+
+// ---------------- sign-in ----------------
+// Modelled on Tsenta's: split screen, "Continue with Google", then email first. Log in and Sign up are both offered;
+// the email step finds out which one applies, so nobody has to guess.
+const PITCH = `<div class="pitch"><div class="brand"><div class="logo">⚡</div>AutoApply</div><div class="mid"><small>Your job search, on autopilot</small>
+  <h2>Apply to the jobs that fit you. Hands off.</h2><p>AutoApply finds the right roles, tailors your resume and fills in every application for you.</p>
+  <ul><li>Matches you with roles from the companies you choose</li><li>Tailors your resume and cover letter for each job</li><li>Fills in and submits applications, Workday accounts included</li></ul></div></div>`;
+const GOOGLE = `<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>`;
+let AUTH = { mode: "login", step: "email", email: "", name: "" };
+
+async function showLogin(mode) {
+  const st = await api("/auth/state").catch((e) => ({ offline: e.offline }));
+  if (mode) AUTH = { ...AUTH, mode, step: "email" };
+  if (st.needsSetup && AUTH.mode !== "setup") AUTH = { ...AUTH, mode: "setup", step: "email" };
+  let el = $("#login");
+  if (!el) { el = document.createElement("div"); el.className = "auth"; el.id = "login"; document.body.append(el); }
+  const sb = st.supabase;
+  const google = sb?.google && AUTH.step === "email" ? `<button type="button" class="oauth" id="lgGoogle">${GOOGLE} Continue with Google</button><div class="or">Or continue with email</div>` : "";
+  const T = { login: ["Welcome back", "Log in to AutoApply."], signup: ["Create your account", "Start applying in minutes."], setup: ["Set up AutoApply", "Create the owner account. You can invite family afterwards."] }[AUTH.mode];
+  const who = AUTH.step !== "email" ? `<div class="who"><span>${esc(AUTH.email)}</span><a class="l" data-lg-back>Change</a></div>` : "";
+  let body;
+  if (st.offline) body = `<div class="banner"><div>⚠️</div><div><b>AutoApply is offline.</b> The computer that runs it is off or not connected right now. Try again later.</div></div><button type="button" class="btn primary go" onclick="location.reload()">Try again</button>`;
+  else if (AUTH.step === "email" && AUTH.mode === "login") body = `${google}<label class="f"><span>Email address</span><input id="lgEmail" type="email" autocomplete="username" placeholder="you@example.com" value="${esc(AUTH.email)}" required></label>
+      <button class="btn primary go" type="submit">Continue →</button>`;
+  else if (AUTH.step === "password") body = `${who}<label class="f"><span>Password</span><input id="lgPw" type="password" autocomplete="current-password" required></label>
+      <div style="text-align:right;margin-top:8px;font-size:13px"><a class="l" id="lgForgot">Forgot password?</a></div>
+      <button class="btn primary go" type="submit">Log in</button>`;
+  else if (AUTH.step === "closed") body = `${who}<div class="banner" style="margin-top:14px"><div>🔒</div><div>There's no account for this email, and new sign-ups are by invitation only. Ask the person who runs AutoApply to invite you.</div></div>`;
+  else body = `${AUTH.step === "email" ? google : who}
+      <label class="f"><span>Full name</span><input id="lgName" autocomplete="name" value="${esc(AUTH.name)}" required></label>
+      ${AUTH.step === "email" ? `<label class="f"><span>Email address</span><input id="lgEmail" type="email" autocomplete="username" placeholder="you@example.com" value="${esc(AUTH.email)}" required></label>` : ""}
+      <label class="f"><span>Password</span><input id="lgPw" type="password" autocomplete="new-password" minlength="8" required><small>At least 8 characters.</small></label>
+      <button class="btn primary go" type="submit">${AUTH.mode === "setup" ? "Create owner account" : "Create account"}</button>
+      ${AUTH.mode === "signup" && st.signups === "approval" && !AUTH.invited ? `<div class="fine">New accounts are approved by the person who runs AutoApply before they can apply.</div>` : ""}`;
+  const foot = st.offline || AUTH.mode === "setup" ? "" : AUTH.mode === "login" ? `Don't have an account? <a class="l" data-lg="signup">Sign up</a>` : `Already have an account? <a class="l" data-lg="login">Log in</a>`;
+  el.innerHTML = `${PITCH}<div class="side"><form novalidate><div class="brand mbrand"><div class="logo">⚡</div>AutoApply</div><h1>${AUTH.step === "password" && AUTH.name ? `Welcome back, ${esc(AUTH.name.split(" ")[0])}` : T[0]}</h1><p class="lead">${T[1]}</p>${body}
+    <div class="alt">${foot}</div><div class="fine">Your data stays on the AutoApply owner's computer.</div></form></div>`;
+  el.querySelectorAll("[data-lg]").forEach((x) => x.onclick = () => { AUTH = { mode: x.dataset.lg, step: "email", email: $("#lgEmail")?.value.trim() || AUTH.email, name: "" }; showLogin(); });
+  el.querySelector("[data-lg-back]")?.addEventListener("click", () => { AUTH = { ...AUTH, step: "email" }; showLogin(); });
+  $("#lgGoogle")?.addEventListener("click", () => { location.href = `${sb.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(location.href.split("#")[0])}`; });
+  $("#lgForgot")?.addEventListener("click", async () => {
+    try { await api("/auth/reset", { method: "POST", body: { email: AUTH.email, redirectTo: location.href.split("#")[0] } }); toast("Check your email for a password reset link."); } catch (e) { fail(e); }
+  });
+  el.querySelector("form").onsubmit = async (ev) => {
+    ev.preventDefault();
+    const btn = el.querySelector(".go"); if (btn) btn.disabled = true;
+    try {
+      if (AUTH.step === "email") AUTH.email = $("#lgEmail").value.trim();
+      if (AUTH.step === "email" && AUTH.mode !== "setup") {
+        const r = await api("/auth/lookup", { method: "POST", body: { email: AUTH.email } });
+        if (r.next === "password") { if (AUTH.mode === "signup") toast("You already have an account — log in."); AUTH = { ...AUTH, mode: "login", step: "password", name: r.name ?? "" }; return showLogin(); }
+        if (r.next === "closed") { AUTH = { ...AUTH, step: "closed" }; return showLogin(); }
+        if (AUTH.mode === "login") { AUTH = { ...AUTH, mode: "signup", step: "details", name: r.name ?? "", invited: r.invited }; toast(r.invited ? "You've been invited — choose a password to finish." : "No account for this email yet — create one."); return showLogin(); }
+      }
+      const route = AUTH.step === "password" ? "login" : AUTH.mode === "setup" ? "setup" : "register";
+      signedIn(await api(`/auth/${route}`, { method: "POST", body: { email: AUTH.email, password: $("#lgPw").value, name: $("#lgName")?.value.trim() } }));
+    } catch (err) { fail(err); } finally { if (btn) btn.disabled = false; }
+  };
+  ($("#lgName") ?? $("#lgEmail") ?? $("#lgPw"))?.focus();
+}
+function signedIn(r) {
+  if (r.confirmEmail) return toast("Check your email to confirm your account, then log in.");
+  if (r.token) store.set("aa.token", r.token);
+  $("#login")?.remove(); boot();
+}
+
+function showPending() {
+  if ($("#login")) return;
+  const el = document.createElement("div"); el.className = "auth"; el.id = "login";
+  el.innerHTML = `${PITCH}<div class="side"><form><h1>Almost there</h1><p class="lead">Your account is waiting for approval by the person who runs AutoApply. You can use it as soon as they approve it.</p>
+    <button type="button" class="btn primary go" onclick="location.reload()">Check again</button><div class="alt"><a class="l" id="pendOut">Log out</a></div></form></div>`;
+  document.body.append(el);
+  $("#pendOut").onclick = async () => { await api("/auth/logout", { method: "POST", body: {} }).catch(() => {}); store.set("aa.token", ""); location.reload(); };
+}
+
+async function boot() {
+  if (HOSTED) {
+    const cfg = await fetch("config.json", { cache: "no-store" }).then((r) => r.json()).catch(() => ({}));
+    API = (cfg.apiBase ?? "").replace(/\/$/, "");
+    if (!API) return showLogin();
+  }
+  // back from "Continue with Google" (Supabase puts the token after #)
+  const hash = new URLSearchParams(location.hash.slice(1));
+  if (hash.get("access_token")) {
+    history.replaceState(null, "", location.pathname + location.search);
+    try { const r = await api("/auth/oauth", { method: "POST", body: { accessToken: hash.get("access_token") } }); if (r.token) store.set("aa.token", r.token); } catch (e) { fail(e); }
+  }
+  const st = await api("/auth/state");
+  if (!st.account) return showLogin(st.needsSetup ? "setup" : undefined);
+  if (st.account.status === "pending") return showPending();
+  S.me = st.account;
+  await loadUsers(); await render(); pollTasks();
+}
+boot().catch((e) => { if (!$("#login")) $("#main").innerHTML = `<div class="card">Could not load: ${esc(e.message)}</div>`; });
+</script>
+</body>
+</html>
