@@ -1,3 +1,7 @@
 {
-  "apiBase": "https://jackets-span-accepting-twins.trycloudflare.com"
+  "apiBase": "https://jackets-span-accepting-twins.trycloudflare.com",
+  "supabase": {
+    "url": "https://jdutqshpzradjktoiwfh.supabase.co",
+    "anonKey": "claude mcp add --scope project --transport http supabase \"https://mcp.supabase.com/mcp?project_ref=jdutqshpzradjktoiwfh&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching%2Cfeedback%2Cnotebooks\""
+  }
 }
