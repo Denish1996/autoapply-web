@@ -238,6 +238,12 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 @media (max-width: 800px) { .app { grid-template-columns: 1fr; } aside { position: static; height: auto; } main { padding: 18px 16px 140px; } .job { grid-template-columns: 52px 1fr; } .job .acts { grid-column: 1 / -1; flex-wrap: wrap; } .hide-sm { display: none; } }
 #offbar { display: flex; gap: 12px; align-items: center; padding: 10px 20px; background: var(--warn-soft); color: var(--warn); font-size: 14px; border-bottom: 1px solid var(--line, rgba(0,0,0,.08)); }
 #offbar > div { flex: 1; }
+.drop { display: grid; place-items: center; gap: 6px; padding: 34px 16px; margin: 14px 0; border: 2px dashed var(--line, #d0d5dd); border-radius: var(--radius); cursor: pointer; text-align: center; }
+.drop:hover, .drop.over { border-color: var(--accent, #4f46e5); background: var(--accent-soft, rgba(79,70,229,.06)); }
+.found { display: flex; flex-wrap: wrap; gap: 6px; }
+.found span { padding: 4px 10px; border-radius: 999px; background: var(--good-soft, #e7f6ec); color: var(--good, #1a7f37); font-size: 13px; }
+.spin { width: 26px; height: 26px; border: 3px solid var(--line, #d0d5dd); border-top-color: var(--accent, #4f46e5); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -523,7 +529,57 @@ document.addEventListener("click", (e) => {
 $("#userSel").addEventListener("change", async (e) => { S.userId = e.target.value; await loadUsers(); closeDrawer(); render(); pollTasks(); });
 $("#newUserBtn").addEventListener("click", () => newUser());
 
+// Onboarding: upload a resume, AutoApply reads everything it shows and uses safe defaults for routine questions
+// (how you heard → LinkedIn, notice → two weeks, demographic questions → decline). It asks only what an application
+// needs and nothing else can answer — usually just whether the person may work in their country.
 async function newUser() {
+  const box = (inner) => { $("#modal").innerHTML = `<div class="modal-bg"><div class="modal" style="width:min(600px,100%)">${inner}</div></div>`; };
+  box(`<h2>Add a person</h2><p class="muted">Upload their resume. AutoApply reads their details from it, so there's almost nothing to fill in.</p>
+    <label class="drop" id="obDrop"><input id="obPdf" type="file" accept="application/pdf" hidden><div style="font-size:30px">📄</div><b>Choose the resume PDF</b><small class="muted">or drop it here</small></label>
+    <div class="row"><a class="l muted" id="obManual">No resume yet? Enter a name instead</a><span class="spacer"></span><button class="btn" id="obCancel">Cancel</button></div>`);
+  $("#obCancel").onclick = () => { $("#modal").innerHTML = ""; };
+  $("#obManual").onclick = () => newUserManual();
+  const drop = $("#obDrop");
+  drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
+  drop.ondragleave = () => drop.classList.remove("over");
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); };
+  $("#obPdf").onchange = (e) => e.target.files[0] && upload(e.target.files[0]);
+  async function upload(file) {
+    if (!/pdf$/i.test(file.type) && !/\.pdf$/i.test(file.name)) return toast("Please choose a PDF file", true);
+    drop.innerHTML = `<div class="spin"></div><b>Reading the resume…</b>`;
+    const pdfBase64 = await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.readAsDataURL(file); });
+    let u;
+    try { u = await api("/users", { method: "POST", body: { pdfBase64 } }); } catch (err) { fail(err); return newUser(); }
+    S.userId = u.id; store.set("aa.user", u.id); await loadUsers();
+    questions(u.onboarding ?? { found: [], questions: [], titles: [] });
+  }
+  function questions(ob) {
+    const qs = ob.questions;
+    box(`<h2>${qs.length ? `Almost done: ${qs.length === 1 ? "one question" : `${qs.length} quick questions`}` : "All set"}</h2>
+      ${ob.found.length ? `<p class="muted" style="margin-bottom:6px">From the resume:</p><div class="found">${ob.found.map((f) => `<span>✓ ${esc(f)}</span>`).join("")}</div>` : ""}
+      ${ob.readable === false ? `<div class="banner" style="margin-top:12px"><div>ℹ️</div><div>This PDF has little readable text (maybe a scan), so a few more details are needed. It's still the file employers will get.</div></div>` : ""}
+      ${qs.length ? `<div class="form" id="obForm" style="grid-template-columns:1fr;margin-top:14px">${qs.map((q) => inputFor([q.key, q.label, q.type])).join("")}</div>` : ""}
+      <label class="f" style="margin-top:14px"><span>Jobs to look for</span><input id="obTitles" value="${esc(ob.titles.join(", "))}" placeholder="e.g. Business Analyst, Project Coordinator"><small>Comma separated. Matched anywhere in the job title or description.</small></label>
+      <p class="muted" style="font-size:12.5px;margin-top:10px">Routine questions are answered for you: how you heard about the job (LinkedIn), notice period (two weeks), salary (open to discussing), and "prefer not to say" for demographic questions. You can change any of them in Profile.</p>
+      <div class="row"><span class="spacer"></span><button class="btn primary" id="obGo">Start finding jobs</button></div>`);
+    $("#obGo").onclick = async () => {
+      const form = $("#obForm");
+      if (form) {
+        const body = collect(form, S.user.profile);
+        const left = qs.filter((q) => { const v = q.key.split(".").reduce((x, k) => x?.[k], body); return v == null || v === ""; });
+        if (left.length) return toast(`Please answer: ${left.map((q) => q.label).join(" · ")}`, true);
+        try { S.user = await api(`${U()}/profile`, { method: "PUT", body }); } catch (e) { return fail(e); }
+      }
+      const titles = $("#obTitles").value.split(",").map((s) => s.trim()).filter(Boolean);
+      try { S.user = await api(`${U()}/search`, { method: "PUT", body: { ...S.user.search, keywords: titles } }); } catch (e) { return fail(e); }
+      $("#modal").innerHTML = ""; S.tab = "jobs"; store.set("aa.tab", "jobs"); await loadUsers(); render();
+      toast(`Welcome, ${S.user.profile.firstName || "there"}! Looking for jobs now…`);
+      startTask({ type: "discover" });
+    };
+  }
+}
+window.newUser = newUser;
+async function newUserManual() {
   $("#modal").innerHTML = `<div class="modal-bg"><div class="modal"><h2>Add a person</h2><p class="muted">AutoApply keeps a separate profile, resumes and applications for each person.</p>
     <div class="form" style="grid-template-columns:1fr 1fr"><label class="f"><span>First name</span><input id="nuF"></label><label class="f"><span>Last name</span><input id="nuL"></label>
     <label class="f wide"><span>Email</span><input id="nuE" type="email"></label></div>
