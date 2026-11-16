@@ -1159,7 +1159,7 @@ const GOOGLE = `<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="tru
 let AUTH = { mode: "login", step: "email", email: "", name: "" };
 
 async function showLogin(mode) {
-  const st = await api("/auth/state").catch((e) => ({ offline: e.offline }));
+  const st = HOSTED && !API ? { offline: true } : await api("/auth/state").catch((e) => ({ offline: e.offline }));
   if (mode) AUTH = { ...AUTH, mode, step: "email" };
   if (st.needsSetup && AUTH.mode !== "setup") AUTH = { ...AUTH, mode: "setup", step: "email" };
   let el = $("#login");
