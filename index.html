@@ -238,6 +238,13 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 @media (max-width: 800px) { .app { grid-template-columns: 1fr; } aside { position: static; height: auto; } main { padding: 18px 16px 140px; } .job { grid-template-columns: 52px 1fr; } .job .acts { grid-column: 1 / -1; flex-wrap: wrap; } .hide-sm { display: none; } }
 #offbar { display: flex; gap: 12px; align-items: center; padding: 10px 20px; background: var(--warn-soft); color: var(--warn); font-size: 14px; border-bottom: 1px solid var(--line, rgba(0,0,0,.08)); }
 #offbar > div { flex: 1; }
+#busy { position: fixed; top: 76px; left: 50%; transform: translateX(-50%); z-index: 50; display: flex; gap: 10px; align-items: center; padding: 9px 16px; border-radius: 999px; background: var(--card, #fff); box-shadow: 0 6px 24px rgba(0,0,0,.14); font-size: 14px; max-width: calc(100% - 32px); }
+#busy.center { top: 45%; flex-direction: column; text-align: center; padding: 22px 28px; border-radius: 16px; }
+#busy.center .spin { width: 40px; height: 40px; }
+.tbtn { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line, #d0d5dd); background: transparent; color: inherit; border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.tbtn.send { background: var(--accent, #4f46e5); border-color: var(--accent, #4f46e5); color: #fff; }
+.tbtn.nope:hover { border-color: var(--bad, #d92d20); color: var(--bad, #d92d20); }
+.jrow.gone { opacity: 0; transform: translateX(30px); transition: .25s; }
 .drop { display: grid; place-items: center; gap: 6px; padding: 34px 16px; margin: 14px 0; border: 2px dashed var(--line, #d0d5dd); border-radius: var(--radius); cursor: pointer; text-align: center; }
 .drop:hover, .drop.over { border-color: var(--accent, #4f46e5); background: var(--accent-soft, rgba(79,70,229,.06)); }
 .found { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -565,7 +572,7 @@ $("#newUserBtn").addEventListener("click", () => newUser());
 async function newUser() {
   const box = (inner) => { $("#modal").innerHTML = `<div class="modal-bg"><div class="modal" style="width:min(600px,100%)">${inner}</div></div>`; };
   box(`<h2>Add a person</h2><p class="muted">Upload their resume. AutoApply reads their details from it, so there's almost nothing to fill in.</p>
-    <label class="drop" id="obDrop"><input id="obPdf" type="file" accept="application/pdf" hidden><div style="font-size:30px">📄</div><b>Choose the resume PDF</b><small class="muted">or drop it here</small></label>
+    <label class="drop" id="obDrop"><input id="obPdf" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden><div style="font-size:30px">📄</div><b>Choose the resume (PDF or Word)</b><small class="muted">or drop it here</small></label>
     <div class="row"><a class="l muted" id="obManual">No resume yet? Enter a name instead</a><span class="spacer"></span><button class="btn" id="obCancel">Cancel</button></div>`);
   $("#obCancel").onclick = () => { $("#modal").innerHTML = ""; };
   $("#obManual").onclick = () => newUserManual();
@@ -575,11 +582,11 @@ async function newUser() {
   drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); };
   $("#obPdf").onchange = (e) => e.target.files[0] && upload(e.target.files[0]);
   async function upload(file) {
-    if (!/pdf$/i.test(file.type) && !/\.pdf$/i.test(file.name)) return toast("Please choose a PDF file", true);
+    if (!(/\.(pdf|docx)$/i.test(file.name) || /pdf|officedocument\.wordprocessingml/.test(file.type))) return toast("Please choose a PDF or Word (.docx) file", true);
     drop.innerHTML = `<div class="spin"></div><b>Reading the resume…</b>`;
-    const pdfBase64 = await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.readAsDataURL(file); });
+    const fileBase64 = await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.readAsDataURL(file); });
     let u;
-    try { u = await api("/users", { method: "POST", body: { pdfBase64 } }); } catch (err) { fail(err); return newUser(); }
+    try { u = await api("/users", { method: "POST", body: { fileBase64 } }); } catch (err) { fail(err); return newUser(); }
     S.userId = u.id; store.set("aa.user", u.id); await loadUsers();
     questions(u.onboarding ?? { found: [], questions: [], titles: [] });
   }
@@ -629,17 +636,34 @@ async function startTask(body) {
   catch (err) { fail(err); }
 }
 let pollTimer = null;
+// While a search runs: a loading circle (in the middle of an empty list, or a small bar above the jobs already shown)
+// and the list refreshed every few seconds, so new jobs appear as they're found. While an application takes more than
+// a few seconds: the same circle with "Applying…".
+let lastLiveRefresh = 0;
+function busyUi(tasks) {
+  const now = Date.now();
+  const search = tasks.find((t) => t.status === "running" && t.type === "discover");
+  const apply = tasks.find((t) => t.status === "running" && t.type !== "discover" && now - Date.parse(t.startedAt) > 3000);
+  let el = $("#busy");
+  if (!search && !apply) { el?.remove(); if (S.wasSearching && S.tab === "jobs") { S.wasSearching = false; refreshFeed(true); } return; }
+  if (!el) { el = document.createElement("div"); el.id = "busy"; document.body.append(el); }
+  const found = search ? (search.log ?? []).filter((l) => l.trim().startsWith("＋")).length : 0;
+  el.className = search && S.tab === "jobs" && !document.querySelector("#feedList .jrow") ? "center" : "";
+  el.innerHTML = `<div class="spin"></div><div>${search ? `<b>Searching for jobs…</b> ${found ? `${found} found so far, more coming` : "this can take a minute"}` : `<b>Applying…</b> ${esc(apply.label ?? "")}`}</div>`;
+  if (search && S.tab === "jobs" && now - lastLiveRefresh > 4000) { lastLiveRefresh = now; S.wasSearching = true; refreshFeed(true); }
+}
 async function pollTasks(force) {
   clearTimeout(pollTimer);
   if (!S.userId) return;
   const tasks = await api(`/tasks?user=${encodeURIComponent(S.userId)}`).catch(() => []);
+  busyUi(tasks);
   const running = tasks.find((t) => t.status === "running");
   const latest = running ?? tasks[0];
   const wasRunning = S.tasks.some((t) => t.status === "running");
   S.tasks = tasks;
   renderTask(latest, !!running || force);
   if (wasRunning && !running) { await loadUsers(); render(); }
-  if (running) pollTimer = setTimeout(pollTasks, 1200);
+  pollTimer = setTimeout(pollTasks, running ? 1200 : 15000); // background searches start on their own: keep an eye out
 }
 let taskHidden = false;
 // What happened to each job in a run, and exactly what is still needed for the ones that stopped.
@@ -851,6 +875,7 @@ document.addEventListener("click", (e) => {
       if (b.dataset.act === "anyway") { closeDrawer(); render(); applyForMe(id); } else { render(); toast("Moved to Job matches"); }
     }).catch(fail);
   }
+  if (b.dataset.act === "nope") api(`${U()}/jobs/${encodeURIComponent(id)}/status`, { method: "POST", body: { status: "skipped" } }).then(() => { closeDrawer(); refreshFeed(); toast("Hidden. AutoApply won't apply to it."); }).catch(fail);
   if (b.dataset.act === "undo") api(`${U()}/jobs/${encodeURIComponent(id)}/status`, { method: "POST", body: { status: "matched" } }).then(async () => { await loadUsers(); closeDrawer(); render(); toast("Moved back to Job matches"); }).catch(fail);
   if (b.dataset.copy) { navigator.clipboard?.writeText(b.dataset.copy).then(() => toast("Copied"), () => toast("Copy failed", true)); }
 });
@@ -860,6 +885,7 @@ function actionButtons(j) {
   return `<button class="btn sm ghost" data-act="people" data-id="${esc(j.id)}" title="Find the recruiter and hiring manager">👥</button>
     <button class="btn sm ghost" data-act="tailor" data-id="${esc(j.id)}" title="Make a tailored resume for this job">Tailor</button>
     <button class="btn sm" data-act="dry" data-id="${esc(j.id)}" title="Fill the application without submitting">Preview</button>
+    ${["matched", "discovered"].includes(j.status) ? `<button class="btn sm" data-act="nope" data-id="${esc(j.id)}">Not interested</button>` : ""}
     <button class="btn sm primary" data-act="apply" data-id="${esc(j.id)}">⚡ ${["matched", "discovered"].includes(j.status) ? "Apply for me" : "Try again"}</button>`;
 }
 
@@ -1146,8 +1172,15 @@ VIEWS.jobs = async (v) => {
     if (e.target.id === "top5") applyMany(S.feedData.rows.filter((j) => (j.score ?? 0) >= S.user.search.minScore).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5).map((j) => j.id));
   };
   $("#feedList").onclick = async (e) => {
-    const send = e.target.closest("[data-send]"), save = e.target.closest("[data-save]");
+    const send = e.target.closest("[data-send]"), save = e.target.closest("[data-save]"), nope = e.target.closest("[data-nope]");
     if (send) { e.stopPropagation(); return applyForMe(send.dataset.send); }
+    if (nope) {
+      e.stopPropagation();
+      const row = nope.closest(".jrow"); row?.classList.add("gone");
+      try { await api(`${U()}/jobs/${encodeURIComponent(nope.dataset.nope)}/status`, { method: "POST", body: { status: "skipped" } }); setTimeout(refreshFeed, 250); toast("Hidden. AutoApply won't apply to it."); }
+      catch (err) { row?.classList.remove("gone"); fail(err); }
+      return;
+    }
     if (save) {
       e.stopPropagation();
       try { await api(`${U()}/jobs/${encodeURIComponent(save.dataset.save)}/save`, { method: "POST", body: { saved: save.dataset.on !== "1" } }); refreshFeed(); } catch (err) { fail(err); }
@@ -1200,10 +1233,10 @@ async function askAutoApply() {
 
 /** Fetch the feed for the current filters and repaint only what depends on it (no page reload). */
 let feedSeq = 0;
-async function refreshFeed() {
+async function refreshFeed(quiet) {
   if (S.tab !== "jobs" || !$("#feedList")) return;
   const seq = ++feedSeq;
-  $("#feedList").classList.add("loading");
+  if (!quiet) $("#feedList").classList.add("loading"); // quiet: live updates during a search, no fade
   let d;
   try { d = await api(`${U()}/feed?${feedQuery()}`); } catch (e) { $("#feedList").classList.remove("loading"); return fail(e); }
   if (seq !== feedSeq || !$("#feedList")) return; // a newer refresh is on its way
@@ -1237,7 +1270,8 @@ async function refreshFeed() {
           ${j.status !== "matched" ? statusChip(j.status) : ""}${!j.autoApply ? `<span class="chip">Apply yourself</span>` : ""}</div>
         <div class="jk">${j.score != null ? `<span class="${strong(j) ? "good" : ""}">${j.score}% match</span>` : ""}${j.matched?.length ? ` · matches ${j.matched.slice(0, 4).map(esc).join(", ")}` : ""}</div></div>
       <button class="ibtn star ${j.saved ? "on" : ""}" data-save="${esc(j.id)}" data-on="${j.saved ? 1 : 0}" title="${j.saved ? "Saved" : "Save"}">${j.saved ? "★" : "☆"}</button>
-      <button class="ibtn send" data-send="${esc(j.id)}" title="Apply for me"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7Z"/></svg></button></div>`).join("")}</div>`
+      <button class="tbtn nope" data-nope="${esc(j.id)}" title="Hide this job and show others">Not interested</button>
+      <button class="tbtn send" data-send="${esc(j.id)}" title="Apply for me"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7Z"/></svg>Apply for me</button></div>`).join("")}</div>`
     : `<div class="card empty"><div class="big">🔎</div><p>${f.view === "saved" ? "No saved jobs yet — press ☆ on a job to keep it here." : d.counts.all ? "No jobs match these filters." : "No jobs yet. Add search terms above (e.g. ServiceNow, CMDB), then press ⌕ to search — AutoApply looks through all the employer boards it knows plus your own companies."}</p></div>`;
   $("#feedList").classList.remove("loading");
   $("#leftpill").innerHTML = `<b>${Math.max(0, (s.dailyCap ?? 0) - (st.submittedToday ?? 0))}</b> applications left today <a class="l" data-tab="preferences">Change →</a>`;
@@ -1321,7 +1355,7 @@ VIEWS.resumes = async (v) => {
     <div class="card" style="margin-top:16px"><h2 id="formTitle">Add a resume</h2><p class="muted" style="margin-top:0">Upload the PDF employers will see, and paste its text so AutoApply can tailor it and answer questions.</p><div class="form">
       <label class="f"><span>Name</span><input id="rName" placeholder="e.g. ITOM resume"></label>
       <label class="f"><span>Use for job titles containing</span><input id="rTitles" placeholder="cmdb, servicenow, itom"><small>Comma separated</small></label>
-      <label class="f"><span>Resume PDF</span><input id="rPdf" type="file" accept="application/pdf"></label>
+      <label class="f"><span>Resume file (PDF or Word)</span><input id="rPdf" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><small>Word files are turned into a PDF for employers.</small></label>
       <label class="perm" style="border:0;align-self:end;padding:0"><span class="switch"><input id="rDefault" type="checkbox"><span></span></span><span class="txt"><b>Default resume</b></span></label>
       <label class="f wide"><span>Resume text</span><textarea id="rText" style="min-height:220px" placeholder="# Your Name&#10;City · email · phone&#10;&#10;## Experience&#10;### Title — Company&#10;- bullet"></textarea></label>
       <div class="wide row"><button class="btn primary" id="rSave">Save resume</button></div>
@@ -1337,11 +1371,12 @@ VIEWS.resumes = async (v) => {
   $("#rSave").onclick = async () => {
     const name = $("#rName").value.trim(); if (!name) return toast("Give the resume a name", true);
     const file = $("#rPdf").files[0];
-    let pdfBase64;
-    if (file) pdfBase64 = await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.readAsDataURL(file); });
-    if (!editing && !pdfBase64) return toast("Choose the resume PDF", true);
+    let fileBase64;
+    if (file && !(/\.(pdf|docx)$/i.test(file.name) || /pdf|officedocument\.wordprocessingml/.test(file.type))) return toast("Please choose a PDF or Word (.docx) file", true);
+    if (file) fileBase64 = await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.readAsDataURL(file); });
+    if (!editing && !fileBase64) return toast("Choose the resume file (PDF or Word)", true);
     try {
-      const r = await api(`${U()}/resumes`, { method: "POST", body: { id: editing ?? undefined, name, targetTitles: $("#rTitles").value.split(",").map((s) => s.trim()).filter(Boolean), isDefault: $("#rDefault").checked, text: $("#rText").value, pdfBase64 } });
+      const r = await api(`${U()}/resumes`, { method: "POST", body: { id: editing ?? undefined, name, targetTitles: $("#rTitles").value.split(",").map((s) => s.trim()).filter(Boolean), isDefault: $("#rDefault").checked, text: $("#rText").value, fileBase64 } });
       S.user = r.user; render(); toast("Resume saved");
     } catch (err) { fail(err); }
   };
