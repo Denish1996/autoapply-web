@@ -507,6 +507,21 @@ function renderNav() {
   $("#nav").innerHTML = TABS.map(([id, ic, name]) => `<button data-tab="${id}" class="${S.tab === id ? "on" : ""}"><span class="ic">${ic}</span>${name}${counts[id] ? `<span class="n">${counts[id]}</span>` : ""}</button>`).join("");
 }
 
+// Offline mode needs each person's password once (it creates their sign-in for when this computer is off).
+function offlineSetupBanner() {
+  if (!S.offlineAvail || !S.me || S.me.offline || OFF) return "";
+  return `<div class="banner" id="offSetup" style="background:var(--accent-soft, #eef2ff);color:inherit"><div>📴</div><div style="flex:1"><b>Use AutoApply even when this computer is off.</b> Confirm your password once to turn it on.
+    <form class="row" style="margin-top:8px;gap:8px" onsubmit="event.preventDefault();offlineConfirm()"><input id="offPw" type="password" autocomplete="current-password" placeholder="Your AutoApply password" style="max-width:260px"><button class="btn sm primary">Turn on</button></form></div></div>`;
+}
+async function offlineConfirm() {
+  const pw = $("#offPw").value; if (!pw) return toast("Type your password", true);
+  try {
+    await api("/me/offline", { method: "POST", body: { password: pw } });
+    if (HOSTED && SB.cfg) await sbAuth("password", { email: S.me.email, password: pw }).catch(() => {});
+    S.me.offline = true; $("#offSetup")?.remove(); toast("Done. You can use AutoApply here even when the computer is off.");
+  } catch (e) { fail(e); }
+}
+window.offlineConfirm = offlineConfirm;
 function setupBanner() {
   const probs = [...(S.user.problems ?? [])];
   if (!S.settings?.backend) probs.push("Claude AI not connected — sign in with your Claude subscription in AI & settings (AI answers for open questions are off)");
@@ -518,7 +533,7 @@ async function render() {
   renderNav();
   const m = $("#main");
   if (!S.user && !["settings", "team", "online"].includes(S.tab)) { m.innerHTML = `<div class="card empty"><div class="big">👋</div><h1>Welcome to AutoApply</h1><p>Add the first person to apply for.</p><button class="btn primary" onclick="newUser()">＋ Add a person</button></div>`; return; }
-  m.innerHTML = (S.user ? setupBanner() : "") + `<div id="view"></div>`;
+  m.innerHTML = offlineSetupBanner() + (S.user ? setupBanner() : "") + `<div id="view"></div>`;
   await VIEWS[S.tab]($("#view")).catch(fail);
 }
 
@@ -1807,7 +1822,7 @@ async function boot() {
   const st = await api("/auth/state");
   if (!st.account) return showLogin(st.needsSetup ? "setup" : undefined);
   if (st.account.status === "pending") return showPending();
-  S.me = st.account;
+  S.me = st.account; S.offlineAvail = !!st.supabase;
   await loadUsers(); await render(); pollTasks();
 }
 boot().catch((e) => { if (!$("#login")) $("#main").innerHTML = `<div class="card">Could not load: ${esc(e.message)}</div>`; });
