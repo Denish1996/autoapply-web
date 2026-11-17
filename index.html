@@ -231,6 +231,11 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 .auth .alt { margin-top: 16px; font-size: 13.5px; text-align: center; color: var(--muted); } .auth a.l { color: var(--accent); cursor: pointer; font-weight: 600; text-decoration: none; }
 .auth .who { display: flex; justify-content: space-between; align-items: center; background: var(--chip); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
 .auth .fine { margin-top: 18px; font-size: 12px; text-align: center; color: var(--muted); }
+.ferr { display: none; color: var(--bad); font-size: 13px; font-weight: 550; margin-top: 2px; } .ferr.on { display: block; }
+.auth #err-form.on { margin-top: 12px; background: var(--bad-soft); border-radius: 10px; padding: 9px 12px; }
+.auth input.bad { border-color: var(--bad); outline: 2px solid var(--bad-soft); }
+.pwrules { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px; font-size: 12.5px; color: var(--muted); }
+.pwrules li::before { content: "○"; display: inline-block; width: 16px; } .pwrules li.ok { color: var(--good); } .pwrules li.ok::before { content: "✓"; font-weight: 700; }
 .auth .mbrand { display: none; justify-content: center; margin-bottom: 18px; }
 @media (max-width: 860px) { .auth { grid-template-columns: 1fr; } .auth .pitch { display: none; } .auth .mbrand { display: flex; } }
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 12px; } .tabs button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; }
@@ -329,7 +334,9 @@ async function api(path, opts = {}) {
   try { res = await fetch(`${API}/api${path}`, { ...opts, headers: { "content-type": "application/json", "x-autoapply": "1", ...authHeader(), ...(opts.headers ?? {}) }, body: opts.body && typeof opts.body !== "string" ? JSON.stringify(opts.body) : opts.body }); }
   catch { throw Object.assign(new Error("AutoApply can't be reached right now. Please try again in a few minutes."), { offline: true }); }
   const data = res.headers.get("content-type")?.includes("json") ? await res.json() : await res.text();
-  if (res.status === 401 && !path.startsWith("/auth/")) { showLogin(); throw new Error("Please sign in."); }
+  // not signed in: show the sign-in screen once. Background checks must never redraw it, or they would wipe what
+  // the person is typing.
+  if (res.status === 401 && !path.startsWith("/auth/")) { if (!$("#login")) showLogin(); throw new Error("Please sign in."); }
   if (res.status === 403 && data?.error === "pending") { showPending(); throw new Error("Waiting for approval."); }
   if (!res.ok) throw new Error(data?.error ?? res.statusText);
   return data;
@@ -1817,8 +1824,8 @@ VIEWS.team = async (v) => {
       <table><thead><tr><th>Person</th><th>Can see</th><th class="hide-sm">Status</th><th></th></tr></thead><tbody>
       ${accounts.map((a) => `<tr><td><b>${esc(a.name || a.email)}</b><div class="muted">${esc(a.email)} · ${esc(a.role)}</div></td>
         <td>${a.workspaces.map((w) => `<span class="chip">${esc(wsName(w))}</span>`).join(" ") || `<span class="muted">nobody yet</span>`}</td>
-        <td class="hide-sm">${a.status === "pending" ? `<span class="chip needs_input">Waiting for approval</span>` : a.status === "blocked" ? `<span class="chip failed">Turned off</span>` : a.joined ? `<span class="chip submitted">Active</span>` : `<span class="chip filled">Invited</span>`}${a.google ? ` <span class="chip">Google</span>` : ""}</td>
-        <td style="text-align:right;white-space:nowrap">${a.role === "owner" ? "" : `${a.status === "pending" || a.status === "blocked" ? `<button class="btn sm primary" data-status="active" data-who="${esc(a.email)}">Approve</button>` : `<button class="btn sm ghost" data-status="blocked" data-who="${esc(a.email)}">Turn off</button>`}<button class="btn sm" data-edit="${esc(a.email)}">Edit</button><button class="btn sm ghost danger" data-remove="${esc(a.email)}">Remove</button>`}</td></tr>`).join("")}
+        <td class="hide-sm">${a.status === "pending" ? `<span class="chip needs_input">Waiting for approval</span>` : a.status === "blocked" ? `<span class="chip failed">Turned off</span>` : a.joined ? `<span class="chip submitted">Active</span>` : `<span class="chip filled">Invited</span>`}${a.google ? ` <span class="chip">Google</span>` : ""}${a.resetRequested ? ` <span class="chip needs_input">Forgot password</span>` : ""}</td>
+        <td style="text-align:right;white-space:nowrap">${a.role === "owner" ? "" : `${a.status === "pending" || a.status === "blocked" ? `<button class="btn sm primary" data-status="active" data-who="${esc(a.email)}">Approve</button>` : `<button class="btn sm ghost" data-status="blocked" data-who="${esc(a.email)}">Turn off</button>`}${a.joined ? `<button class="btn sm ${a.resetRequested ? "primary" : ""}" data-resetlink="${esc(a.email)}">${a.resetRequested ? "Send reset link" : "Reset password"}</button>` : ""}<button class="btn sm" data-edit="${esc(a.email)}">Edit</button><button class="btn sm ghost danger" data-remove="${esc(a.email)}">Remove</button>`}</td></tr>`).join("")}
       </tbody></table>
       <label class="f" style="margin-top:14px;max-width:420px"><span>Who can create an account</span><select id="signupPol">
         <option value="approval" ${signups === "approval" ? "selected" : ""}>Anyone — I approve each new account (recommended)</option>
@@ -1830,9 +1837,17 @@ VIEWS.team = async (v) => {
       <div class="f wide"><span>Can see</span><div class="row" style="gap:12px">${workspaces.map((w) => `<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" value="${esc(w.id)}" class="invWs" style="width:auto"> ${esc(w.name)}</label>`).join("") || `<span class="muted">No job seekers yet</span>`}</div></div>
       <label class="perm" style="border:0;padding:0"><span class="switch"><input id="invAdmin" type="checkbox"><span></span></span><span class="txt"><b>Can manage access and settings</b><small>Makes them an admin like you</small></span></label></div>
       <div class="row" style="margin-top:12px"><button class="btn primary" id="invSave">Invite</button></div></div>
-    <div class="card"><h2>Your password</h2><div class="row" style="margin-top:10px"><div style="flex:1;max-width:320px">${pwField("myPw", "New password (8+ characters)")}</div><button class="btn" id="myPwSave">Change password</button></div></div>`;
+    <div class="card"><h2>Your password</h2><div class="row" style="margin-top:10px"><div style="flex:1;max-width:320px">${pwField("myPw", "New password")}</div><button class="btn" id="myPwSave">Change password</button></div></div>`;
   v.querySelectorAll("[data-status]").forEach((b) => b.onclick = async () => {
     try { await api("/team/status", { method: "POST", body: { email: b.dataset.who, status: b.dataset.status } }); toast(b.dataset.status === "active" ? "Approved — they can use AutoApply now" : "Turned off"); render(); } catch (e) { fail(e); }
+  });
+  v.querySelectorAll("[data-resetlink]").forEach((b) => b.onclick = async () => {
+    try {
+      const r = await api("/team/reset-link", { method: "POST", body: { email: b.dataset.resetlink } });
+      const base = S.settings?.pageUrl || (HOSTED ? location.origin + location.pathname : location.origin + "/");
+      const link = `${base}?reset=${r.token}`;
+      await modal({ title: "Reset link", body: `Send this link to <b>${esc(b.dataset.resetlink)}</b> (text, WhatsApp or email). It lets them choose a new password, works once, and expires in ${r.hours} hours.<br><br><input readonly value="${esc(link)}" onclick="this.select()" style="font-size:12.5px"><div class="row" style="margin-top:10px;justify-content:flex-start"><button type="button" class="btn sm primary" onclick="navigator.clipboard.writeText(this.closest(&quot;.modal&quot;).querySelector(&quot;input&quot;).value).then(()=>{this.textContent=&quot;Copied&quot;})">Copy link</button></div>`, ok: "Done", cancel: "" });
+    } catch (e) { fail(e); }
   });
   $("#signupPol").onchange = async (e) => { try { await api("/team/signups", { method: "PUT", body: { signups: e.target.value } }); toast("Saved"); } catch (err) { fail(err); } };
   v.querySelectorAll("[data-remove]").forEach((b) => b.onclick = async () => {
@@ -1934,82 +1949,123 @@ const PITCH = `<div class="pitch"><div class="brand"><div class="logo">⚡</div>
   <ul><li>Matches you with roles from the companies you choose</li><li>Tailors your resume and cover letter for each job</li><li>Fills in and submits applications, Workday accounts included</li></ul></div></div>`;
 const GOOGLE = `<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>`;
 let AUTH = { mode: "login", step: "email", email: "", name: "" };
+// Password rules (the server checks the same ones). All unmet rules are shown, live, as the person types.
+const PW_RULES = [["length", "At least 8 characters", (p) => p.length >= 8], ["lower", "A lowercase letter", (p) => /[a-z]/.test(p)], ["upper", "An uppercase letter", (p) => /[A-Z]/.test(p)], ["number", "A number", (p) => /\d/.test(p)]];
+const pwMissing = (p) => PW_RULES.filter(([, , ok]) => !ok(p)).map(([, t]) => t.toLowerCase());
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/;
 
 async function showLogin(mode) {
   const st = HOSTED && !API ? { offline: true } : await api("/auth/state").catch((e) => ({ offline: e.offline }));
   if (mode) AUTH = { ...AUTH, mode, step: "email" };
-  if (st.needsSetup && AUTH.mode !== "setup") AUTH = { ...AUTH, mode: "setup", step: "email" };
+  if (st.needsSetup && !["setup", "reset"].includes(AUTH.mode)) AUTH = { ...AUTH, mode: "setup", step: "email" };
   let el = $("#login");
   if (!el) { el = document.createElement("div"); el.className = "auth"; el.id = "login"; document.body.append(el); }
   const sb = st.supabase;
   const google = sb?.google && AUTH.step === "email" ? `<button type="button" class="oauth" id="lgGoogle">${GOOGLE} Continue with Google</button><div class="or">Or continue with email</div>` : "";
-  const T = { login: ["Welcome back", "Log in to AutoApply."], signup: ["Create your account", "Start applying in minutes."], setup: ["Set up AutoApply", "Create the owner account. You can invite family afterwards."] }[AUTH.mode];
-  const who = AUTH.step !== "email" ? `<div class="who"><span>${esc(AUTH.email)}</span><a class="l" data-lg-back>Change</a></div>` : "";
+  const T = { login: ["Welcome back", "Log in to AutoApply."], signup: ["Create your account", "Start applying in minutes."], setup: ["Set up AutoApply", "Create the owner account. You can invite family afterwards."],
+    forgot: ["Forgot your password?", "We'll help you choose a new one."], reset: ["Choose a new password", AUTH.email ? `For ${AUTH.email}` : ""] }[AUTH.mode];
+  const who = `<div class="who"><span>${esc(AUTH.email)}</span><a class="l" data-lg-back>Change</a></div>`;
+  const err = (id) => `<div class="ferr" id="err-${id}" role="alert"></div>`;
+  const emailField = `<label class="f"><span>Email address</span><input id="lgEmail" type="email" inputmode="email" autocomplete="username" placeholder="you@example.com" value="${esc(AUTH.email)}">${err("email")}</label>`;
+  const pwInput = (auto) => `<div class="pw"><input id="lgPw" type="password" autocomplete="${auto}"><button type="button" class="eye" id="lgEye" title="Show or hide the password" aria-label="Show or hide the password">👁</button></div>`;
+  const newPw = (label) => `<label class="f"><span>${label}</span>${pwInput("new-password")}</label>
+      <ul class="pwrules" id="pwRules">${PW_RULES.map(([id, t]) => `<li data-rule="${id}">${t}</li>`).join("")}</ul>${err("pw")}`;
+  const note = AUTH.notice ? `<div class="banner info" style="margin:0 0 14px"><div>${esc(AUTH.notice)}</div></div>` : "";
   let body;
   const offlineLogin = st.offline && SB.cfg;
-  if (offlineLogin) body = `<div class="banner"><div>📴</div><div><b>Sign in to see your jobs and applications.</b> Anything you do now is saved and carried out shortly.</div></div>
-      <label class="f"><span>Email address</span><input id="lgEmail" type="email" autocomplete="username" value="${esc(AUTH.email)}" required></label>
-      <label class="f"><span>Password</span><input id="lgPw" type="password" autocomplete="current-password" required></label>
-      <button class="btn primary go" type="submit">Log in</button>
-      <button type="button" class="btn go" id="lgLink" style="margin-top:8px">Email me a sign-in link instead</button>`;
+  if (AUTH.mode === "reset") body = AUTH.resetError
+      ? `<div class="banner"><div>⚠️</div><div>${esc(AUTH.resetError)}</div></div><button type="button" class="btn primary go" data-lg="forgot">Ask for a new link</button>`
+      : `${newPw("New password")}<button class="btn primary go" type="submit">Save password and log in</button>`;
+  else if (offlineLogin) body = `<div class="banner"><div>📴</div><div><b>Sign in to see your jobs and applications.</b> Anything you do now is saved and carried out shortly.</div></div>
+      ${emailField}
+      <label class="f"><span>Password</span>${pwInput("current-password")}${err("pw")}</label>
+      <button class="btn primary go" type="submit">Log in</button>`;
   else if (st.offline) body = `<div class="banner"><div>⚠️</div><div><b>AutoApply can't be reached right now.</b> Please try again in a few minutes.</div></div><button type="button" class="btn primary go" onclick="location.reload()">Try again</button>`;
-  else if (AUTH.step === "email" && AUTH.mode === "login") body = `${google}<label class="f"><span>Email address</span><input id="lgEmail" type="email" autocomplete="username" placeholder="you@example.com" value="${esc(AUTH.email)}" required></label>
-      <button class="btn primary go" type="submit">Continue →</button>`;
-  else if (AUTH.step === "password") body = `${who}<label class="f"><span>Password</span><input id="lgPw" type="password" autocomplete="current-password" required></label>
-      <div style="text-align:right;margin-top:8px;font-size:13px"><a class="l" id="lgForgot">Forgot password?</a></div>
+  else if (AUTH.mode === "forgot" && AUTH.step === "sent") body = `<div class="banner info"><div>✉️</div><div>${AUTH.emailed
+        ? `If <b>${esc(AUTH.email)}</b> has an account, a link to choose a new password is on its way. It can take a few minutes; check the spam folder too.`
+        : `If <b>${esc(AUTH.email)}</b> has an account, the person who runs this AutoApply has been told. They'll send you a link to choose a new password.`}</div></div>
+      <button type="button" class="btn primary go" data-lg="login">Back to log in</button>`;
+  else if (AUTH.mode === "forgot") body = `${emailField}<button class="btn primary go" type="submit">Reset my password</button>`;
+  else if (AUTH.step === "email" && AUTH.mode === "login") body = `${google}${emailField}<button class="btn primary go" type="submit">Continue →</button>`;
+  else if (AUTH.step === "password") body = `${who}<label class="f"><span>Password</span>${pwInput("current-password")}${err("pw")}</label>
+      <div style="text-align:right;margin-top:8px;font-size:13px"><a class="l" data-lg="forgot">Forgot password?</a></div>
       <button class="btn primary go" type="submit">Log in</button>`;
   else if (AUTH.step === "closed") body = `${who}<div class="banner" style="margin-top:14px"><div>🔒</div><div>There's no account for this email, and new sign-ups are by invitation only. Ask the person who runs AutoApply to invite you.</div></div>`;
-  else body = `${AUTH.step === "email" ? google : who}
-      <label class="f"><span>Full name</span><input id="lgName" autocomplete="name" value="${esc(AUTH.name)}" required></label>
-      ${AUTH.step === "email" ? `<label class="f"><span>Email address</span><input id="lgEmail" type="email" autocomplete="username" placeholder="you@example.com" value="${esc(AUTH.email)}" required></label>` : ""}
-      <label class="f"><span>Password</span><input id="lgPw" type="password" autocomplete="new-password" minlength="8" required><small>At least 8 characters.</small></label>
+  else body = `${note}${AUTH.step === "email" ? google : who}
+      <label class="f"><span>Full name</span><input id="lgName" autocomplete="name" value="${esc(AUTH.name)}">${err("name")}</label>
+      ${AUTH.step === "email" ? emailField : ""}
+      ${newPw("Password")}
       <button class="btn primary go" type="submit">${AUTH.mode === "setup" ? "Create owner account" : "Create account"}</button>
       ${AUTH.mode === "signup" && st.signups === "approval" && !AUTH.invited ? `<div class="fine">New accounts are approved by the person who runs AutoApply before they can apply.</div>` : ""}`;
-  const foot = st.offline || AUTH.mode === "setup" ? "" : AUTH.mode === "login" ? `Don't have an account? <a class="l" data-lg="signup">Sign up</a>` : `Already have an account? <a class="l" data-lg="login">Log in</a>`;
-  el.innerHTML = `${PITCH}<div class="side"><form novalidate><div class="brand mbrand"><div class="logo">⚡</div>AutoApply</div><h1>${AUTH.step === "password" && AUTH.name ? `Welcome back, ${esc(AUTH.name.split(" ")[0])}` : T[0]}</h1><p class="lead">${T[1]}</p>${body}
-    <div class="alt">${foot}</div><div class="fine">Your data is private to your account.</div></form></div>`;
-  el.querySelectorAll("[data-lg]").forEach((x) => x.onclick = () => { AUTH = { mode: x.dataset.lg, step: "email", email: $("#lgEmail")?.value.trim() || AUTH.email, name: "" }; showLogin(); });
-  el.querySelector("[data-lg-back]")?.addEventListener("click", () => { AUTH = { ...AUTH, step: "email" }; showLogin(); });
+  const foot = st.offline || AUTH.mode === "setup" || AUTH.mode === "reset" ? "" : AUTH.mode === "login" ? `Don't have an account? <a class="l" data-lg="signup">Sign up</a>` : AUTH.mode === "forgot" ? `Remembered it? <a class="l" data-lg="login">Log in</a>` : `Already have an account? <a class="l" data-lg="login">Log in</a>`;
+  el.innerHTML = `${PITCH}<div class="side"><form novalidate><div class="brand mbrand"><div class="logo">⚡</div>AutoApply</div><h1>${AUTH.step === "password" && AUTH.name ? `Welcome back, ${esc(AUTH.name.split(" ")[0])}` : T[0]}</h1><p class="lead">${esc(T[1])}</p>${body}
+    ${err("form")}<div class="alt">${foot}</div><div class="fine">Your data is private to your account.</div></form></div>`;
+
+  // ---- helpers: errors appear under the field they are about, and stay until the person fixes them ----
+  const setErr = (id, msg) => { const box = $(`#err-${id}`) ?? $("#err-form"); if (box) { box.textContent = msg; box.classList.add("on"); } const inp = { email: "#lgEmail", pw: "#lgPw", name: "#lgName" }[id]; if (inp && $(inp)) { $(inp).classList.add("bad"); $(inp).focus(); } };
+  const clearErr = () => { el.querySelectorAll(".ferr").forEach((b) => { b.textContent = ""; b.classList.remove("on"); }); el.querySelectorAll(".bad").forEach((i) => i.classList.remove("bad")); };
+  const placeErr = (e) => { const m = e.message ?? String(e); setErr(/password/i.test(m) ? "pw" : /email|account for/i.test(m) ? "email" : /name/i.test(m) ? "name" : "form", m); };
+  const paintRules = () => { const p = $("#lgPw")?.value ?? ""; $("#pwRules")?.querySelectorAll("li").forEach((li) => li.classList.toggle("ok", PW_RULES.find(([id]) => id === li.dataset.rule)[2](p))); };
+  $("#lgPw")?.addEventListener("input", () => { paintRules(); if ($("#pwRules") && !pwMissing($("#lgPw").value).length) { $("#err-pw").textContent = ""; $("#lgPw").classList.remove("bad"); } });
+  paintRules();
+  $("#lgEye")?.addEventListener("click", () => { const i = $("#lgPw"); i.type = i.type === "password" ? "text" : "password"; $("#lgEye").textContent = i.type === "password" ? "👁" : "🙈"; i.focus(); });
+  el.querySelectorAll("[data-lg]").forEach((x) => x.onclick = () => { AUTH = { mode: x.dataset.lg, step: "email", email: $("#lgEmail")?.value.trim() || AUTH.email, name: "" }; if (x.dataset.lg === "forgot") history.replaceState(null, "", location.pathname); showLogin(); });
+  el.querySelector("[data-lg-back]")?.addEventListener("click", () => { AUTH = { ...AUTH, step: "email", notice: "" }; showLogin(); });
   $("#lgGoogle")?.addEventListener("click", () => { location.href = `${sb.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(location.href.split("#")[0])}`; });
-  $("#lgLink")?.addEventListener("click", async () => {
-    const email = $("#lgEmail").value.trim(); if (!email) return toast("Type your email address first", true);
-    const r = await fetch(`${SB.cfg.url}/auth/v1/otp?redirect_to=${encodeURIComponent(location.href.split("#")[0])}`, { method: "POST", headers: { apikey: SB.cfg.anonKey, "content-type": "application/json" }, body: JSON.stringify({ email, create_user: false }) });
-    if (r.ok) toast("Check your email for a sign-in link. Open it on this device."); else toast("Couldn't send the link. Ask the person who runs AutoApply to check this email has access.", true);
-  });
-  $("#lgForgot")?.addEventListener("click", async () => {
-    try { await api("/auth/reset", { method: "POST", body: { email: AUTH.email, redirectTo: location.href.split("#")[0] } }); toast("Check your email for a password reset link."); } catch (e) { fail(e); }
-  });
+
   el.querySelector("form").onsubmit = async (ev) => {
     ev.preventDefault();
-    const btn = el.querySelector(".go"); if (btn) btn.disabled = true;
-    if (offlineLogin) {
-      try { AUTH.email = $("#lgEmail").value.trim(); await sbAuth("password", { email: AUTH.email, password: $("#lgPw").value }); await goOffline(); }
-      catch (err) { fail(err); } finally { if (btn) btn.disabled = false; }
-      return;
-    }
+    clearErr();
+    const btn = el.querySelector("button[type=submit]"); if (!btn) return;
+    const email = ($("#lgEmail")?.value ?? AUTH.email).trim(), pw = $("#lgPw")?.value ?? "", name = $("#lgName")?.value.trim() ?? "";
+    // check everything here first, and say exactly what is wrong
+    if ($("#lgName") && !name) return setErr("name", "Enter your name.");
+    if ($("#lgEmail") && !email) return setErr("email", "Enter your email address.");
+    if ($("#lgEmail") && !EMAIL_RE.test(email)) return setErr("email", "That doesn't look like an email address. It should be like name@example.com.");
+    if ($("#pwRules")) { const miss = pwMissing(pw); if (miss.length) return setErr("pw", `Your password still needs ${miss.length > 1 ? `${miss.slice(0, -1).join(", ")} and ${miss.at(-1)}` : miss[0]}.`); }
+    else if ($("#lgPw") && !pw) return setErr("pw", "Enter your password.");
+    btn.disabled = true; const label = btn.textContent; btn.textContent = "One moment…";
     try {
-      if (AUTH.step === "email") AUTH.email = $("#lgEmail").value.trim();
+      if ($("#lgEmail")) AUTH.email = email;
+      if (AUTH.mode === "reset") {
+        const r = await api("/auth/reset-finish", { method: "POST", body: AUTH.accessToken ? { accessToken: AUTH.accessToken, password: pw } : { token: AUTH.token, password: pw } });
+        history.replaceState(null, "", location.pathname); AUTH = { mode: "login", step: "email", email: "", name: "" };
+        toast("Password changed. You're logged in."); return signedIn(r);
+      }
+      if (offlineLogin) { await sbAuth("password", { email, password: pw }); return await goOffline(); }
+      if (AUTH.mode === "forgot") {
+        const r = await api("/auth/reset", { method: "POST", body: { email, redirectTo: location.origin + location.pathname } });
+        AUTH = { ...AUTH, step: "sent", emailed: !!r.emailed }; return showLogin();
+      }
       if (AUTH.step === "email" && AUTH.mode !== "setup") {
-        const r = await api("/auth/lookup", { method: "POST", body: { email: AUTH.email } });
-        if (r.next === "password") { if (AUTH.mode === "signup") toast("You already have an account — log in."); AUTH = { ...AUTH, mode: "login", step: "password", name: r.name ?? "" }; return showLogin(); }
+        const r = await api("/auth/lookup", { method: "POST", body: { email } });
+        if (r.next === "password") { AUTH = { ...AUTH, mode: "login", step: "password", name: r.name ?? "", notice: "" }; await showLogin(); if (name || pw) $("#err-pw") && setErr("pw", "You already have an account with this email. Enter your password to log in."); return; }
         if (r.next === "closed") { AUTH = { ...AUTH, step: "closed" }; return showLogin(); }
-        if (AUTH.mode === "login") { AUTH = { ...AUTH, mode: "signup", step: "details", name: r.name ?? "", invited: r.invited }; toast(r.invited ? "You've been invited — choose a password to finish." : "No account for this email yet — create one."); return showLogin(); }
+        if (AUTH.mode === "login") { AUTH = { ...AUTH, mode: "signup", step: "details", name: r.name ?? "", invited: r.invited, notice: r.invited ? "You've been invited. Choose a password to finish." : "There's no account for this email yet. Create one below." }; return showLogin(); }
       }
       const route = AUTH.step === "password" ? "login" : AUTH.mode === "setup" ? "setup" : "register";
-      const pw = $("#lgPw").value;
-      const r = await api(`/auth/${route}`, { method: "POST", body: { email: AUTH.email, password: pw, name: $("#lgName")?.value.trim() } });
+      const r = await api(`/auth/${route}`, { method: "POST", body: { email: AUTH.email, password: pw, name } });
       if (HOSTED && SB.cfg && r.token) setTimeout(() => sbAuth("password", { email: AUTH.email, password: pw }).catch(() => {}), 4000);
+      AUTH = { mode: "login", step: "email", email: "", name: "" };
       signedIn(r);
-    } catch (err) { fail(err); } finally { if (btn) btn.disabled = false; }
+    } catch (e) { placeErr(e); }
+    finally { if (btn.isConnected) { btn.disabled = false; btn.textContent = label; } }
   };
   ($("#lgName") ?? $("#lgEmail") ?? $("#lgPw"))?.focus();
 }
+// A reset link (?reset=…) or a reset email (#…type=recovery) opens "Choose a new password", signed in or not.
+async function resetFromUrl() {
+  const token = new URLSearchParams(location.search).get("reset"), h = new URLSearchParams(location.hash.slice(1));
+  if (!token && !(h.get("type") === "recovery" && h.get("access_token"))) return false;
+  AUTH = { mode: "reset", step: "email", email: "", name: "", token, accessToken: token ? null : h.get("access_token") };
+  if (token) { try { const r = await api("/auth/reset-info", { method: "POST", body: { token } }); AUTH.email = r.email; } catch (e) { AUTH.resetError = e.message; } }
+  await showLogin();
+  return true;
+}
 function signedIn(r) {
-  if (r.confirmEmail) return toast("Check your email to confirm your account, then log in.");
   if (r.token) store.set("aa.token", r.token);
   $("#login")?.remove(); boot();
 }
-
 function showPending() {
   if ($("#login")) return;
   const el = document.createElement("div"); el.className = "auth"; el.id = "login";
@@ -2034,6 +2090,7 @@ async function boot() {
     if (SB.cfg && h.get("access_token") && h.get("refresh_token")) { sbStore({ access_token: h.get("access_token"), refresh_token: h.get("refresh_token"), expires_in: h.get("expires_in") }); if (!up) history.replaceState(null, "", location.pathname + location.search); }
     if (!up) return SB.cfg && sbSession() ? goOffline().catch((e) => { fail(e); showLogin(); }) : showLogin();
   }
+  if (await resetFromUrl()) return;
   // back from "Continue with Google" (Supabase puts the token after #)
   const hash = new URLSearchParams(location.hash.slice(1));
   if (hash.get("access_token")) {
