@@ -253,6 +253,17 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 @media (max-width: 640px) { .jrow { grid-template-columns: 40px minmax(0, 1fr) auto; } .jrow .tbtn { grid-column: 2 / span 2; justify-self: start; } .jrow .tbtn.nope { margin-right: 8px; } }
 .drop { display: grid; place-items: center; gap: 6px; padding: 34px 16px; margin: 14px 0; border: 2px dashed var(--line, #d0d5dd); border-radius: var(--radius); cursor: pointer; text-align: center; }
 .drop:hover, .drop.over { border-color: var(--accent, #4f46e5); background: var(--accent-soft, rgba(79,70,229,.06)); }
+.modal.rv { max-height: 90vh; overflow: auto; }
+.rvsec { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+.rvsec h3 { margin: 0 0 2px; font-size: 15px; } .rvsec > p { margin: 0 0 10px; font-size: 13px; }
+.rv .f.blank input { background: var(--bg); }
+.rv .f.must > span::after { content: " *"; color: var(--bad); }
+.rv .f.bad select, .rv .f.bad input { border-color: var(--bad); outline: 2px solid var(--bad-soft); }
+.rvq { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+.rvq label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; }
+.rvq select, .rvq input { width: auto; min-width: 120px; max-width: 55%; }
+@media (max-width: 640px) { .rvq { grid-template-columns: 1fr; } }
+#termIn.pulse { outline: 3px solid var(--accent); outline-offset: 2px; }
 .found { display: flex; flex-wrap: wrap; gap: 6px; }
 .found span { padding: 4px 10px; border-radius: 999px; background: var(--good-soft, #e7f6ec); color: var(--good, #1a7f37); font-size: 13px; }
 .spin { width: 26px; height: 26px; border: 3px solid var(--line, #d0d5dd); border-top-color: var(--accent, #4f46e5); border-radius: 50%; animation: spin .8s linear infinite; }
@@ -695,25 +706,66 @@ async function newUser() {
     S.userId = u.id; store.set("aa.user", u.id); await loadUsers();
     questions(u.onboarding ?? { found: [], questions: [], titles: [] });
   }
+  // Review before the first search: everything read from the resume and every answer AutoApply will give on
+  // applications, all editable here. Nothing is searched or sent until the person confirms.
   function questions(ob) {
-    const qs = ob.questions;
-    box(`<h2>${qs.length ? `Almost done: ${qs.length === 1 ? "one question" : `${qs.length} quick questions`}` : "All set"}</h2>
-      ${ob.found.length ? `<p class="muted" style="margin-bottom:6px">From the resume:</p><div class="found">${ob.found.map((f) => `<span>✓ ${esc(f)}</span>`).join("")}</div>` : ""}
-      ${ob.readable === false ? `<div class="banner" style="margin-top:12px"><div>ℹ️</div><div>This PDF has little readable text (maybe a scan), so a few more details are needed. It's still the file employers will get.</div></div>` : ""}
-      ${qs.length ? `<div class="form" id="obForm" style="grid-template-columns:1fr;margin-top:14px">${qs.map((q) => inputFor([q.key, q.label, q.type])).join("")}</div>` : ""}
-      <label class="f" style="margin-top:14px"><span>Jobs to look for</span><input id="obTitles" value="${esc(ob.titles.join(", "))}" placeholder="e.g. Business Analyst, Project Coordinator"><small>Comma separated. Matched anywhere in the job title or description.</small></label>
-      <p class="muted" style="font-size:12.5px;margin-top:10px">Routine questions are answered for you: how you heard about the job (LinkedIn), notice period (two weeks), salary (open to discussing), and "prefer not to say" for demographic questions. You can change any of them in Profile.</p>
-      <div class="row"><span class="spacer"></span><button class="btn primary" id="obGo">Start finding jobs</button></div>`);
+    const p = S.user.profile, where = p.location?.country || "your country";
+    const need = new Set(ob.questions.map((q) => q.key));
+    const field = (spec) => { const [key, label] = spec; const html = inputFor(spec); const empty = getPath(p, key) == null || getPath(p, key) === "" || (Array.isArray(getPath(p, key)) && !getPath(p, key).length);
+      return html.replace("<label class=\"f", `<label class="f${need.has(key) ? " must" : ""}${empty ? " blank" : ""}`).replace(/(<input [^>]*?)>/, (m, a) => empty && !/type="number"/.test(a) ? `${a} placeholder="${need.has(key) ? "Needed for applications" : "Not on the resume"}">` : m); };
+    const RESUME_FIELDS = [["firstName", "First name"], ["lastName", "Last name"], ["email", "Email", "email"], ["phone", "Phone", "tel"],
+      ["location.city", "City"], ["location.state", "Province / state"], ["location.country", "Country"], ["links.linkedin", "LinkedIn"], ["links.github", "GitHub"],
+      ["currentTitle", "Current job title"], ["currentCompany", "Current company"], ["yearsExperience", "Years of experience", "num"],
+      ["education.degree", "Highest degree"], ["education.school", "School"], ["skills", "Skills", "list", "Comma separated"]];
+    const MUST = [["workAuthorization.authorized", `Legally allowed to work in ${where}?`, "yn"], ["workAuthorization.requiresSponsorship", "Needs visa sponsorship, now or later?", "yn"], ["willingToRelocate", "Willing to relocate?", "yn"]];
+    const ROUTINE = [["salaryExpectation", "Salary expectation"], ["availability", "Notice period / start date"], ["howDidYouHear", "\"How did you hear about us?\""],
+      ["eeo.gender", "Gender"], ["eeo.race", "Race / ethnicity"], ["eeo.veteran", "Veteran status"], ["eeo.disability", "Disability"]];
+    // the standard screening answers (answers.json), grouped by meaning; "require a visa" follows the sponsorship answer
+    const bank = { ...S.user.answers };
+    const SCREEN = [[["have you previously worked for", "ever worked for", "former employee"], "Worked for the company before?"], [["are you at least 18"], "18 or older?"],
+      [["background check"], "OK with a background check?"], [["drug test"], "OK with a drug test?"], [["willing to travel"], "Willing to travel?", ["Yes, up to 10%", "Yes", "No"]],
+      [["non-compete"], "Bound by a non-compete agreement?"], [["security clearance"], "Hold a security clearance?"], [["related to anyone"], "Related to someone at the company?"]].filter(([keys]) => keys.some((k) => k in bank));
+    const known = new Set(["require a visa", ...SCREEN.flatMap(([k]) => k)]);
+    const extra = Object.entries(bank).filter(([k, v]) => !known.has(k) && v != null);
+    const sel = (id, val, opts = ["Yes", "No"]) => `<select data-bank="${esc(id)}">${[...new Set([...opts, val].filter(Boolean))].map((o) => `<option ${o === val ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+    const sec = (title, help, inner) => `<div class="rvsec"><h3>${title}</h3>${help ? `<p class="muted">${help}</p>` : ""}${inner}</div>`;
+    $("#modal").innerHTML = `<div class="modal-bg"><div class="modal rv" style="width:min(760px,100%)">
+      <h2>Check ${esc(p.firstName || "the")}${p.firstName ? "'s" : ""} details before searching</h2>
+      <p class="muted" style="margin-top:2px">This is everything AutoApply will put on applications. Fix anything that's wrong — you can change it later in Profile too.</p>
+      ${ob.readable === false ? `<div class="banner" style="margin-top:10px"><div>ℹ️</div><div>This resume has little readable text (maybe a scan), so please fill in the details below. It's still the file employers will get.</div></div>` : ""}
+      <div id="obForm">
+      ${sec("Needed before applying", "Only you can answer these. Every application asks them.", `<div class="form">${MUST.map(field).join("")}</div>`)}
+      ${sec("From the resume", ob.found.length ? `Read from the resume: ${ob.found.map(esc).join(", ")}.` : "Nothing could be read automatically — please fill these in.", `<div class="form">${RESUME_FIELDS.map(field).join("")}</div>`)}
+      ${sec("Answers to common questions", "Given when a form asks. Diversity answers default to “prefer not to say”.", `<div class="form">${ROUTINE.map(field).join("")}</div>`)}
+      ${SCREEN.length || extra.length ? sec("Screening questions", "AutoApply answers these yes/no questions for you.", `<div class="rvq">${SCREEN.map(([keys, label, opts], i) => `<label><span>${esc(label)}</span>${sel(`g${i}`, bank[keys.find((k) => k in bank)], opts)}</label>`).join("")}
+        ${extra.map(([k, v], i) => `<label><span>${esc(k.charAt(0).toUpperCase() + k.slice(1))}</span><input data-bankx="${esc(k)}" value="${esc(v)}"></label>`).join("")}</div>`) : ""}
+      ${sec("Jobs to look for", "", `<div class="form"><label class="f wide"><span>Job titles or skills</span><input id="obTitles" value="${esc(ob.titles.join(", "))}" placeholder="e.g. Software Engineer, Data Analyst"><small>Comma separated. A job fits when one of these appears in its title or description. Short, common titles find the most jobs.</small></label>
+        <label class="f wide"><span>Locations</span><input id="obLocs" value="${esc((S.user.search.locations ?? []).join(", "))}" placeholder="e.g. Canada"><small>Remote jobs are included too.</small></label></div>`)}
+      </div>
+      <div class="row" style="margin-top:14px"><span class="muted" style="font-size:12.5px">Nothing is searched or sent until you press the button.</span><span class="spacer"></span><button class="btn primary" id="obGo">Looks right — find jobs</button></div></div></div>`;
     $("#obGo").onclick = async () => {
       const form = $("#obForm");
-      if (form) {
-        const body = collect(form, S.user.profile);
-        const left = qs.filter((q) => { const v = q.key.split(".").reduce((x, k) => x?.[k], body); return v == null || v === ""; });
-        if (left.length) return toast(`Please answer: ${left.map((q) => q.label).join(" · ")}`, true);
-        try { S.user = await api(`${U()}/profile`, { method: "PUT", body }); } catch (e) { return fail(e); }
+      const body = collect(form, S.user.profile);
+      const req = [...MUST.slice(0, 2), ...ob.questions.map((q) => [q.key, q.label])].filter(([k], i, a) => a.findIndex(([x]) => x === k) === i);
+      const left = req.filter(([k]) => { const v = getPath(body, k); return v == null || v === ""; });
+      form.querySelectorAll(".f.must").forEach((el) => el.classList.remove("bad"));
+      if (left.length) {
+        left.forEach(([k]) => form.querySelector(`[data-key="${k}"]`)?.closest(".f")?.classList.add("bad"));
+        form.querySelector(".f.bad")?.scrollIntoView({ block: "center", behavior: "smooth" });
+        return toast(`Please answer: ${[...new Set(left.map(([, l]) => l))].join(" · ")}`, true);
       }
       const titles = $("#obTitles").value.split(",").map((s) => s.trim()).filter(Boolean);
-      try { S.user = await api(`${U()}/search`, { method: "PUT", body: { ...S.user.search, keywords: titles } }); } catch (e) { return fail(e); }
+      if (!titles.length) { $("#obTitles").focus(); return toast("Add at least one job title or skill to look for", true); }
+      const answers = { ...bank };
+      SCREEN.forEach(([keys], i) => { const v = form.querySelector(`[data-bank="g${i}"]`).value; keys.forEach((k) => { if (k in answers) answers[k] = v; }); });
+      form.querySelectorAll("[data-bankx]").forEach((el) => { answers[el.dataset.bankx] = el.value.trim() || null; });
+      if ("require a visa" in answers) answers["require a visa"] = body.workAuthorization?.requiresSponsorship ? "Yes" : "No";
+      $("#obGo").disabled = true;
+      try {
+        S.user = await api(`${U()}/profile`, { method: "PUT", body });
+        S.user = await api(`${U()}/answers`, { method: "PUT", body: answers });
+        S.user = await api(`${U()}/search`, { method: "PUT", body: { ...S.user.search, keywords: titles, locations: $("#obLocs").value.split(",").map((s) => s.trim()).filter(Boolean) } });
+      } catch (e) { $("#obGo").disabled = false; return fail(e); }
       $("#modal").innerHTML = ""; S.tab = "jobs"; store.set("aa.tab", "jobs"); await loadUsers(); render();
       toast(`Welcome, ${S.user.profile.firstName || "there"}! Looking for jobs now…`);
       startTask({ type: "discover" });
@@ -793,6 +845,16 @@ function outcomeList(items) {
       <div class="row" style="margin-top:6px">${fix}${it.id ? `<button class="btn sm ghost" onclick="openJob('${esc(it.id)}')">Details</button>` : ""}${it.status !== "submitted" && it.id ? `<button class="btn sm ghost" data-act="apply" data-id="${esc(it.id)}">Try again</button>` : ""}</div></div>`;
   }).join("")}</div>`;
 }
+// After a search that found nothing: say why in plain words and offer the one thing that fixes it.
+function searchHint(r) {
+  if (!r || r.newMatches || r.alreadyListed || !r.hint) return r?.busy ? `<div class="muted" style="font-size:12.5px;margin-top:4px">A few company sites were busy and are searched again next time.</div>` : "";
+  return `<div class="row" style="margin-top:8px">${r.hint === "terms" ? `<button class="btn sm primary" data-fixterms>Change what to look for</button>` : `<button class="btn sm primary" data-tab="preferences">Change locations</button>`}</div>`;
+}
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("[data-fixterms]")) return;
+  const go = () => { const i = $("#termIn"); if (i) { i.scrollIntoView({ block: "center" }); i.focus(); i.classList.add("pulse"); setTimeout(() => i.classList.remove("pulse"), 1800); } };
+  if (S.tab !== "jobs") { S.tab = "jobs"; store.set("aa.tab", "jobs"); render().then(() => setTimeout(go, 300)); } else go();
+});
 function lastLine(t) { return [...t.log].reverse().find((l) => l.trim()) ?? ""; }
 function renderTask(t, show) {
   const el = $("#taskpanel");
@@ -852,7 +914,7 @@ function renderTask(t, show) {
   const html = `<div class="card"><div class="row"><b>${running ? "⏳" : t.status === "failed" ? "⚠️" : "✅"} ${esc(t.label)}</b><span class="spacer"></span>
     ${running ? `<button class="btn sm danger" id="stopTask">Stop</button>` : `<button class="btn sm ghost" id="hideTask">✕</button>`}</div>
     ${running && !p ? `<div class="progress"><i></i></div><div class="muted" style="font-size:13px">${esc(lastLine(t))}</div>` : ""}
-    ${["discover", "addjob", "autopilot"].includes(t.type) && t.result?.message ? `<div style="margin-top:6px"><b>${esc(t.result.message)}</b>${t.result.newMatches ? `<div class="row" style="margin-top:6px"><button class="btn sm primary" data-jobstab-open="open">See new matches</button></div>` : ""}${t.result.rejected ? `<div class="muted" style="font-size:12.5px;margin-top:4px">Jobs that don't fit your preferences aren't listed — type in the search box to look through them too.</div>` : ""}</div>` : ""}
+    ${["discover", "addjob", "autopilot"].includes(t.type) && t.result?.message ? `<div style="margin-top:6px"><b>${esc(t.result.message)}</b>${t.result.newMatches ? `<div class="row" style="margin-top:6px"><button class="btn sm primary" data-jobstab-open="open">See new matches</button></div>` : ""}${searchHint(t.result)}${t.result.rejected && t.result.newMatches ? `<div class="muted" style="font-size:12.5px;margin-top:4px">Jobs that don't fit your preferences aren't listed — type in the search box to look through them too.</div>` : ""}</div>` : ""}
     ${t.result?.counts ? `<div class="muted" style="margin-top:6px">${esc(Object.entries(t.result.counts).map(([k, n]) => `${n} ${STATUS[k] ?? k}`).join(" · ") || t.result.message || "Nothing to do")}</div>` : ""}
     ${outcomeList(t.result?.items ?? (t.result?.status ? [t.result] : []))}
     ${t.status === "failed" && t.error ? `<div style="color:var(--bad);margin-top:6px">${esc(t.error)}</div>` : ""}
@@ -1377,7 +1439,10 @@ async function refreshFeed(quiet) {
       <button class="ibtn star ${j.saved ? "on" : ""}" data-save="${esc(j.id)}" data-on="${j.saved ? 1 : 0}" title="${j.saved ? "Saved" : "Save"}">${j.saved ? "★" : "☆"}</button>
       <button class="tbtn nope" data-nope="${esc(j.id)}" title="Hide this job and show others">Not interested</button>
       <button class="tbtn send" data-send="${esc(j.id)}" title="Apply for me"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7Z"/></svg>Apply for me</button></div>`).join("")}</div>`
-    : `<div class="card empty"><div class="big">🔎</div><p>${f.view === "saved" ? "No saved jobs yet — press ☆ on a job to keep it here." : d.counts.all ? "No jobs match these filters." : "No jobs yet. Add search terms above (e.g. ServiceNow, CMDB), then press ⌕ to search — AutoApply looks through all the employer boards it knows plus your own companies."}</p></div>`;
+    : `<div class="card empty"><div class="big">🔎</div><p>${f.view === "saved" ? "No saved jobs yet — press ☆ on a job to keep it here." : d.counts.all ? "No jobs match these filters."
+      : d.lastSearch && !d.lastSearch.newMatches ? `<b>${esc(d.lastSearch.message)}</b><br><span class="muted" style="font-size:13px">Last searched ${esc(agoText(d.lastSearch.at))}.${d.lastSearch.busy ? " A few company sites were busy and are searched again next time." : ""}</span>`
+      : "No jobs yet. Add search terms above (e.g. ServiceNow, CMDB), then press ⌕ to search — AutoApply looks through all the employer boards it knows plus your own companies."}</p>
+      ${f.view !== "saved" && !d.counts.all && d.lastSearch?.hint ? searchHint(d.lastSearch).replace('class="row"', 'class="row" style="justify-content:center;margin-top:8px"') : ""}</div>`;
   $("#feedList").classList.remove("loading");
   $("#leftpill").innerHTML = `<b>${Math.max(0, (s.dailyCap ?? 0) - (st.submittedToday ?? 0))}</b> applications left today <a class="l" data-tab="preferences">Change →</a>`;
   // side panel (the ask box keeps what's typed)
