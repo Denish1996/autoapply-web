@@ -37,8 +37,8 @@ nav button { display: flex; align-items: center; gap: 10px; width: 100%; text-al
 nav button:hover { background: var(--chip); }
 nav button.on { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
 nav .ic { width: 18px; text-align: center; }
-nav .n { margin-left: auto; font-size: 12px; background: var(--chip); color: var(--muted); border-radius: 999px; padding: 0 7px; }
-nav button.on .n { background: var(--panel); color: var(--accent); }
+nav .n { margin-left: auto; font-size: 11.5px; font-weight: 650; background: var(--accent); color: #fff; border-radius: 999px; padding: 0 7px; }
+nav button.on .n { background: var(--accent); color: #fff; }
 .side-foot { margin-top: auto; display: grid; gap: 8px; }
 .ai { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); flex: none; } .dot.on { background: var(--good); }
@@ -252,23 +252,56 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 .found span { padding: 4px 10px; border-radius: 999px; background: var(--good-soft, #e7f6ec); color: var(--good, #1a7f37); font-size: 13px; }
 .spin { width: 26px; height: 26px; border: 3px solid var(--line, #d0d5dd); border-top-color: var(--accent, #4f46e5); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* line icons (left menu, top-right buttons) */
+.ico { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; display: block; }
+.hicon { display: inline-grid; place-items: center; padding: 0; } .hicon .ico { width: 20px; height: 20px; }
+.hicon .dot { top: 0; right: -2px; width: auto; height: auto; min-width: 16px; text-align: center; background: var(--accent); }
+button.avatar { border: 0; cursor: pointer; font: inherit; font-weight: 700; padding: 0; } button.avatar:hover { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* account menu behind the initials */
+.menu { position: fixed; z-index: 45; width: 264px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,.22); padding: 8px; display: grid; gap: 2px; }
+.menu[hidden], [hidden] { display: none !important; }
+.menu .mhd { padding: 8px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; } .menu .mhd b { display: block; } .menu .mhd small { color: var(--muted); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mitem { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: none; color: var(--ink); padding: 9px 10px; border-radius: 9px; cursor: pointer; font: inherit; }
+.mitem:hover { background: var(--chip); } .mitem.on { background: var(--accent-soft); color: var(--accent); font-weight: 650; } .mitem .mic { width: 18px; display: grid; place-items: center; color: var(--muted); } .mitem.on .mic { color: var(--accent); }
+.menu .themesw { padding: 8px 10px 4px; border-top: 1px solid var(--line); margin-top: 4px; } .menu .acct { padding: 8px 10px 4px; }
+/* email list */
+.mrow2 { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 12px 6px; border-bottom: 1px solid var(--line); } .mrow2:last-child { border-bottom: 0; }
+.mrow2 .ms { font-weight: 600; } .mrow2 .mf { color: var(--muted); font-size: 12.5px; } .mrow2 .mp { font-size: 13px; margin-top: 3px; color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.mrow2 .mwhen { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.micon { width: 36px; height: 36px; border-radius: 10px; background: var(--chip); display: grid; place-items: center; color: var(--muted); }
+@media (max-width: 800px) { aside { padding: 12px; gap: 10px; } nav { grid-auto-flow: column; grid-auto-columns: 1fr; overflow-x: auto; } nav button { flex-direction: column; gap: 3px; font-size: 11.5px; padding: 7px 4px; text-align: center; position: relative; white-space: nowrap; } nav .n { position: absolute; top: 2px; right: 6px; margin: 0; } .side-foot { display: none; } }
+@media (max-width: 900px) { .fside { border-left: 0; padding-left: 0; min-height: 0; } }
+@media (max-width: 640px) {
+  .feedhead { flex-wrap: wrap; row-gap: 6px; } .feedhead .views { gap: 14px; } .feedhead .views button { font-size: 20px; white-space: nowrap; }
+  .headicons .hicon[data-tab] { display: none; } /* For you and Email are already in the menu above */
+  .searchrow { flex-direction: column; align-items: stretch; } .searchrow .pillbtn { align-self: flex-start; padding: 7px 14px; }
+  .chipbox input { min-width: 120px; } .linkrow { flex-wrap: wrap; gap: 6px 14px; } .linkrow .blackbtn { margin-left: auto; }
+  h1 { font-size: 21px; } .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; } .stat { padding: 10px; } .stat b { font-size: 19px; }
+  .drawer { padding: 16px; } table { display: block; overflow-x: auto; }
+}
 </style>
 </head>
 <body>
 <div class="app">
   <aside>
     <div class="brand"><div class="logo">⚡</div>AutoApply</div>
-    <div class="me"><div class="avatar" id="avatar">?</div><div style="min-width:0;flex:1"><small>Applying as</small><select id="userSel" title="Switch user"></select></div></div>
+    <div class="me"><button class="avatar" id="avatar" data-menu title="Profile and settings">?</button><div style="min-width:0;flex:1"><small>Applying as</small><select id="userSel" title="Switch person"></select></div></div>
     <nav id="nav"></nav>
     <div class="side-foot">
       <button class="btn sm" id="newUserBtn">＋ Add a person</button>
-      <div class="claudesw" id="claudeSw" title="When AutoApply may use Claude (your subscription) for this person"></div>
-      <div class="ai" id="aiStatus" data-tab="settings"><span class="dot" id="aiDot"></span><span id="llm">Claude AI</span></div>
-      <div class="themesw" id="themeSw"><span class="muted">Theme</span><div class="seg"><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button><button data-theme-set="system">System</button></div></div>
-      <div class="acct" id="acct"></div>
     </div>
   </aside>
   <main id="main"></main>
+</div>
+<!-- Profile and settings live behind the initials (top right, and beside the name on the left), not in the left menu -->
+<div class="menu" id="acctMenu" hidden>
+  <div class="mhd" id="menuHead"></div>
+  <div id="menuNav"></div>
+  <div class="claudesw" id="claudeSw" hidden></div>
+  <button class="mitem" id="aiStatus" data-tab="settings"><span class="mic"><span class="dot" id="aiDot"></span></span><span id="llm">Claude AI</span></button>
+  <div id="menuAdmin"></div>
+  <div class="themesw" id="themeSw"><span class="muted">Theme</span><div class="seg"><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button><button data-theme-set="system">System</button></div></div>
+  <div class="acct" id="acct"></div>
 </div>
 <div id="drawer"></div>
 <div id="modal"></div>
@@ -456,8 +489,25 @@ if (HOSTED) {
 }
 
 const S = { users: [], userId: store.get("aa.user"), user: null, tab: store.get("aa.tab") || "jobs", tasks: [], settings: null };
-const ALL_TABS = [["jobs", "🎯", "Jobs"], ["applications", "📋", "Applications"], ["resumes", "📄", "Resumes"], ["profile", "👤", "Profile"], ["preferences", "⚙️", "Job preferences"], ["questions", "📥", "Needs you"], ["settings", "🔑", "AI & settings"], ["team", "👪", "Family & access", "admin"], ["online", "🌐", "Online access", "admin"]];
-let TABS = ALL_TABS.filter((t) => !t[3]);
+const ico = (d) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const ICON = {
+  jobs: ico(`<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>`),
+  applications: ico(`<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/>`),
+  questions: ico(`<path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/>`),
+  mail: ico(`<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>`),
+  resumes: ico(`<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>`),
+  search: ico(`<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>`),
+  profile: ico(`<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>`),
+  preferences: ico(`<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>`),
+  team: ico(`<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>`),
+  online: ico(`<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>`),
+};
+// The left menu holds only what people use every day. Profile, preferences and settings open from the initials.
+const ALL_TABS = [["jobs", ICON.jobs, "Jobs"], ["applications", ICON.applications, "Applications"], ["questions", ICON.questions, "For you"], ["mail", ICON.mail, "Email"], ["resumes", ICON.resumes, "Resumes"]];
+const MENU_TABS = [["profile", ICON.profile, "Profile"], ["preferences", ICON.preferences, "Job preferences"]];
+const ADMIN_TABS = [["team", ICON.team, "Family & access"], ["online", ICON.online, "Online access"]];
+const EVERY_TAB = () => [...ALL_TABS, ...MENU_TABS, ["settings"], ...(isAdmin() ? ADMIN_TABS : [])];
+let TABS = ALL_TABS;
 const isAdmin = () => ["owner", "admin"].includes(S.me?.role);
 const U = () => `/users/${encodeURIComponent(S.userId)}`;
 const STATUS = { matched: "Ready to apply", submitted: "Applied", needs_input: "Needs your input", failed: "Didn't go through", filled: "Preview ready", skipped: "Skipped", discovered: "New", rejected: "Not a match", paused: "Waiting for the job site" };
@@ -518,12 +568,12 @@ async function loadUsers() {
   S.settings = await api("/settings").catch(() => null);
   const be = S.settings?.backend;
   $("#aiDot").classList.toggle("on", !!be);
-  $("#llm").textContent = be === "subscription" ? "Claude AI · your subscription" : be === "api" ? "Claude AI · API key" : "Claude AI off — connect it";
+  $("#llm").textContent = be ? "AI & settings · Claude is on" : "AI & settings · Claude is off";
   const p = S.user?.profile;
   $("#avatar").textContent = p ? `${(p.firstName ?? "?")[0] ?? ""}${(p.lastName ?? "")[0] ?? ""}`.toUpperCase() : "?";
-  TABS = ALL_TABS.filter((t) => !t[3] || isAdmin());
-  if (!TABS.some(([id]) => id === S.tab)) S.tab = "jobs";
-  $("#acct").innerHTML = S.me ? `<span>👤</span><b title="${esc(S.me.email)}">${esc(S.me.name || S.me.email)}</b><a id="signOut">Sign out</a>` : "";
+  if (!EVERY_TAB().some(([id]) => id === S.tab)) S.tab = "jobs";
+  $("#acct").innerHTML = S.me ? `<b title="${esc(S.me.email)}">${esc(S.me.name || S.me.email)}</b><a id="signOut">Sign out</a>` : "";
+  renderMenu();
   renderClaudeSwitch();
 }
 
@@ -539,9 +589,34 @@ document.addEventListener("click", async (e) => {
   if (e.target.id === "signOut") { await api("/auth/logout", { method: "POST", body: {} }).catch(() => {}); store.set("aa.token", ""); store.set("aa.sb", ""); location.reload(); }
 });
 
+// The account menu behind the initials: Profile, Job preferences, AI & settings, (owner) family and online access.
+function renderMenu() {
+  const p = S.user?.profile, item = ([id, ic, name]) => `<button class="mitem ${S.tab === id ? "on" : ""}" data-tab="${id}"><span class="mic">${ic}</span>${name}</button>`;
+  $("#menuHead").innerHTML = p ? `<b>${esc(`${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || "No name yet")}</b><small>${esc(p.email ?? "")}</small>` : `<b>AutoApply</b>`;
+  $("#menuNav").innerHTML = S.user ? MENU_TABS.map(item).join("") : "";
+  $("#menuAdmin").innerHTML = isAdmin() ? ADMIN_TABS.map(item).join("") : "";
+  $("#aiStatus").classList.toggle("on", S.tab === "settings");
+}
+function closeMenu() { $("#acctMenu").hidden = true; }
+function openMenu(trigger) {
+  const m = $("#acctMenu");
+  renderMenu(); m.hidden = false;
+  const r = trigger.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+  const left = r.left > innerWidth / 2 ? r.right - w : r.left;
+  const top = r.bottom + 8 + h > innerHeight - 8 ? Math.max(8, r.top - h - 8) : r.bottom + 8;
+  m.style.left = `${Math.min(Math.max(8, left), innerWidth - w - 8)}px`; m.style.top = `${top}px`;
+}
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-menu]");
+  if (t) { e.stopPropagation(); return $("#acctMenu").hidden ? openMenu(t) : closeMenu(); }
+  if (!e.target.closest("#acctMenu") || e.target.closest("[data-tab]")) closeMenu();
+}, true);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
+window.addEventListener("resize", closeMenu);
+
 function renderNav() {
   const st = S.user?.stats ?? {};
-  const counts = { jobs: S.feedCount ?? (st.matched ?? 0) + (st.needs_input ?? 0) + (st.failed ?? 0) + (st.filled ?? 0) + (st.skipped ?? 0), applications: st.submitted, resumes: S.user?.resumes.length, questions: S.user?.unansweredCount };
+  const counts = { questions: S.user?.unansweredCount }; // only "For you" carries a number: it means something is waiting on the person
   $("#nav").innerHTML = TABS.map(([id, ic, name]) => `<button data-tab="${id}" class="${S.tab === id ? "on" : ""}"><span class="ic">${ic}</span>${name}${counts[id] ? `<span class="n">${counts[id]}</span>` : ""}</button>`).join("");
 }
 
@@ -578,7 +653,7 @@ async function render() {
 
 document.addEventListener("click", (e) => {
   const t = e.target.closest("[data-tab]");
-  if (t) { if (S.tab !== t.dataset.tab) { S.filter = structuredClone(EMPTY_FILTER); S.cmdReply = ""; } S.tab = t.dataset.tab; store.set("aa.tab", S.tab); closeDrawer(); render(); }
+  if (t) { if (S.tab !== t.dataset.tab) { S.filter = structuredClone(EMPTY_FILTER); S.cmdReply = ""; } if (t.dataset.tab === "profile") S.profTab = t.dataset.ptab ?? "details"; S.tab = t.dataset.tab; store.set("aa.tab", S.tab); closeDrawer(); render(); }
 });
 $("#userSel").addEventListener("change", async (e) => { S.userId = e.target.value; await loadUsers(); closeDrawer(); render(); pollTasks(); });
 $("#newUserBtn").addEventListener("click", () => newUser());
@@ -685,7 +760,7 @@ async function pollTasks(force) {
 let taskHidden = false;
 // What happened to each job in a run, and exactly what is still needed for the ones that stopped.
 function fixButton(text) {
-  if (/password/i.test(text)) return `<button class="btn sm" data-tab="profile">Set password</button>`;
+  if (/password/i.test(text)) return `<button class="btn sm" data-tab="profile" data-ptab="accounts">Set password</button>`;
   if (/claude|ai /i.test(text) && /sign|connect/i.test(text)) return `<button class="btn sm" data-tab="settings">Connect Claude</button>`;
   if (/profile|address|postal|phone|email/i.test(text)) return `<button class="btn sm" data-tab="profile">Open profile</button>`;
   return "";
@@ -1120,7 +1195,7 @@ VIEWS.jobs = async (v) => {
   v.innerHTML = `<div class="feedgrid"><div class="feedmain">
     <div class="feedhead"><div class="views" id="views"></div>
       <span class="spacer"></span>
-      <div class="headicons"><button class="hicon" id="hSearch" title="Search for new jobs">⌕</button><button class="hicon" data-tab="questions" title="Needs you">✉${S.user.unansweredCount ? `<span class="dot">${S.user.unansweredCount > 9 ? "9+" : S.user.unansweredCount}</span>` : ""}</button><button class="hicon" data-tab="preferences" title="Job preferences">⚙</button><span class="avatar sm" title="${esc(me.firstName ?? "")}">${esc(`${(me.firstName ?? "?")[0] ?? ""}${(me.lastName ?? "")[0] ?? ""}`.toUpperCase())}</span></div></div>
+      <div class="headicons"><button class="hicon" id="hSearch" title="Search for new jobs" aria-label="Search for new jobs">${ICON.search}</button><button class="hicon" data-tab="questions" title="For you: things that need your attention" aria-label="For you">${ICON.questions}${S.user.unansweredCount ? `<span class="dot">${S.user.unansweredCount > 9 ? "9+" : S.user.unansweredCount}</span>` : ""}</button><button class="hicon" data-tab="mail" title="Email" aria-label="Email">${ICON.mail}</button><button class="avatar sm" data-menu title="Profile and settings" aria-label="Profile and settings">${esc(`${(me.firstName ?? "?")[0] ?? ""}${(me.lastName ?? "")[0] ?? ""}`.toUpperCase())}</button></div></div>
     <div class="searchrow"><div class="chipbox" id="chipbox"><span id="termChips" style="display:contents"></span><input id="termIn"></div>
       <button class="pillbtn" id="addOwn">＋ Add your own job</button></div>
     <div class="filters" id="filters">${FILTERS.map(([id, kind]) => kind === "toggle" ? `<button class="fchip-btn" data-toggle="${id}"></button>`
@@ -1263,7 +1338,7 @@ async function refreshFeed(quiet) {
   const f = S.feed, s = S.user.search, st = S.user.stats;
   const strong = (j) => (j.score ?? 0) >= s.minScore;
   // views
-  $("#views").innerHTML = [["all", "Jobs"], ["foryou", "For you"], ["saved", "Saved"]].map(([k, l]) => `<button data-view="${k}" class="${f.view === k ? "on" : ""}">${l}${k === "foryou" && d.counts.foryou ? `<span class="badge">${d.counts.foryou}</span>` : ""}</button>`).join("");
+  $("#views").innerHTML = [["all", "Jobs"], ["foryou", "Top matches"], ["saved", "Saved"]].map(([k, l]) => `<button data-view="${k}" class="${f.view === k ? "on" : ""}">${l}${k === "foryou" && d.counts.foryou ? `<span class="badge">${d.counts.foryou}</span>` : ""}</button>`).join("");
   // search terms
   $("#termChips").innerHTML = d.terms.map((t) => `<span class="tchip"><span>${esc(t)}</span><button data-rmterm="${esc(t)}" aria-label="Remove ${esc(t)}">×</button></span>`).join("");
   $("#termIn").placeholder = d.terms.length ? "Add another, or paste a job link" : "Add a job title, skill or company — or paste a job link";
@@ -1381,21 +1456,22 @@ VIEWS.resumes = async (v) => {
         <button class="btn sm" data-edit="${esc(r.id)}">Edit</button>
         ${r.isDefault ? "" : `<button class="btn sm" data-def="${esc(r.id)}">Make default</button>`}
         <button class="btn sm ghost danger" data-del="${esc(r.id)}">Delete</button></div></div>`).join("")}</div>
-    <div class="card" style="margin-top:16px"><h2 id="formTitle">Add a resume</h2><p class="muted" style="margin-top:0">Upload the PDF employers will see, and paste its text so AutoApply can tailor it and answer questions.</p><div class="form">
-      <label class="f"><span>Name</span><input id="rName" placeholder="e.g. ITOM resume"></label>
-      <label class="f"><span>Use for job titles containing</span><input id="rTitles" placeholder="cmdb, servicenow, itom"><small>Comma separated</small></label>
+    <div class="card" style="margin-top:16px"><h2 id="formTitle">Add a resume</h2><p class="muted" style="margin-top:0">Choose the file. AutoApply reads the text from it, so there is nothing to paste.</p><div class="form">
       <label class="f"><span>Resume file (PDF or Word)</span><input id="rPdf" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><small>Word files are turned into a PDF for employers.</small></label>
+      <label class="f"><span>Name</span><input id="rName" placeholder="e.g. ITOM resume"></label>
+      <label class="f"><span>Use for job titles containing</span><input id="rTitles" placeholder="cmdb, servicenow, itom"><small>Optional. Comma separated. Leave empty to use it for all jobs.</small></label>
       <label class="perm" style="border:0;align-self:end;padding:0"><span class="switch"><input id="rDefault" type="checkbox"><span></span></span><span class="txt"><b>Default resume</b></span></label>
-      <label class="f wide"><span>Resume text</span><textarea id="rText" style="min-height:220px" placeholder="# Your Name&#10;City · email · phone&#10;&#10;## Experience&#10;### Title — Company&#10;- bullet"></textarea></label>
+      <details class="wide"><summary style="cursor:pointer;font-size:13px;color:var(--muted)">See or edit the text AutoApply reads (optional)</summary><label class="f" style="margin-top:8px"><textarea id="rText" style="min-height:220px" placeholder="Leave empty: the text is read from the file."></textarea></label></details>
       <div class="wide row"><button class="btn primary" id="rSave">Save resume</button></div>
     </div></div>`;
   let editing = null;
+  $("#rPdf").onchange = (e) => { const f = e.target.files[0]; if (f && !$("#rName").value.trim()) $("#rName").value = f.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").slice(0, 40); };
   v.querySelectorAll("[data-def]").forEach((b) => b.onclick = async () => { S.user = await api(`${U()}/resumes/${encodeURIComponent(b.dataset.def)}/default`, { method: "POST", body: {} }); render(); });
   v.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => { if (await modal({ title: "Delete this resume?", body: "This can't be undone.", ok: "Delete" })) { S.user = await api(`${U()}/resumes/${encodeURIComponent(b.dataset.del)}`, { method: "DELETE", body: {} }); render(); } });
   v.querySelectorAll("[data-edit]").forEach((b) => b.onclick = () => {
     const r = rs.find((x) => x.id === b.dataset.edit); editing = r.id;
     $("#formTitle").textContent = `Edit “${r.name}”`; $("#rName").value = r.name; $("#rTitles").value = r.targetTitles.join(", "); $("#rText").value = r.text; $("#rDefault").checked = r.isDefault;
-    $("#rName").scrollIntoView({ behavior: "smooth" });
+    v.querySelector("details.wide").open = true; $("#rName").scrollIntoView({ behavior: "smooth" });
   });
   $("#rSave").onclick = async () => {
     const name = $("#rName").value.trim(); if (!name) return toast("Give the resume a name", true);
@@ -1457,8 +1533,9 @@ VIEWS.profile = async (v) => {
   const p = S.user.profile, s = S.user.search, perms = p.permissions ?? {};
   const tMode = ["off", "honest", "aggressive"].includes(s.tailorMode) ? s.tailorMode : s.tailorResume === false ? "off" : "honest";
   v.innerHTML = `<h1>Profile</h1><p class="sub">Everything AutoApply uses to fill applications for ${esc(p.firstName)}. It only uses these facts and the resume — it never makes things up.</p>
+    <div class="tabs" id="profTabs">${[["details", "Details"], ["permissions", "Permissions"], ["accounts", "Sign-ins & email"]].map(([k, l]) => `<button data-ptabsel="${k}" class="${(S.profTab ?? "details") === k ? "on" : ""}">${l}</button>`).join("")}</div>
 
-    <div class="card"><div class="card-head"><div style="font-size:22px">🛡️</div><div><h2>Permissions</h2><p>What AutoApply may do on ${esc(p.firstName)}'s behalf when applying.</p></div></div>
+    <div data-pgroup="permissions"><div class="card"><div class="card-head"><div style="font-size:22px">🛡️</div><div><h2>Permissions</h2><p>What AutoApply may do on ${esc(p.firstName)}'s behalf when applying.</p></div></div>
       ${toggle("pAuto", "One-click apply: submit for me", "When on, pressing Apply fills and submits the whole application with no further questions (Workday may still need one sign-in click). When off, you get a final look before each one is sent.", s.mode === "auto")}
       ${toggle("pAccounts", "Create job-site accounts for me", `Workday, iCIMS and similar sites need an account per employer. AutoApply creates it with ${esc(p.email ?? "your email")} and the password below.`, perms.createAccounts !== false)}
       ${toggle("pConsent", "Accept privacy notices and site terms for me", "Ticks \"I have read the privacy notice / terms\" boxes. Real choices (like recording interviews) are always left to you.", p.consentToApplicationNotices === true)}
@@ -1479,9 +1556,9 @@ VIEWS.profile = async (v) => {
         ].map(([k, l, h]) => `<label class="aimode ${tMode === k ? "on" : ""}"><input type="radio" name="tailorMode" value="${k}" ${tMode === k ? "checked" : ""} style="width:auto"> ${l}<small>${esc(h)}</small></label>`).join("")}</div></div>
       ${toggle("pApprove", "Use tailored resumes without asking", "When off, you see the changes and approve each tailored resume first.", s.autoApproveResume)}
       <div class="row" style="margin-top:6px"><button class="btn primary" id="permSave">Save permissions</button></div>
-    </div>
+    </div></div>
 
-    <div class="card"><div class="card-head"><div style="font-size:22px">🔐</div><div><h2>Job-site account password</h2><p>AutoApply uses <b>${esc(p.email ?? "")}</b> and this one password on every job site (Workday and similar): it signs in where you already have an account and signs up where you don't. ${S.user.passwordGenerated ? "AutoApply created this password for you — press 👁 to see it." : "If you don't set one, AutoApply creates a strong one for you."} Saved only on this computer.</p></div></div>
+    <div data-pgroup="accounts"><div class="card"><div class="card-head"><div style="font-size:22px">🔐</div><div><h2>Job-site account password</h2><p>AutoApply uses <b>${esc(p.email ?? "")}</b> and this one password on every job site (Workday and similar): it signs in where you already have an account and signs up where you don't. ${S.user.passwordGenerated ? "AutoApply created this password for you — press 👁 to see it." : "If you don't set one, AutoApply creates a strong one for you."} Saved only on this computer.</p></div></div>
       <div class="row"><div style="flex:1;max-width:340px">${pwField("atsPw", S.user.hasAtsPassword ? "Saved — press 👁 to view" : "Choose a password")}</div>
         <button class="btn primary" id="pwSave">${S.user.hasAtsPassword ? "Update password" : "Save password"}</button>
         ${S.user.hasAtsPassword ? `<span class="chip submitted">✓ ${S.user.passwordGenerated ? "Created by AutoApply" : "Saved"}</span>` : `<span class="chip">Created automatically on first use</span>`}</div>
@@ -1491,8 +1568,12 @@ VIEWS.profile = async (v) => {
     </div>
 
     <div class="card" id="mailCard"><div class="card-head"><div style="font-size:22px">✉️</div><div><h2>Email (Gmail) <span class="chip">Optional</span></h2><p>Lets AutoApply read ${esc(p.firstName)}'s job email (read-only): verification codes are entered automatically, and recruiter replies are filed under the right application with a reply draft. It never sends or deletes anything.</p></div></div><div class="muted">Loading…</div></div>
-    <div id="pf">${PROFILE_SECTIONS.map(([t, help, fields]) => `<div class="card"><h2>${esc(t)}</h2>${help ? `<p class="muted" style="margin:0 0 12px">${esc(help)}</p>` : `<div style="height:10px"></div>`}<div class="form">${fields.map(inputFor).join("")}</div></div>`).join("")}</div>
-    <div class="row" style="margin-top:14px"><button class="btn primary" id="pSave">Save profile</button></div>`;
+    </div>
+    <div data-pgroup="details"><div id="pf">${PROFILE_SECTIONS.map(([t, help, fields]) => `<div class="card"><h2>${esc(t)}</h2>${help ? `<p class="muted" style="margin:0 0 12px">${esc(help)}</p>` : `<div style="height:10px"></div>`}<div class="form">${fields.map(inputFor).join("")}</div></div>`).join("")}</div>
+    <div class="row" style="margin-top:14px"><button class="btn primary" id="pSave">Save profile</button></div></div>`;
+  const showGroup = () => { const g = S.profTab ?? "details"; v.querySelectorAll("[data-pgroup]").forEach((el) => { el.hidden = el.dataset.pgroup !== g; }); v.querySelectorAll("[data-ptabsel]").forEach((b) => b.classList.toggle("on", b.dataset.ptabsel === g)); };
+  showGroup();
+  $("#profTabs").onclick = (e) => { const b = e.target.closest("[data-ptabsel]"); if (b) { S.profTab = b.dataset.ptabsel; showGroup(); } };
   $("#atsPw").dataset.reveal = S.user.hasAtsPassword ? "ats" : "";
   // Email card: filled in after the page shows
   api(`${U()}/mail`).then((m) => {
@@ -1555,7 +1636,7 @@ VIEWS.preferences = async (v) => {
       <label class="f"><span>Minimum match score</span><input id="minScore" type="number" min="0" max="100" value="${s.minScore}"><small>0–100. Higher means fewer, closer matches.</small></label>
       <label class="perm" style="border:0;padding:0"><span class="switch"><input id="headless" type="checkbox" ${s.headless ? "checked" : ""}><span></span></span><span class="txt"><b>Apply in the background</b><small>Hide the browser window while applying</small></span></label>
     </div></div>
-    <div class="card"><div class="card-head"><div style="font-size:22px">🛫</div><div><h2>Autopilot</h2><p>While AutoApply is running, every few hours it finds new jobs and applies to matches at or above the score below, up to the daily cap. Questions it can't answer aren't asked — those jobs wait under Applications → Needs you. ${ap.lastRunAt ? `Last run: ${esc(new Date(ap.lastRunAt).toLocaleString())}.` : ""}</p></div></div>
+    <div class="card"><div class="card-head"><div style="font-size:22px">🛫</div><div><h2>Autopilot</h2><p>While AutoApply is running, every few hours it finds new jobs and applies to matches at or above the score below, up to the daily cap. Questions it can't answer aren't asked — those jobs wait under For you. ${ap.lastRunAt ? `Last run: ${esc(new Date(ap.lastRunAt).toLocaleString())}.` : ""}</p></div></div>
       <div class="form">
       <label class="perm" style="border:0;padding:0"><span class="switch"><input id="apOn" type="checkbox" ${s.autopilot?.enabled ? "checked" : ""}><span></span></span><span class="txt"><b>Turn on autopilot</b></span></label>
       <label class="f"><span>Run every (hours)</span><input id="apEvery" type="number" min="1" max="72" value="${s.autopilot?.everyHours ?? 6}"></label>
@@ -1581,8 +1662,9 @@ VIEWS.preferences = async (v) => {
 };
 
 VIEWS.questions = async (v) => {
-  const un = await api(`${U()}/inbox`);
-  const learned = await api(`${U()}/learned`);
+  const [un, learned, mailAll] = await Promise.all([api(`${U()}/inbox`), api(`${U()}/learned`), api(`${U()}/mail/all`).catch(() => ({ items: [] }))]);
+  // emails that usually need the person to do something (reply, book a time, take a test), from the last two weeks
+  const actMail = (mailAll.items ?? []).filter((m) => m.type === "received" && (["interview", "assessment", "offer"].includes(m.kind) || (m.kind === "recruiter" && m.job)) && Date.now() - Date.parse(m.date) < 14 * 24 * 3600e3).slice(0, 8);
   const bank = S.user.answers;
   v.addEventListener("click", async (e) => {
     const sv = e.target.closest("[data-lsave]"), dl = e.target.closest("[data-ldel]");
@@ -1601,11 +1683,15 @@ VIEWS.questions = async (v) => {
     const input = q.options?.length ? `<select data-q="${i}"><option value="">Choose…</option>${q.options.map((o) => `<option>${esc(o)}</option>`).join("")}</select>` : `<textarea data-q="${i}" style="min-height:60px" placeholder="Your answer"></textarea>`;
     return `${input}<div class="row" style="margin-top:10px"><button class="btn sm primary" data-save="${i}">Save${q.jobs?.length ? " & retry" : ""}</button><button class="btn sm ghost" data-dismiss="${i}">Skip</button></div>`;
   };
-  v.innerHTML = `<h1>Needs you</h1><p class="sub">Only what AutoApply can't do on its own: new questions, verification codes when no mailbox is connected, and CAPTCHAs. Runs never stop for these — the jobs wait here. Answer once: it's saved to the profile, never asked again, and the waiting jobs are retried right away.</p>
-    ${un.length ? un.map((q, i) => `<div class="card"><div class="row" style="align-items:flex-start"><div style="font-size:20px">${KIND[q.kind] ?? "❓"}</div><div style="flex:1"><b>${esc(q.question)}</b>
+  const WHAT = { question: "Question", verify: "Verify your email", captcha: "Human check", mfa: "Sign-in code", account: "Job-site account", review: "Check before sending" };
+  v.innerHTML = `<h1>For you</h1><p class="sub">Things only ${esc(S.user.profile.firstName || "you")} can do: questions AutoApply couldn't answer, emails to verify, and human checks. Answer once and it is remembered; the waiting jobs are retried right away.</p>
+    ${un.length ? un.map((q, i) => `<div class="card"><div class="row" style="align-items:flex-start"><div style="font-size:20px">${KIND[q.kind] ?? "❓"}</div><div style="flex:1"><span class="chip" style="margin-bottom:4px">${esc(WHAT[q.kind] ?? "Question")}</span><br><b>${esc(q.question)}</b>
       <div class="muted" style="margin:4px 0 10px;font-size:12.5px">${jobsLine(q)}</div>${answerUi(q, i)}</div></div></div>`).join("")
       : `<div class="card empty"><div class="big">🎉</div><p>Nothing needs you right now.</p></div>`}
-    <div class="card"><div class="row"><h2 style="flex:1">Answers remembered from past applications (${learned.length})</h2>
+    ${actMail.length ? `<div class="card"><div class="row"><h2 style="flex:1">Emails to look at</h2><a class="l" data-tab="mail">All email →</a></div><p class="muted" style="margin:2px 0 6px;font-size:13px">Interview invites, tests, offers and recruiter messages from the last two weeks.</p>
+      ${actMail.map((m) => `<div class="mrow2"><div class="micon">${ICON.mail}</div><div style="min-width:0"><span class="chip">${esc(MAILKIND[m.kind] ?? m.kind)}</span> <span class="ms">${esc(m.subject)}</span><div class="mf">${esc(m.from ?? "")}${m.job ? ` · ${esc(m.job.company)} — ${esc(m.job.title)}` : ""}</div></div><div>${m.job ? `<button class="btn sm" data-open="${esc(m.job.id)}">Open</button>` : ""}</div></div>`).join("")}</div>` : ""}
+    <details class="card"><summary style="cursor:pointer"><b>Saved answers</b> <span class="muted">· ${learned.length} remembered, ${Object.keys(bank).length} of your own</span></summary>
+    <div style="margin-top:14px"><div class="row"><h2 style="flex:1">Answers remembered from past applications (${learned.length})</h2>
       ${learned.length ? `<a class="btn sm" href="/api${U()}/learned?format=csv">⬇ Download (opens in Excel)</a>` : ""}</div>
       <p class="muted" style="margin:4px 0 12px">The first time Claude answers a question it's saved here. After that the same question is answered from this list instantly, without asking Claude. Company-specific questions ("Why do you want to work here?") are always written fresh. Edit any answer to change what's given next time.</p>
       ${learned.length ? `<div id="learned">${learned.map((e, i) => `<div class="kv" style="grid-template-columns:1fr 1.2fr auto auto"><div><b style="font-weight:550">${esc(e.question)}</b><div class="muted" style="font-size:12px">${e.source === "you" ? "edited by you" : e.source === "judgment" ? "best judgment" : "Claude"} · ${esc(e.from ?? "")}${e.uses ? ` · reused ${e.uses}×` : ""}</div></div>
@@ -1613,9 +1699,10 @@ VIEWS.questions = async (v) => {
         <button class="btn sm" data-lsave="${i}">Save</button><button class="btn sm ghost danger" data-ldel="${i}" title="Forget">✕</button></div>`).join("")}</div>`
       : `<div class="muted" style="font-size:13px">Nothing yet — answers appear here after the first applications.</div>`}
     </div>
-    <div class="card"><h2>Your own answers</h2><p class="muted" style="margin:0 0 12px">A phrase from the question → the answer to give. These always win. The longest matching phrase wins.</p>
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)"><h2>Your own answers</h2><p class="muted" style="margin:0 0 12px">A phrase from the question → the answer to give. These always win. The longest matching phrase wins.</p>
     <div id="bank">${Object.entries(bank).map(([k, a]) => `<div class="kv"><input value="${esc(k)}"><input value="${esc(a ?? "")}"><button class="btn sm ghost danger" data-rm>✕</button></div>`).join("")}</div>
-    <div class="row"><button class="btn sm" id="addKv">＋ Add</button><span class="spacer"></span><button class="btn primary" id="bankSave">Save answers</button></div></div>`;
+    <div class="row"><button class="btn sm" id="addKv">＋ Add</button><span class="spacer"></span><button class="btn primary" id="bankSave">Save answers</button></div></div></details>`;
+  v.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => openJob(b.dataset.open));
   const send = async (i, answer, retry = true) => {
     try {
       const r = await api(`${U()}/inbox`, { method: "POST", body: { key: un[i].key, answer, retry } });
@@ -1636,6 +1723,31 @@ VIEWS.questions = async (v) => {
     $("#bank").querySelectorAll(".kv").forEach((r) => { const [k, a] = r.querySelectorAll("input"); if (k.value.trim()) out[k.value.trim().toLowerCase()] = a.value.trim() || null; });
     S.user = await api(`${U()}/answers`, { method: "PUT", body: out }); render(); toast("Answers saved");
   };
+};
+
+// Email: every message AutoApply has seen for this person (matched to an application or not) and the reply drafts
+// it wrote. AutoApply never sends email; drafts are opened in the person's own mail to send.
+VIEWS.mail = async (v) => {
+  const d = await api(`${U()}/mail/all`).catch(() => ({ connected: false, items: [] }));
+  const tab = S.mailTab ?? "all";
+  const items = d.items ?? [], drafts = items.filter((m) => m.type === "draft"), got = items.filter((m) => m.type === "received");
+  const rows = tab === "drafts" ? drafts : tab === "received" ? got : items;
+  const when = (iso) => { const t = new Date(iso); return isNaN(t) ? "" : t.toDateString() === new Date().toDateString() ? t.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : t.toLocaleDateString([], { month: "short", day: "numeric" }); };
+  const compose = (m) => `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent((m.to.match(/<([^>]+)>/)?.[1] ?? m.to))}&su=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`;
+  const row = (m) => m.type === "draft"
+    ? `<div class="mrow2"><div class="micon">${ICON.mail}</div><div style="min-width:0"><span class="chip filled">Draft · not sent</span> <span class="ms">${esc(m.subject)}</span><div class="mf">To ${esc(m.to)}${m.job ? ` · ${esc(m.job.company)} — ${esc(m.job.title)}` : ""}</div><div class="mp">${esc(m.body)}</div>
+        <div class="row" style="margin-top:8px"><a class="btn sm primary" href="${esc(compose(m))}" target="_blank" rel="noopener">Open in Gmail to send</a><button class="btn sm" data-copy="${esc(m.body)}">Copy</button>${m.job ? `<button class="btn sm ghost" data-open="${esc(m.job.id)}">Application</button>` : ""}</div></div><div class="mwhen">${when(m.date)}</div></div>`
+    : `<div class="mrow2"><div class="micon">${ICON.mail}</div><div style="min-width:0"><span class="chip">${esc(MAILKIND[m.kind] ?? m.kind ?? "Email")}</span> <span class="ms">${esc(m.subject)}</span><div class="mf">${esc(m.from ?? "")}${m.job ? ` · ${esc(m.job.company)} — ${esc(m.job.title)}` : " · not linked to an application"}</div>${m.snippet ? `<div class="mp">${esc(m.snippet)}</div>` : ""}
+        ${m.job ? `<div class="row" style="margin-top:8px"><button class="btn sm" data-open="${esc(m.job.id)}">Open application</button></div>` : ""}</div><div class="mwhen">${when(m.date)}</div></div>`;
+  v.innerHTML = `<div class="row" style="align-items:flex-start"><div style="flex:1"><h1>Email</h1><p class="sub">Job emails for ${esc(S.user.profile.firstName || "this person")}: replies from employers, and reply drafts AutoApply wrote. AutoApply never sends email itself.</p></div>
+      ${d.connected && !OFF ? `<button class="btn" id="mailCheck">Check for new email</button>` : ""}</div>
+    ${d.connected ? `<div class="muted" style="font-size:13px;margin:-10px 0 14px">Connected to <b>${esc(d.email ?? "your mailbox")}</b>${d.lastSyncAt ? ` · last checked ${esc(new Date(d.lastSyncAt).toLocaleString())}` : ""}</div>`
+      : `<div class="banner info"><div>${ICON.mail}</div><div style="flex:1"><b>No mailbox connected.</b> Connect ${esc(S.user.profile.firstName || "their")}'s email (read-only) so replies from employers show up here and verification codes are entered automatically.</div><button class="btn sm primary" data-tab="profile" data-ptab="accounts">Connect email</button></div>`}
+    <div class="tabs">${[["all", "All", items.length], ["received", "Received", got.length], ["drafts", "Drafts", drafts.length]].map(([k, l, n]) => `<button data-mtab="${k}" class="${tab === k ? "on" : ""}">${l}<span class="n">${n}</span></button>`).join("")}</div>
+    ${rows.length ? `<div class="card" style="padding:4px 14px">${rows.map(row).join("")}</div>` : `<div class="card empty"><div class="big">📭</div><p>${tab === "drafts" ? "No reply drafts." : d.connected ? "No job emails yet. They appear here as employers reply." : "Nothing here yet."}</p></div>`}`;
+  v.querySelectorAll("[data-mtab]").forEach((b) => b.onclick = () => { S.mailTab = b.dataset.mtab; render(); });
+  v.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => openJob(b.dataset.open));
+  $("#mailCheck") && ($("#mailCheck").onclick = async (e) => { e.target.disabled = true; toast("Checking email…"); try { const r = await api(`${U()}/mail/sync`, { method: "POST", body: {} }); toast(`Checked ${r.scanned} new email${r.scanned === 1 ? "" : "s"}${r.routed?.length ? `, ${r.routed.length} about your applications` : ""}`); } catch (err) { fail(err); } render(); });
 };
 
 VIEWS.settings = async (v) => {
