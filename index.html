@@ -248,6 +248,9 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 #busy.center .spin { width: 40px; height: 40px; }
 .tbtn { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line, #d0d5dd); background: transparent; color: inherit; border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .tbtn.send { background: var(--accent, #4f46e5); border-color: var(--accent, #4f46e5); color: #fff; }
+.qbar { display: flex; align-items: center; gap: 14px; justify-content: space-between; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 14px; padding: 12px 16px; margin: 4px 0 8px; font-size: 13.5px; }
+.qbar .muted { font-size: 12.5px; margin-top: 2px; } .qbar .btn { white-space: nowrap; }
+@media (max-width: 640px) { .qbar { flex-direction: column; align-items: stretch; } .qbar .btn { width: 100%; } }
 .tbtn.queue.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .tbtn.nope:hover { border-color: var(--bad, #d92d20); color: var(--bad, #d92d20); }
 .jrow.gone { opacity: 0; transform: translateX(30px); transition: .25s; }
@@ -1017,9 +1020,15 @@ async function applyMany(ids, { queue } = {}) {
 }
 // The queue: jobs the person picked. One button applies to all of them; jobs waiting on an answer are left out until
 // the answer is given in For you (then they're retried by themselves).
-function queueButton(rows) {
-  const ready = rows.filter((j) => !["submitted", "needs_input"].includes(j.status));
-  return ready.length ? `<button class="blackbtn" id="applyQueue">Apply to all ${ready.length}</button>` : "";
+// A bar at the top of the Queue: how many are ready, how many wait on an answer, and the one button.
+function queueBar(rows) {
+  if (!rows.length) return "";
+  const ready = rows.filter((j) => !["submitted", "needs_input"].includes(j.status)).length;
+  const waiting = rows.filter((j) => j.status === "needs_input").length;
+  const wait = waiting ? `${waiting} waiting for your answer in <a class="l" data-tab="questions">For you</a>` : "";
+  return `<div class="qbar"><div style="min-width:0"><b>${ready ? `${ready} job${ready === 1 ? "" : "s"} ready to apply` : "Nothing ready to apply yet"}</b>
+      <div class="muted">${ready ? "AutoApply applies to each one by itself; any question only you can answer goes to For you." : ""}${wait ? `${ready ? " " : ""}${wait}.` : ""}</div></div>
+    ${ready ? `<button class="btn primary" id="applyQueue">Apply to all ${ready}</button>` : ""}</div>`;
 }
 document.addEventListener("click", (e) => {
   if (e.target.id !== "applyQueue") return;
@@ -1484,9 +1493,9 @@ async function refreshFeed(quiet) {
   }
   const filtersOn = FILTERS.some(([id, kind]) => kind !== "toggle" && id !== "sort" && id !== "exclude" && filterOn(f, id)) || f.all || f.visa || f.noclear;
   $("#linkrow").innerHTML = `${filtersOn ? `<a class="l strong" id="clearF">Clear filters</a>` : `<span class="muted">Clear filters</span>`}<a class="l muted" id="useMine">Use my search</a><a class="l strong" id="tune">Ask AutoApply to tune this →</a>
-    <span class="spacer"></span><span class="muted">${d.total} job${d.total === 1 ? "" : "s"}</span>${f.view === "saved" ? queueButton(d.rows) : d.rows.filter(strong).length ? `<button class="blackbtn" id="top5">Apply to the top ${Math.min(5, d.rows.filter(strong).length)}</button>` : ""}`;
+    <span class="spacer"></span><span class="muted">${d.total} job${d.total === 1 ? "" : "s"}</span>${f.view === "saved" ? "" : d.rows.filter(strong).length ? `<button class="blackbtn" id="top5">Apply to the top ${Math.min(5, d.rows.filter(strong).length)}</button>` : ""}`;
   // the list
-  $("#feedList").innerHTML = d.rows.length ? `<div class="jlist">${d.rows.map((j) => `<div class="jrow" data-open="${esc(j.id)}">${logoFor(j.company)}
+  $("#feedList").innerHTML = (f.view === "saved" ? queueBar(d.rows) : "") + (d.rows.length ? `<div class="jlist">${d.rows.map((j) => `<div class="jrow" data-open="${esc(j.id)}">${logoFor(j.company)}
       <div class="jmain"><div class="jt">${esc(j.title)}</div>
         <div class="jm">${esc(j.company)} · ${j.locCount > 1 ? `${j.locCount} Locations` : esc(String(j.location ?? "").split(/\s*[·;|]\s*/)[0].slice(0, 60))}${/remote/i.test(j.location ?? "") ? " · Remote" : /hybrid/i.test(j.location ?? "") ? " · Hybrid" : ""}${j.postedAt ? ` · ${agoText(j.postedAt)}` : ""}${j.pay ? ` · ${esc(j.pay)}` : ""}
           ${j.status === "needs_input" && f.view === "saved" ? `<span class="chip needs_input">Waiting for your answer in For you</span>` : j.status !== "matched" ? statusChip(j.status) : ""}${!j.autoApply ? `<span class="chip">Apply yourself</span>` : ""}</div>
@@ -1497,7 +1506,7 @@ async function refreshFeed(quiet) {
     : `<div class="card empty"><div class="big">🔎</div><p>${f.view === "saved" ? "Your queue is empty. Press <b>＋ Queue</b> on the jobs you want, then <b>Apply to all</b> here — AutoApply applies to every one of them. Questions only you can answer wait in For you." : d.counts.all ? "No jobs match these filters."
       : d.lastSearch && !d.lastSearch.newMatches ? `<b>${esc(d.lastSearch.message)}</b><br><span class="muted" style="font-size:13px">Last searched ${esc(agoText(d.lastSearch.at))}.${d.lastSearch.busy ? " A few company sites were busy and are searched again next time." : ""}</span>`
       : "No jobs yet. Add search terms above (e.g. ServiceNow, CMDB), then press ⌕ to search — AutoApply looks through all the employer boards it knows plus your own companies."}</p>
-      ${f.view !== "saved" && !d.counts.all && d.lastSearch?.hint ? searchHint(d.lastSearch).replace('class="row"', 'class="row" style="justify-content:center;margin-top:8px"') : ""}</div>`;
+      ${f.view !== "saved" && !d.counts.all && d.lastSearch?.hint ? searchHint(d.lastSearch).replace('class="row"', 'class="row" style="justify-content:center;margin-top:8px"') : ""}</div>`);
   $("#feedList").classList.remove("loading");
   $("#leftpill").innerHTML = `<b>${Math.max(0, (s.dailyCap ?? 0) - (st.submittedToday ?? 0))}</b> applications left today <a class="l" data-tab="preferences">Change →</a>`;
   // side panel (the ask box keeps what's typed)
