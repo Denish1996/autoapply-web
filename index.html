@@ -39,6 +39,7 @@ nav button.on { background: var(--accent-soft); color: var(--accent); font-weigh
 nav .ic { width: 18px; text-align: center; }
 nav .n { margin-left: auto; font-size: 11.5px; font-weight: 650; background: var(--accent); color: #fff; border-radius: 999px; padding: 0 7px; }
 nav button.on .n { background: var(--accent); color: #fff; }
+nav .n.soft, nav button.on .n.soft { background: var(--chip); color: var(--muted); }
 .side-foot { margin-top: auto; display: grid; gap: 8px; }
 .ai { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); flex: none; } .dot.on { background: var(--good); }
@@ -248,6 +249,7 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 #busy.center .spin { width: 40px; height: 40px; }
 .tbtn { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line, #d0d5dd); background: transparent; color: inherit; border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .tbtn.send { background: var(--accent, #4f46e5); border-color: var(--accent, #4f46e5); color: #fff; }
+.jrow.qrow { grid-template-columns: 40px minmax(0, 1fr) auto auto; } .jrow.qrow:last-child { border-bottom: 0; }
 .qbar { display: flex; align-items: center; gap: 14px; justify-content: space-between; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 14px; padding: 12px 16px; margin: 4px 0 8px; font-size: 13.5px; }
 .qbar .muted { font-size: 12.5px; margin-top: 2px; } .qbar .btn { white-space: nowrap; }
 @media (max-width: 640px) { .qbar { flex-direction: column; align-items: stretch; } .qbar .btn { width: 100%; } }
@@ -452,9 +454,10 @@ function offFeed(D, q) {
     && (!degree || !j.facts?.degree || deg.indexOf(j.facts.degree) <= deg.indexOf(degree));
   const minScore = D.summary?.search?.minScore ?? 80, forYou = (j) => (j.score ?? 0) >= minScore;
   const open = all.rows.filter((j) => !["submitted", "rejected", "discovered", "skipped", "queued"].includes(j.status));
-  const base = open.filter(fits), saved = (D["feed:saved"]?.rows ?? []).filter((j) => j.saved && j.status !== "submitted");
+  const saved = (D["feed:saved"]?.rows ?? []).filter((j) => j.saved && j.status !== "submitted"), queuedIds = new Set(saved.map((j) => j.id));
+  const base = open.filter((j) => !j.saved && !queuedIds.has(j.id) && fits(j)); // queued jobs are in the Queue, not Jobs
   const view = q.get("view") || "all";
-  const rows = view === "saved" ? saved.filter(fits) : view === "foryou" ? base.filter(forYou) : base;
+  const rows = view === "saved" ? saved : view === "foryou" ? base.filter(forYou) : base;
   rows.sort((a, b) => (q.get("sort") === "newest" ? when(b) - when(a) || (b.score ?? 0) - (a.score ?? 0) : (b.score ?? 0) - (a.score ?? 0) || when(b) - when(a)));
   const sr = D.summary?.search ?? {}; // search terms as the server works them out (match.js searchTerms)
   const terms = [...new Set([...(sr.keywords ?? []), ...(sr.strictTitles ? [] : sr.titleInclude ?? [])].map((x) => String(x).trim()).filter(Boolean))];
@@ -523,6 +526,7 @@ const S = { users: [], userId: store.get("aa.user"), user: null, tab: store.get(
 const ico = (d) => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const ICON = {
   jobs: ico(`<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>`),
+  queue: ico(`<path d="M4 6h16M4 12h10M4 18h7"/><path d="m15 16 3 3 4-5"/>`),
   applications: ico(`<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/>`),
   questions: ico(`<path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/>`),
   mail: ico(`<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>`),
@@ -534,7 +538,7 @@ const ICON = {
   online: ico(`<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>`),
 };
 // The left menu holds only what people use every day. Profile, preferences and settings open from the initials.
-const ALL_TABS = [["jobs", ICON.jobs, "Jobs"], ["applications", ICON.applications, "Applications"], ["questions", ICON.questions, "For you"], ["mail", ICON.mail, "Email"], ["resumes", ICON.resumes, "Resumes"]];
+const ALL_TABS = [["jobs", ICON.jobs, "Jobs"], ["queue", ICON.queue, "Queue"], ["applications", ICON.applications, "Applications"], ["questions", ICON.questions, "For you"], ["mail", ICON.mail, "Email"], ["resumes", ICON.resumes, "Resumes"]];
 const MENU_TABS = [["profile", ICON.profile, "Profile"], ["preferences", ICON.preferences, "Job preferences"]];
 const ADMIN_TABS = [["team", ICON.team, "Family & access"], ["online", ICON.online, "Online access"]];
 const EVERY_TAB = () => [...ALL_TABS, ...MENU_TABS, ...(isAdmin() ? [["settings"], ...ADMIN_TABS] : [])];
@@ -649,7 +653,8 @@ window.addEventListener("resize", closeMenu);
 function renderNav() {
   const st = S.user?.stats ?? {};
   const counts = { questions: (S.user?.unansweredCount ?? 0) + (S.user?.failedCount ?? 0) || undefined }; // only "For you" carries a number: it means something is waiting on the person
-  $("#nav").innerHTML = TABS.map(([id, ic, name]) => `<button data-tab="${id}" class="${S.tab === id ? "on" : ""}"><span class="ic">${ic}</span>${name}${counts[id] ? `<span class="n">${counts[id]}</span>` : ""}</button>`).join("");
+  const quiet = { queue: S.user?.queuedCount || undefined };
+  $("#nav").innerHTML = TABS.map(([id, ic, name]) => `<button data-tab="${id}" class="${S.tab === id ? "on" : ""}"><span class="ic">${ic}</span>${name}${counts[id] ? `<span class="n">${counts[id]}</span>` : quiet[id] ? `<span class="n soft">${quiet[id]}</span>` : ""}</button>`).join("");
 }
 
 // Offline mode needs each person's password once (it creates their sign-in for when this computer is off).
@@ -1032,9 +1037,10 @@ function queueBar(rows) {
 }
 document.addEventListener("click", (e) => {
   if (e.target.id !== "applyQueue") return;
-  const ids = (S.feedData?.rows ?? []).filter((j) => !["submitted", "needs_input"].includes(j.status)).map((j) => j.id);
+  const ids = (S.queueRows ?? []).filter((j) => !["submitted", "needs_input"].includes(j.status)).map((j) => j.id);
   applyMany(ids, { queue: true });
 });
+
 const findPeople = async (ids) => {
   const mode = S.user.search.aiMode;
   if (mode === "ask" && !(await modal({ title: "Use AI to find people?", body: `Looking up the recruiter and hiring manager uses AI to search the web (${Math.min(ids.length, 5)} job${ids.length > 1 ? "s" : ""}). Continue?`, ok: "Yes, find them", cancel: "Cancel" }))) return;
@@ -1325,6 +1331,7 @@ const filterOn = (f, id) => (Array.isArray(f[id]) ? f[id].length : f[id] ? 1 : 0
 
 VIEWS.jobs = async (v) => {
   if (S.feed?.uid !== S.userId) S.feed = { ...loadFeed(), uid: S.userId };
+  if (S.feed.view === "saved") S.feed.view = "all"; // the queue has its own page now
   const f = S.feed;
   f.exclude = S.user.search.titleExclude ?? f.exclude; // Exclude = the person's saved exclude words
   S.feedUi = { q: {} };
@@ -1413,8 +1420,11 @@ VIEWS.jobs = async (v) => {
     }
     if (save) {
       e.stopPropagation();
-      const on = save.dataset.on !== "1";
-      try { await api(`${U()}/jobs/${encodeURIComponent(save.dataset.save)}/save`, { method: "POST", body: { saved: on } }); toast(on ? "Added to your queue" : "Removed from your queue"); refreshFeed(); } catch (err) { fail(err); }
+      // a queued job moves out of Jobs into the Queue (left menu)
+      const on = save.dataset.on !== "1", row = save.closest(".jrow");
+      if (on) row?.classList.add("gone");
+      try { await api(`${U()}/jobs/${encodeURIComponent(save.dataset.save)}/save`, { method: "POST", body: { saved: on } }); toast(on ? "Moved to your Queue" : "Back in Jobs"); await loadUsers(); renderNav(); setTimeout(refreshFeed, 250); }
+      catch (err) { row?.classList.remove("gone"); fail(err); }
       return;
     }
     const row = e.target.closest("[data-open]"); if (row) openJob(row.dataset.open);
@@ -1477,7 +1487,7 @@ async function refreshFeed(quiet) {
   const f = S.feed, s = S.user.search, st = S.user.stats;
   const strong = (j) => (j.score ?? 0) >= s.minScore;
   // views
-  $("#views").innerHTML = [["all", "Jobs"], ["foryou", "Top matches"], ["saved", "Queue"]].map(([k, l]) => `<button data-view="${k}" class="${f.view === k ? "on" : ""}">${l}${k === "saved" && d.counts.saved ? `<span class="badge">${d.counts.saved}</span>` : ""}${k === "foryou" && d.counts.foryou ? `<span class="badge">${d.counts.foryou}</span>` : ""}</button>`).join("");
+  $("#views").innerHTML = [["all", "Jobs"], ["foryou", "Top matches"]].map(([k, l]) => `<button data-view="${k}" class="${f.view === k ? "on" : ""}">${l}${"" }${k === "foryou" && d.counts.foryou ? `<span class="badge">${d.counts.foryou}</span>` : ""}</button>`).join("");
   // search terms
   $("#termChips").innerHTML = d.terms.map((t) => `<span class="tchip"><span>${esc(t)}</span><button data-rmterm="${esc(t)}" aria-label="Remove ${esc(t)}">×</button></span>`).join("");
   $("#termIn").placeholder = d.terms.length ? "Add another, or paste a job link" : "Add a job title, skill or company — or paste a job link";
@@ -1495,7 +1505,7 @@ async function refreshFeed(quiet) {
   $("#linkrow").innerHTML = `${filtersOn ? `<a class="l strong" id="clearF">Clear filters</a>` : `<span class="muted">Clear filters</span>`}<a class="l muted" id="useMine">Use my search</a><a class="l strong" id="tune">Ask AutoApply to tune this →</a>
     <span class="spacer"></span><span class="muted">${d.total} job${d.total === 1 ? "" : "s"}</span>${f.view === "saved" ? "" : d.rows.filter(strong).length ? `<button class="blackbtn" id="top5">Apply to the top ${Math.min(5, d.rows.filter(strong).length)}</button>` : ""}`;
   // the list
-  $("#feedList").innerHTML = (f.view === "saved" ? queueBar(d.rows) : "") + (d.rows.length ? `<div class="jlist">${d.rows.map((j) => `<div class="jrow" data-open="${esc(j.id)}">${logoFor(j.company)}
+  $("#feedList").innerHTML = (d.rows.length ? `<div class="jlist">${d.rows.map((j) => `<div class="jrow" data-open="${esc(j.id)}">${logoFor(j.company)}
       <div class="jmain"><div class="jt">${esc(j.title)}</div>
         <div class="jm">${esc(j.company)} · ${j.locCount > 1 ? `${j.locCount} Locations` : esc(String(j.location ?? "").split(/\s*[·;|]\s*/)[0].slice(0, 60))}${/remote/i.test(j.location ?? "") ? " · Remote" : /hybrid/i.test(j.location ?? "") ? " · Hybrid" : ""}${j.postedAt ? ` · ${agoText(j.postedAt)}` : ""}${j.pay ? ` · ${esc(j.pay)}` : ""}
           ${j.status === "needs_input" && f.view === "saved" ? `<span class="chip needs_input">Waiting for your answer in For you</span>` : j.status !== "matched" ? statusChip(j.status) : ""}${!j.autoApply ? `<span class="chip">Apply yourself</span>` : ""}</div>
@@ -1545,6 +1555,37 @@ function multiMenu(id, d) {
 // Tracker, like Tsenta's: All / In flight / Needs you / Failed / Skipped / Applied, and a pipeline for applied jobs.
 const TRACK = [["all", "All"], ["inflight", "In flight"], ["needs", "Needs you"], ["failed", "Not sent"], ["skipped", "Skipped"], ["applied", "Applied"]];
 S.track = store.get("aa.track") || "all";
+// The Queue (left menu): jobs the person picked. "Apply to all" applies to every one that's ready; "Remove" puts a job
+// back in Jobs. Jobs that applied leave the queue by themselves.
+VIEWS.queue = async (v) => {
+  const d = await api(`${U()}/feed?view=saved&all=1&limit=1000`);
+  const rows = S.queueRows = d.rows;
+  const row = (j) => `<div class="jrow qrow" data-open="${esc(j.id)}">${logoFor(j.company)}
+      <div class="jmain"><div class="jt">${esc(j.title)}</div>
+        <div class="jm">${esc(j.company)}${j.location ? ` · ${esc(String(j.location).split(/\s*[·;|]\s*/)[0].slice(0, 60))}` : ""}${j.pay ? ` · ${esc(j.pay)}` : ""}
+          ${j.status === "needs_input" ? `<span class="chip needs_input">Waiting for your answer in For you</span>` : j.status !== "matched" ? statusChip(j.status) : ""}${!j.autoApply ? `<span class="chip">Apply yourself</span>` : ""}</div>
+        ${j.score != null ? `<div class="jk"><span class="${(j.score ?? 0) >= S.user.search.minScore ? "good" : ""}">${j.score}% match</span></div>` : ""}
+        ${["failed", "needs_input"].includes(j.status) ? whyBox(j, { compact: true }) : ""}</div>
+      <button class="tbtn nope" data-unqueue="${esc(j.id)}" title="Take it out of the queue; it goes back to Jobs">Remove</button>
+      <button class="tbtn send" data-send="${esc(j.id)}" title="Apply to this one now"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7Z"/></svg>Apply for me</button></div>`;
+  v.innerHTML = `<h1>Queue</h1><p class="sub">Jobs you picked to apply to. Apply to all of them in one click; remove a job to put it back in Jobs.</p>
+    ${rows.length ? `${queueBar(rows)}<div class="card" style="padding:4px 16px"><div class="jlist">${rows.map(row).join("")}</div></div>`
+      : `<div class="card empty"><div class="big">📋</div><p>Your queue is empty. In <a class="l" data-tab="jobs">Jobs</a>, press <b>＋ Queue</b> on the jobs you want — they move here. Then press <b>Apply to all</b>.</p></div>`}`;
+  v.onclick = async (e) => {
+    const un = e.target.closest("[data-unqueue]"), send = e.target.closest("[data-send]");
+    if (un) {
+      e.stopPropagation();
+      const r = un.closest(".jrow"); r?.classList.add("gone");
+      try { await api(`${U()}/jobs/${encodeURIComponent(un.dataset.unqueue)}/save`, { method: "POST", body: { saved: false } }); toast("Back in Jobs"); await loadUsers(); setTimeout(render, 250); }
+      catch (err) { r?.classList.remove("gone"); fail(err); }
+      return;
+    }
+    if (send) { e.stopPropagation(); return applyForMe(send.dataset.send); }
+    if (e.target.closest("a, button")) return;
+    const o = e.target.closest("[data-open]"); if (o) openJob(o.dataset.open);
+  };
+};
+
 VIEWS.applications = async (v) => {
   const [everythingRaw, stats] = await Promise.all([api(`${U()}/jobs?status=applications`), api(`${U()}/stats`).catch(() => null)]);
   const everything = everythingRaw.filter((r) => r.status !== "discovered");
