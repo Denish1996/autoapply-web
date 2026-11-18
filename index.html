@@ -262,7 +262,8 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 .whybox { margin-top: 12px; border: 1px solid var(--line); border-left: 4px solid var(--warn, #d08700); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; background: var(--panel); }
 .whybox.bad { border-left-color: var(--bad); }
 .whyh { font-weight: 650; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 3px; }
-.why1 { font-size: 12.5px; margin-top: 3px; color: var(--ink); }
+.why1 { font-size: 12.5px; margin-top: 3px; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.codein { font: 600 20px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .25em; text-align: center; max-width: 280px; }
 .modal.rv { max-height: 90vh; overflow: auto; }
 .rvsec { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
 .rvsec h3 { margin: 0 0 2px; font-size: 15px; } .rvsec > p { margin: 0 0 10px; font-size: 13px; }
@@ -862,7 +863,7 @@ document.addEventListener("click", (e) => {
 function lastLine(t) { return [...t.log].reverse().find((l) => l.trim()) ?? ""; }
 function renderTask(t, show) {
   const el = $("#taskpanel");
-  if (!t || (taskHidden && !show)) { el.innerHTML = ""; el.dataset.sig = ""; return; }
+  if (!t || (taskHidden && !show)) { el.innerHTML = ""; el.dataset.sig = ""; if (!t?.prompt) document.title = "AutoApply"; return; }
   if (show) taskHidden = false;
   const p = t.prompt;
   let promptHtml = "";
@@ -906,9 +907,17 @@ function renderTask(t, show) {
       promptHtml = `<div class="prompt"><b>👆 One click needed: "${esc(info.button)}"</b>
         <div>${esc((info.host ?? "").split(".")[0])}'s Workday only accepts this button from a person. Your email and password are already filled in — switch to the browser window and click <b>${esc(info.button)}</b>. That's all: AutoApply finishes and submits the application by itself.</div>
         <div class="row"><button class="btn ghost" data-resp="k">Skip this job</button></div></div>`;
+    } else if (info.kind === "code") {
+      promptHtml = `<div class="prompt"><b>✉️ Type the code ${esc(info.site ?? "the job site")} emailed you</b>
+        <div>${esc(info.site ?? "The job site")} sent ${info.length ? `${[8, 11, 18].includes(info.length) ? "an" : "a"} ${info.length}-character` : "a"} code to <b>${esc(info.email ?? "")}</b> to confirm the application${info.job ? ` for ${esc(info.job)}` : ""}. Open that email and type the code here — the application is sent right after.</div>
+        <input id="taskCode" class="codein" autocomplete="one-time-code" spellcheck="false" placeholder="${"•".repeat(info.length || 6)}" ${info.length ? `maxlength="${info.length}"` : ""}>
+        <div class="row"><button class="btn primary" id="taskCodeSave">Send application</button><button class="btn ghost" data-resp="k">Skip this job</button></div>
+        ${info.mailConnected ? "" : `<div class="muted" style="font-size:12.5px">Tip: <a class="l" data-tab="mail">connect your email</a> and AutoApply enters these codes by itself.</div>`}
+        ${info.timeoutSec ? `<div class="muted" style="font-size:12px">Waits up to ${Math.round(info.timeoutSec / 60)} minutes, then moves on (the job stays in For you).</div>` : ""}</div>`;
     } else if (info.kind === "verify") {
-      promptHtml = `<div class="prompt"><b>✉️ Verify your email</b><div>${esc(info.host ?? "The job site")} sent a verification email to <b>${esc(info.email ?? "")}</b>. Open it and click the link, then continue.</div>
-        <div class="row"><button class="btn primary" data-resp="">I've verified — continue</button><button class="btn" data-resp="k">Skip this job</button></div></div>`;
+      promptHtml = `<div class="prompt"><b>✉️ Click the link ${esc(info.site ?? info.host ?? "the job site")} emailed you</b><div>${esc(info.site ?? info.host ?? "The job site")} sent an email to <b>${esc(info.email ?? "")}</b> to confirm your email address${info.job ? ` (for ${esc(info.job)})` : ""}. Open it, click the link, then press Done — AutoApply carries on with the application.</div>
+        <div class="row"><button class="btn primary" data-resp="done">Done, I clicked it</button><button class="btn ghost" data-resp="k">Skip this job</button></div>
+        ${info.mailConnected ? "" : `<div class="muted" style="font-size:12.5px">Tip: <a class="l" data-tab="mail">connect your email</a> and AutoApply clicks these links by itself.</div>`}</div>`;
     } else {
       promptHtml = `<div class="prompt"><b>${esc(p.question)}</b>${info.messages?.length ? `<div class="muted">${info.messages.map(esc).join("<br>")}</div>` : ""}
         <div class="row"><button class="btn primary" data-resp="">Continue</button><button class="btn" data-resp="k">Skip</button></div></div>`;
@@ -939,7 +948,7 @@ function renderTask(t, show) {
   el.dataset.sig = sig; el.dataset.prompt = p?.id ?? "";
   for (const [id, k] of Object.entries(keep)) {
     const i = document.getElementById(id);
-    if (!i || ((id === "taskPw" || id.startsWith("qa-")) && !samePrompt)) continue;
+    if (!i || ((id === "taskPw" || id === "taskCode" || id.startsWith("qa-")) && !samePrompt)) continue;
     i.value = k.value; if (i.tagName === "INPUT") i.type = k.type;
     const eye = el.querySelector(`[data-eye="${CSS.escape(id)}"]`); if (eye) eye.textContent = k.type === "text" ? "🙈" : "👁";
     if (k.focused) { i.focus(); try { i.setSelectionRange(k.s, k.e); } catch { /* not a text box */ } }
@@ -956,6 +965,15 @@ function renderTask(t, show) {
     } catch (e) { fail(e); }
   });
   $("#taskPw")?.addEventListener("keydown", (e) => { if (e.key === "Enter") $("#taskPwSave")?.click(); });
+  $("#taskCode")?.addEventListener("keydown", (e) => { if (e.key === "Enter") $("#taskCodeSave")?.click(); });
+  $("#taskCodeSave")?.addEventListener("click", () => {
+    const v = ($("#taskCode")?.value ?? "").replace(/s+/g, "");
+    if (!v) return toast("Type the code from the email first", true);
+    if (p.info?.length && v.length !== p.info.length) return toast(`The code has ${p.info.length} characters`, true);
+    respond(v);
+  });
+  // a step that needs the person: say so in the browser tab too, so it's noticed from another tab
+  document.title = p ? "● Action needed — AutoApply" : "AutoApply";
   const respond = async (value) => { await api(`/tasks/${t.id}/respond`, { method: "POST", body: { promptId: p.id, value } }).catch(fail); pollTasks(true); };
   $("#qaSave")?.addEventListener("click", () => {
     const answers = {};
@@ -1080,16 +1098,18 @@ function explain(r) {
   const site = displayCo(r.company) || "The job site";
   const missing = r.missing ?? [];
   const siteErrs = missing.map((m) => String(m).match(/the field (.+?) is required/i)?.[1]).filter(Boolean);
-  const questions = missing.filter((m) => !/^error|errors found|button not found|not found$/i.test(String(m)));
+  const cut = (q) => { const t = String(q).replace(/s+/g, " ").trim(); return t.length > 70 ? t.slice(0, 68).replace(/s+S*$/, "") + "…" : t; };
+  const questions = missing.filter((m) => !/^error|errors found|button not found|not found$/i.test(String(m))).map(cut);
   const has = (re) => re.test(raw);
-  const A = { retry: ["retry", "Try again"], foryou: ["foryou", "Open For you"], site: ["site", "Apply on the job site"], applied: ["markapplied", "I applied myself"], profile: ["profile", "Open profile"], pw: ["password", "Job-site password"] };
+  const A = { retry: ["retry", "Try again"], foryou: ["foryou", "Open For you"], site: ["site", "Apply on the job site"], applied: ["markapplied", "I applied myself"], profile: ["profile", "Open profile"], pw: ["password", "Job-site password"], mail: ["mail", "Connect email"] };
   const out = (why, todo, actions) => ({ why, todo, actions: actions.map((k) => A[k]), raw });
   if (r.status === "paused" || r.pausedSite) return out(r.note || `Applications on this job site are on hold for a moment.`, "Nothing to do — it's sent automatically once the site works again.", []);
   if (r.status === "skipped") return out(/already applied/i.test(raw) ? "You had already applied to this job." : "This job was skipped.", "", has(/already applied/i) ? [] : ["retry"]);
   if (r.status === "filled") return out("Practice run: the form was filled but not sent.", "Press Apply for me when you want it sent.", []);
   if (has(/example email|real details/i)) return out("The profile still has placeholder details, so nothing was sent.", "Add the real name, email and phone in Profile, then try again.", ["profile", "retry"]);
   if (has(/captcha|bot protection|human check/i)) return out(`${site} asked to prove you're a person (a puzzle or checkbox). AutoApply doesn't do those for you.`, "Apply on the job site yourself — it takes a minute — then mark it as applied.", ["site", "applied"]);
-  if (has(/verify|verification|not verified/i)) return out(`${site} sent an email asking to confirm your email address.`, "Open the email and click the link, then try again.", ["foryou", "retry"]);
+  if (has(/security code|one-time code|verification code/i)) return out(`${site} emails a security code to ${S.user?.profile?.email || "you"} before it accepts an application. Nothing was sent yet.`, "Connect your email so AutoApply types these codes in by itself — or press Try again while you're here and type the code when AutoApply asks.", ["mail", "retry"]);
+  if (has(/verify|verification|not verified/i)) return out(`${site} sent an email asking to confirm your email address.`, "Connect your email so AutoApply clicks these links by itself — or press Try again and click the link when AutoApply asks.", ["mail", "retry"]);
   if (has(/sign-?in failed|password|could not get past the account|account page/i)) return out(`AutoApply couldn't sign in to your account on ${site}.`, "If you already have an account there, save its password, then try again.", ["pw", "retry"]);
   if (has(/accept its account terms/i)) return out(`${site} wants you to accept its account terms before applying.`, "Allow AutoApply to accept site terms in Profile → Permissions, then try again.", ["profile", "retry"]);
   if (has(/needs you to press|only accepts this button/i)) return out(`${site} needs one click from a person.`, "Try again and click the button when asked, or apply on the site yourself.", ["retry", "site"]);
@@ -1110,6 +1130,7 @@ function whyBox(r, { compact } = {}) {
   const btn = ([k, l]) => k === "site" ? (r.url ? `<a class="btn sm" href="${esc(r.url)}" target="_blank" rel="noopener">${l} ↗</a>` : "")
     : k === "foryou" ? `<button class="btn sm" data-tab="questions">${l}</button>` : k === "profile" ? `<button class="btn sm" data-tab="profile">${l}</button>`
     : k === "password" ? `<button class="btn sm" data-tab="profile" data-ptab="accounts">${l}</button>`
+    : k === "mail" ? `<button class="btn sm" data-tab="mail">${l}</button>`
     : k === "markapplied" ? `<button class="btn sm" data-act="markapplied" data-id="${esc(r.id)}">${l}</button>` : `<button class="btn sm primary" data-act="apply" data-id="${esc(r.id)}">${l}</button>`;
   return `<div class="whybox ${r.status === "failed" ? "bad" : ""}"><div class="whyh">${r.status === "failed" ? "Why it didn't go through" : r.status === "needs_input" ? "What it's waiting for" : "What happened"}</div>
     <div>${esc(x.why)}</div>${x.todo ? `<div class="muted" style="margin-top:4px">${esc(x.todo)}</div>` : ""}
