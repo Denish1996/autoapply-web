@@ -200,7 +200,7 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 .linkrow { display: flex; align-items: center; gap: 16px; margin: 8px 0 10px; font-size: 13px; } .linkrow .strong { color: var(--ink); font-weight: 650; } .linkrow .muted { color: var(--muted); }
 .jk { font-size: 12px; color: var(--muted); margin-top: 2px; } .jk .good { color: var(--good); font-weight: 600; }
 .ibtn.star { border-color: transparent; opacity: 0; } .jrow:hover .ibtn.star, .ibtn.star.on { opacity: 1; }
-.leftpill { position: sticky; bottom: 14px; display: inline-flex; gap: 8px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 13px; box-shadow: var(--shadow); margin-top: 14px; }
+.leftpill { display: inline-flex; gap: 8px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 13px; box-shadow: var(--shadow); margin-top: 14px; }
 .fside .sbox.plain { background: none; border: 0; padding: 4px 2px; }
 .fside { border-left: 1px solid var(--line); padding-left: 22px; min-height: calc(100vh - 60px); align-content: start; }
 .srow { display: flex; justify-content: space-between; align-items: center; } .sname { font-size: 18px; font-weight: 700; } .sstat { font-size: 12.5px; }
@@ -248,6 +248,7 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 #busy.center .spin { width: 40px; height: 40px; }
 .tbtn { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line, #d0d5dd); background: transparent; color: inherit; border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .tbtn.send { background: var(--accent, #4f46e5); border-color: var(--accent, #4f46e5); color: #fff; }
+.tbtn.queue.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .tbtn.nope:hover { border-color: var(--bad, #d92d20); color: var(--bad, #d92d20); }
 .jrow.gone { opacity: 0; transform: translateX(30px); transition: .25s; }
 @media (max-width: 640px) { .jrow { grid-template-columns: 40px minmax(0, 1fr) auto; } .jrow .tbtn { grid-column: 2 / span 2; justify-self: start; } .jrow .tbtn.nope { margin-right: 8px; } }
@@ -1006,12 +1007,25 @@ async function applyForMe(id, { dry } = {}) {
   if (!dry && !OFF) toast(`Applying to ${j.title} at ${j.company}…`);
   startTask({ type: "run", jobIds: [id], resumeId, dryRun: !!dry });
 }
-async function applyMany(ids) {
+async function applyMany(ids, { queue } = {}) {
   if (!ids.length) return toast("No jobs to apply to", true);
   if (!(await ensureReady(ids))) return;
-  if (!OFF) toast(`Applying to ${ids.length} job${ids.length > 1 ? "s" : ""}…`);
-  startTask({ type: "run", jobIds: ids });
+  const left = Math.max(0, (S.user.search.dailyCap ?? 0) - (S.user.stats?.submittedToday ?? 0));
+  if (!OFF) toast(`Applying to ${Math.min(ids.length, left || ids.length)} job${ids.length > 1 ? "s" : ""}…${ids.length > left && left ? ` The other ${ids.length - left} stay in your queue for tomorrow (daily limit).` : ""}`);
+  // a queue runs without stopping to ask: questions only the person can answer go to For you, the rest carry on
+  startTask({ type: "run", jobIds: ids, unattended: !!queue });
 }
+// The queue: jobs the person picked. One button applies to all of them; jobs waiting on an answer are left out until
+// the answer is given in For you (then they're retried by themselves).
+function queueButton(rows) {
+  const ready = rows.filter((j) => !["submitted", "needs_input"].includes(j.status));
+  return ready.length ? `<button class="blackbtn" id="applyQueue">Apply to all ${ready.length}</button>` : "";
+}
+document.addEventListener("click", (e) => {
+  if (e.target.id !== "applyQueue") return;
+  const ids = (S.feedData?.rows ?? []).filter((j) => !["submitted", "needs_input"].includes(j.status)).map((j) => j.id);
+  applyMany(ids, { queue: true });
+});
 const findPeople = async (ids) => {
   const mode = S.user.search.aiMode;
   if (mode === "ask" && !(await modal({ title: "Use AI to find people?", body: `Looking up the recruiter and hiring manager uses AI to search the web (${Math.min(ids.length, 5)} job${ids.length > 1 ? "s" : ""}). Continue?`, ok: "Yes, find them", cancel: "Cancel" }))) return;
@@ -1390,7 +1404,8 @@ VIEWS.jobs = async (v) => {
     }
     if (save) {
       e.stopPropagation();
-      try { await api(`${U()}/jobs/${encodeURIComponent(save.dataset.save)}/save`, { method: "POST", body: { saved: save.dataset.on !== "1" } }); refreshFeed(); } catch (err) { fail(err); }
+      const on = save.dataset.on !== "1";
+      try { await api(`${U()}/jobs/${encodeURIComponent(save.dataset.save)}/save`, { method: "POST", body: { saved: on } }); toast(on ? "Added to your queue" : "Removed from your queue"); refreshFeed(); } catch (err) { fail(err); }
       return;
     }
     const row = e.target.closest("[data-open]"); if (row) openJob(row.dataset.open);
@@ -1453,7 +1468,7 @@ async function refreshFeed(quiet) {
   const f = S.feed, s = S.user.search, st = S.user.stats;
   const strong = (j) => (j.score ?? 0) >= s.minScore;
   // views
-  $("#views").innerHTML = [["all", "Jobs"], ["foryou", "Top matches"], ["saved", "Saved"]].map(([k, l]) => `<button data-view="${k}" class="${f.view === k ? "on" : ""}">${l}${k === "foryou" && d.counts.foryou ? `<span class="badge">${d.counts.foryou}</span>` : ""}</button>`).join("");
+  $("#views").innerHTML = [["all", "Jobs"], ["foryou", "Top matches"], ["saved", "Queue"]].map(([k, l]) => `<button data-view="${k}" class="${f.view === k ? "on" : ""}">${l}${k === "saved" && d.counts.saved ? `<span class="badge">${d.counts.saved}</span>` : ""}${k === "foryou" && d.counts.foryou ? `<span class="badge">${d.counts.foryou}</span>` : ""}</button>`).join("");
   // search terms
   $("#termChips").innerHTML = d.terms.map((t) => `<span class="tchip"><span>${esc(t)}</span><button data-rmterm="${esc(t)}" aria-label="Remove ${esc(t)}">×</button></span>`).join("");
   $("#termIn").placeholder = d.terms.length ? "Add another, or paste a job link" : "Add a job title, skill or company — or paste a job link";
@@ -1469,17 +1484,17 @@ async function refreshFeed(quiet) {
   }
   const filtersOn = FILTERS.some(([id, kind]) => kind !== "toggle" && id !== "sort" && id !== "exclude" && filterOn(f, id)) || f.all || f.visa || f.noclear;
   $("#linkrow").innerHTML = `${filtersOn ? `<a class="l strong" id="clearF">Clear filters</a>` : `<span class="muted">Clear filters</span>`}<a class="l muted" id="useMine">Use my search</a><a class="l strong" id="tune">Ask AutoApply to tune this →</a>
-    <span class="spacer"></span><span class="muted">${d.total} job${d.total === 1 ? "" : "s"}</span>${d.rows.filter(strong).length ? `<button class="blackbtn" id="top5">Apply to the top ${Math.min(5, d.rows.filter(strong).length)}</button>` : ""}`;
+    <span class="spacer"></span><span class="muted">${d.total} job${d.total === 1 ? "" : "s"}</span>${f.view === "saved" ? queueButton(d.rows) : d.rows.filter(strong).length ? `<button class="blackbtn" id="top5">Apply to the top ${Math.min(5, d.rows.filter(strong).length)}</button>` : ""}`;
   // the list
   $("#feedList").innerHTML = d.rows.length ? `<div class="jlist">${d.rows.map((j) => `<div class="jrow" data-open="${esc(j.id)}">${logoFor(j.company)}
       <div class="jmain"><div class="jt">${esc(j.title)}</div>
         <div class="jm">${esc(j.company)} · ${j.locCount > 1 ? `${j.locCount} Locations` : esc(String(j.location ?? "").split(/\s*[·;|]\s*/)[0].slice(0, 60))}${/remote/i.test(j.location ?? "") ? " · Remote" : /hybrid/i.test(j.location ?? "") ? " · Hybrid" : ""}${j.postedAt ? ` · ${agoText(j.postedAt)}` : ""}${j.pay ? ` · ${esc(j.pay)}` : ""}
-          ${j.status !== "matched" ? statusChip(j.status) : ""}${!j.autoApply ? `<span class="chip">Apply yourself</span>` : ""}</div>
+          ${j.status === "needs_input" && f.view === "saved" ? `<span class="chip needs_input">Waiting for your answer in For you</span>` : j.status !== "matched" ? statusChip(j.status) : ""}${!j.autoApply ? `<span class="chip">Apply yourself</span>` : ""}</div>
         <div class="jk">${j.score != null ? `<span class="${strong(j) ? "good" : ""}">${j.score}% match</span>` : ""}${j.matched?.length ? ` · matches ${j.matched.slice(0, 4).map(esc).join(", ")}` : ""}</div></div>
-      <button class="ibtn star ${j.saved ? "on" : ""}" data-save="${esc(j.id)}" data-on="${j.saved ? 1 : 0}" title="${j.saved ? "Saved" : "Save"}">${j.saved ? "★" : "☆"}</button>
+      <button class="tbtn queue ${j.saved ? "on" : ""}" data-save="${esc(j.id)}" data-on="${j.saved ? 1 : 0}" title="${j.saved ? "Remove from your queue" : "Add to your queue, then apply to all of them in one click"}">${j.saved ? "✓ In queue" : "＋ Queue"}</button>
       <button class="tbtn nope" data-nope="${esc(j.id)}" title="Hide this job and show others">Not interested</button>
       <button class="tbtn send" data-send="${esc(j.id)}" title="Apply for me"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7Z"/></svg>Apply for me</button></div>`).join("")}</div>`
-    : `<div class="card empty"><div class="big">🔎</div><p>${f.view === "saved" ? "No saved jobs yet — press ☆ on a job to keep it here." : d.counts.all ? "No jobs match these filters."
+    : `<div class="card empty"><div class="big">🔎</div><p>${f.view === "saved" ? "Your queue is empty. Press <b>＋ Queue</b> on the jobs you want, then <b>Apply to all</b> here — AutoApply applies to every one of them. Questions only you can answer wait in For you." : d.counts.all ? "No jobs match these filters."
       : d.lastSearch && !d.lastSearch.newMatches ? `<b>${esc(d.lastSearch.message)}</b><br><span class="muted" style="font-size:13px">Last searched ${esc(agoText(d.lastSearch.at))}.${d.lastSearch.busy ? " A few company sites were busy and are searched again next time." : ""}</span>`
       : "No jobs yet. Add search terms above (e.g. ServiceNow, CMDB), then press ⌕ to search — AutoApply looks through all the employer boards it knows plus your own companies."}</p>
       ${f.view !== "saved" && !d.counts.all && d.lastSearch?.hint ? searchHint(d.lastSearch).replace('class="row"', 'class="row" style="justify-content:center;margin-top:8px"') : ""}</div>`;
@@ -1664,6 +1679,7 @@ VIEWS.profile = async (v) => {
           ["ask", "✋ Ask me first", "AI only when you allow it. New questions are sent to you, with a “Let AI answer” button."],
           ["auto", "⚡ Automatic", "AI answers new questions, scores jobs and tailors resumes on its own."],
         ].map(([k, l, h]) => `<label class="aimode ${s.aiMode === k ? "on" : ""}" title="${esc(h)}"><input type="radio" name="aiMode" value="${k}" ${s.aiMode === k ? "checked" : ""} style="width:auto"> ${l}<small>${esc(h)}</small></label>`).join("")}</div></div>
+      ${toggle("pRescue", "Let AI finish applications that get stuck", "When a job site's form doesn't work the way AutoApply expects, it first tries again by itself; if it's still stuck, AI looks at the page and finishes it using only the profile and resume. Questions only you can answer still go to For you. Not used when AI answers are Off.", s.aiRescue !== false && s.aiMode !== "off")}
       ${toggle("pJudge", "Pick “prefer not to answer” when it's offered", "For sensitive multiple-choice questions your profile doesn't cover, choose the decline option instead of asking you. (In Automatic mode AI may also pick the best-fitting option.)", s.bestJudgment !== false)}
       <div class="perm" style="display:block"><b>Tailor my resume for each job</b>
         <small style="display:block;margin:2px 0 8px">Nothing is ever invented — only what's already on the resume. With AI off, tailoring still works, in a simpler way.</small>
@@ -1730,7 +1746,7 @@ VIEWS.profile = async (v) => {
   $("#permSave").onclick = async () => {
     try {
       await api(`${U()}/profile`, { method: "PUT", body: { ...p, consentToApplicationNotices: $("#pConsent").checked, permissions: { ...perms, createAccounts: $("#pAccounts").checked } } });
-      S.user = await api(`${U()}/search`, { method: "PUT", body: { ...s, mode: $("#pAuto").checked ? "auto" : "review", aiMode: document.querySelector("input[name=aiMode]:checked")?.value ?? "ask", bestJudgment: $("#pJudge").checked, tailorMode: document.querySelector("input[name=tailorMode]:checked")?.value ?? "honest", tailorResume: document.querySelector("input[name=tailorMode]:checked")?.value !== "off", autoApproveResume: $("#pApprove").checked } });
+      S.user = await api(`${U()}/search`, { method: "PUT", body: { ...s, mode: $("#pAuto").checked ? "auto" : "review", aiMode: document.querySelector("input[name=aiMode]:checked")?.value ?? "ask", bestJudgment: $("#pJudge").checked, aiRescue: (document.querySelector("input[name=aiMode]:checked")?.value ?? "ask") === "off" ? s.aiRescue : $("#pRescue").checked, tailorMode: document.querySelector("input[name=tailorMode]:checked")?.value ?? "honest", tailorResume: document.querySelector("input[name=tailorMode]:checked")?.value !== "off", autoApproveResume: $("#pApprove").checked } });
       render(); toast("Permissions saved");
     } catch (e) { fail(e); }
   };
