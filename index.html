@@ -591,6 +591,8 @@ function modal({ title, body, ok = "OK", cancel = "Cancel" }) {
 // A friendly offer to connect the person's Gmail, shown while AutoApply applies and after it's done (not every
 // time: "Not now" hides it for 3 days). Connecting uses a Gmail app password; AutoApply only reads email about its
 // applications (codes, verify links, replies) and never sends or deletes anything.
+// the person's address when it is a Gmail one (this box is for Gmail); otherwise left empty to type in
+const gmailOf = (e) => (/@(gmail|googlemail)\.com$/i.test(String(e ?? "").trim()) ? String(e).trim() : "");
 const nudgeKey = () => `aa.mailnudge.${S.userId}`;
 function mailNudgeHidden() { try { return Date.now() - Number(localStorage.getItem(nudgeKey()) || 0) < 3 * 864e5; } catch { return false; } }
 function mailNudge() {
@@ -605,8 +607,8 @@ function connectMail() {
     <div class="muted" style="margin-top:6px">AutoApply then types security codes in for you, clicks “verify your email” links, and shows replies from employers in the Email tab — including the last two months for jobs it already applied to. It only reads email about these applications, and never sends or deletes anything.</div>
     <ol style="margin:12px 0;padding-left:20px;font-size:13.5px;line-height:1.6"><li>Open <a class="l" href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Google app passwords ↗</a> and sign in. (If Google says it isn't available, turn on 2-Step Verification first.)</li>
       <li>Type <b>AutoApply</b> as the name and press <b>Create</b>.</li><li>Copy the 16-letter password Google shows and paste it below.</li></ol>
-    <label class="f"><span>Gmail address</span><input id="cmEmail" value="${esc(p.email ?? "")}" placeholder="you@gmail.com"></label>
-    <label class="f" style="margin-top:8px"><span>App password</span>${pwField("cmPass", "16 letters, e.g. abcd efgh ijkl mnop")}</label>
+    <label class="f"><span>Gmail address</span><input id="cmEmail" type="email" value="${esc(gmailOf(p.email))}" placeholder="john.doe@gmail.com"></label>
+    <label class="f" style="margin-top:8px"><span>App password</span>${pwField("cmPass", "Paste the app password from Google")}</label>
     <div class="row" style="margin-top:14px"><button class="btn" data-cm="0">Cancel</button><span class="spacer"></span><button class="btn primary" id="cmGo">Connect</button></div></div></div>`;
   $("#modal").querySelector("[data-cm]").onclick = () => { $("#modal").innerHTML = ""; };
   $("#cmPass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#cmGo").click(); });
@@ -1720,8 +1722,8 @@ VIEWS.resumes = async (v) => {
         <button class="btn sm ghost danger" data-del="${esc(r.id)}">Delete</button></div></div>`).join("")}</div>
     <div class="card" style="margin-top:16px"><h2 id="formTitle">Add a resume</h2><p class="muted" style="margin-top:0">Choose the file. AutoApply reads the text from it, so there is nothing to paste.</p><div class="form">
       <label class="f"><span>Resume file (PDF or Word)</span><input id="rPdf" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><small>Word files are turned into a PDF for employers.</small></label>
-      <label class="f"><span>Name</span><input id="rName" placeholder="e.g. ITOM resume"></label>
-      <label class="f"><span>Use for job titles containing</span><input id="rTitles" placeholder="cmdb, servicenow, itom"><small>Optional. Comma separated. Leave empty to use it for all jobs.</small></label>
+      <label class="f"><span>Name</span><input id="rName" placeholder="e.g. Data analyst resume"></label>
+      <label class="f"><span>Use for job titles containing</span><input id="rTitles" placeholder="e.g. python, sql, project management"><small>Optional. Comma separated. Leave empty to use it for all jobs.</small></label>
       <label class="perm" style="border:0;align-self:end;padding:0"><span class="switch"><input id="rDefault" type="checkbox"><span></span></span><span class="txt"><b>Default resume</b></span></label>
       <details class="wide"><summary style="cursor:pointer;font-size:13px;color:var(--muted)">See or edit the text AutoApply reads (optional)</summary><label class="f" style="margin-top:8px"><textarea id="rText" style="min-height:220px" placeholder="Leave empty: the text is read from the file."></textarea></label></details>
       <div class="wide row"><button class="btn primary" id="rSave">Save resume</button></div>
@@ -1849,7 +1851,7 @@ VIEWS.profile = async (v) => {
           ${m.unmatched?.length ? `<details style="margin-top:10px"><summary class="muted" style="cursor:pointer">${m.unmatched.length} job emails that didn't match an application</summary>${m.unmatched.map((u) => `<div style="font-size:12.5px;padding:4px 0">${esc(u.subject)} <span class="muted">— ${esc(u.from)}</span></div>`).join("")}</details>` : ""}`
       : `<div class="mailopt"><b>Easiest: connect with an app password</b> <span class="chip matched">1 minute</span>
           <ol class="muted" style="margin:6px 0 8px;padding-left:18px;font-size:13px"><li>Open <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a> (Google asks you to sign in; 2-Step Verification must be on).</li><li>Name it “AutoApply”, press Create, and copy the 16-letter password.</li><li>Paste it here. It is kept private and only used to <i>read</i> emails about your applications.</li></ol>
-          <div class="row" style="flex-wrap:nowrap"><input id="imapEmail" value="${esc(p.email ?? "")}" placeholder="you@gmail.com" style="max-width:240px"><div style="flex:1;max-width:240px">${pwField("imapPass", "16-letter app password")}</div><button class="btn primary" id="imapOn">Connect</button></div>
+          <div class="row" style="flex-wrap:nowrap"><input id="imapEmail" type="email" value="${esc(gmailOf(p.email))}" placeholder="john.doe@gmail.com" style="max-width:240px"><div style="flex:1;max-width:240px">${pwField("imapPass", "Paste the app password from Google")}</div><button class="btn primary" id="imapOn">Connect</button></div>
           ${m.clientReady && local ? `<div class="muted" style="font-size:12.5px;margin-top:8px">Or <a class="l" id="mailOn">sign in with Google</a> instead.</div>` : ""}</div>`}
       <details class="mailopt" ${isAdmin() ? "" : "hidden"} style="margin-top:12px" ${m.alias ? "open" : ""}><summary style="cursor:pointer"><b>Job-application address, like Tsenta</b> <span class="muted" style="font-size:12.5px">— optional, needs a domain on Cloudflare</span></summary>
         <p class="muted" style="font-size:13px;margin:6px 0">Applications use an address such as <i>${esc((p.firstName ?? "me").toLowerCase())}@jobs.yourdomain.com</i>. Its mail comes to AutoApply first (codes entered and verify links clicked automatically), then is forwarded to your real inbox. Set-up steps: SHARING.md → “Job-application address”.</p>
@@ -2256,7 +2258,7 @@ async function showLogin(mode) {
     forgot: ["Forgot your password?", "We'll help you choose a new one."], reset: ["Choose a new password", AUTH.email ? `For ${AUTH.email}` : ""] }[AUTH.mode];
   const who = `<div class="who"><span>${esc(AUTH.email)}</span><a class="l" data-lg-back>Change</a></div>`;
   const err = (id) => `<div class="ferr" id="err-${id}" role="alert"></div>`;
-  const emailField = `<label class="f"><span>Email address</span><input id="lgEmail" type="email" inputmode="email" autocomplete="username" placeholder="you@example.com" value="${esc(AUTH.email)}">${err("email")}</label>`;
+  const emailField = `<label class="f"><span>Email address</span><input id="lgEmail" type="email" inputmode="email" autocomplete="username" placeholder="john.doe@gmail.com" value="${esc(AUTH.email)}">${err("email")}</label>`;
   const pwInput = (auto) => `<div class="pw"><input id="lgPw" type="password" autocomplete="${auto}"><button type="button" class="eye" id="lgEye" title="Show or hide the password" aria-label="Show or hide the password">👁</button></div>`;
   const newPw = (label) => `<label class="f"><span>${label}</span>${pwInput("new-password")}</label>
       <ul class="pwrules" id="pwRules">${PW_RULES.map(([id, t]) => `<li data-rule="${id}">${t}</li>`).join("")}</ul>${err("pw")}`;
