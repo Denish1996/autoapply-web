@@ -274,6 +274,8 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 .rvq label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; }
 .rvq select, .rvq input { width: auto; min-width: 120px; max-width: 55%; }
 @media (max-width: 640px) { .rvq { grid-template-columns: 1fr; } }
+.clearterms { border: 0; background: none; color: var(--muted); font-size: 12.5px; padding: 2px 6px; cursor: pointer; border-radius: 6px; white-space: nowrap; }
+.clearterms:hover { color: var(--bad, #c0392b); background: var(--hover, rgba(0,0,0,.05)); }
 #termIn.pulse { outline: 3px solid var(--accent); outline-offset: 2px; }
 .found { display: flex; flex-wrap: wrap; gap: 6px; }
 .found span { padding: 4px 10px; border-radius: 999px; background: var(--good-soft, #e7f6ec); color: var(--good, #1a7f37); font-size: 13px; }
@@ -1377,6 +1379,7 @@ VIEWS.jobs = async (v) => {
   $("#chipbox").onclick = (e) => {
     const rm = e.target.closest("[data-rmterm]");
     if (rm) return saveTerms(S.feedData.terms.filter((t) => t !== rm.dataset.rmterm));
+    if (e.target.closest("#clearTerms")) { const was = S.feedData.terms; saveTerms([]).then(() => toast(`Removed ${was.length} search words — type new ones, or search all roles`)); return; }
     if (!e.target.closest("button")) $("#termIn").focus();
   };
   $("#termIn").onkeydown = (e) => {
@@ -1463,8 +1466,15 @@ VIEWS.jobs = async (v) => {
   await refreshFeed();
 };
 
+// The chips are the search words plus the job titles from Job preferences: a removed chip leaves both lists, so it
+// never comes back by itself. Whatever the person sets here is kept (the resume only sets the first ones).
 async function saveTerms(next) {
-  try { S.user = await api(`${U()}/search`, { method: "PUT", body: { ...S.user.search, keywords: next } }); refreshFeed(); } catch (e) { fail(e); }
+  const keep = new Set(next.map((t) => t.toLowerCase()));
+  const s = S.user.search;
+  try {
+    S.user = await api(`${U()}/search`, { method: "PUT", body: { ...s, keywords: next, titleInclude: (s.titleInclude ?? []).filter((t) => keep.has(String(t).trim().toLowerCase())) } });
+    refreshFeed();
+  } catch (e) { fail(e); }
 }
 async function setMulti(id, next) {
   const f = S.feed;
@@ -1510,7 +1520,8 @@ async function refreshFeed(quiet) {
   // views
   $("#views").innerHTML = [["all", "Jobs"], ["foryou", "Top matches"]].map(([k, l]) => `<button data-view="${k}" class="${f.view === k ? "on" : ""}">${l}${"" }${k === "foryou" && d.counts.foryou ? `<span class="badge">${d.counts.foryou}</span>` : ""}</button>`).join("");
   // search terms
-  $("#termChips").innerHTML = d.terms.map((t) => `<span class="tchip"><span>${esc(t)}</span><button data-rmterm="${esc(t)}" aria-label="Remove ${esc(t)}">×</button></span>`).join("");
+  $("#termChips").innerHTML = d.terms.map((t) => `<span class="tchip"><span>${esc(t)}</span><button data-rmterm="${esc(t)}" aria-label="Remove ${esc(t)}">×</button></span>`).join("")
+    + (d.terms.length > 1 ? `<button type="button" class="clearterms" id="clearTerms" title="Remove all search words">Clear all</button>` : "");
   $("#termIn").placeholder = d.terms.length ? "Add another, or paste a job link" : "Add a job title, skill or company — or paste a job link";
   // filters: labels always; menus rebuilt in place (the open one stays open)
   for (const [id, kind, label] of FILTERS) {
