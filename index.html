@@ -297,7 +297,13 @@ button.avatar { border: 0; cursor: pointer; font: inherit; font-weight: 700; pad
 .fyhead { display: flex; gap: 12px; align-items: center; padding-bottom: 14px; } .fyhead[data-open] { cursor: pointer; }
 .fyco { font-weight: 700; font-size: 16px; } .fyjob { color: var(--muted); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fyq { padding: 14px 0 6px; border-top: 1px solid var(--line); } .fyk { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 650; }
-.fyt { font-weight: 600; font-size: 14.5px; margin-top: 3px; } .fyq textarea { min-height: 54px; } .fyq select { max-width: 420px; }
+.fyt { font-weight: 600; font-size: 14.5px; margin-top: 3px; }
+.mailad { display: flex; gap: 12px; align-items: flex-start; margin-top: 10px; padding: 12px 14px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); background: color-mix(in srgb, var(--accent) 7%, transparent); font-size: 13px; }
+.mailad-ic { font-size: 22px; line-height: 1; }
+.fyfoot { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; padding-top: 14px; margin-top: 6px; border-top: 1px solid var(--line); }
+.fyopts { display: flex; flex-wrap: wrap; gap: 6px; } .fyopt { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; }
+.fyopt input { width: auto; margin: 0; } .fyopt:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.fyq.need { border-left: 3px solid var(--bad, #c0392b); padding-left: 10px; } .fyq textarea { min-height: 54px; } .fyq select { max-width: 420px; }
 /* email list */
 .mrow2 { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 12px 6px; border-bottom: 1px solid var(--line); } .mrow2:last-child { border-bottom: 0; }
 .mrow2 .ms { font-weight: 600; } .mrow2 .mf { color: var(--muted); font-size: 12.5px; } .mrow2 .mp { font-size: 13px; margin-top: 3px; color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
@@ -495,7 +501,7 @@ async function offApi(path, opts) {
   if (/^\/(search|profile|answers)$/.test(rel)) { D.summary[rel.slice(1)] = body; out = D.summary; }
   else if (jm?.[2] === "save") { const j = offPatchJob(D, id, { saved: !!body.saved }); const sv = (D["feed:saved"] ??= { rows: [] }); sv.rows = sv.rows.filter((x) => x.id !== id); if (body.saved && j) sv.rows.push(j); out = j ?? out; }
   else if (jm) out = offPatchJob(D, id, jm[2] === "stage" ? { stage: body.stage } : { status: body.status }) ?? out;
-  else if (rel === "/inbox") D.inbox = (D.inbox ?? []).filter((it) => it.key !== body.key);
+  else if (rel === "/inbox") { const done = new Set([body.key, ...(body.answers ?? []).map((x) => x.key)]); D.inbox = (D.inbox ?? []).filter((it) => !done.has(it.key)); }
   else if (rel === "/tasks") {
     const side = ((D["feed:all"] ??= { rows: [], side: {} }).side ??= {});
     for (const jid of body.jobIds ?? []) { const j = offPatchJob(D, jid, { status: "queued" }); if (j) (side.inProgress ??= []).unshift({ id: j.id, company: j.company, title: j.title, status: "waiting for computer" }); }
@@ -580,6 +586,46 @@ function modal({ title, body, ok = "OK", cancel = "Cancel" }) {
     $("#modal").querySelectorAll("[data-m]").forEach((b) => b.onclick = () => { $("#modal").innerHTML = ""; resolve(b.dataset.m === "1"); });
   });
 }
+
+// ---------------- connect email ----------------
+// A friendly offer to connect the person's Gmail, shown while AutoApply applies and after it's done (not every
+// time: "Not now" hides it for 3 days). Connecting uses a Gmail app password; AutoApply only reads email about its
+// applications (codes, verify links, replies) and never sends or deletes anything.
+const nudgeKey = () => `aa.mailnudge.${S.userId}`;
+function mailNudgeHidden() { try { return Date.now() - Number(localStorage.getItem(nudgeKey()) || 0) < 3 * 864e5; } catch { return false; } }
+function mailNudge() {
+  if (OFF || S.user?.mailConnected || mailNudgeHidden()) return "";
+  return `<div class="mailad"><div class="mailad-ic">📬</div><div style="flex:1;min-width:0"><b>Let AutoApply read your job emails</b>
+      <div class="muted">Security codes get typed in for you, and replies from employers show up right here — no more checking your inbox.</div>
+      <div class="row" style="margin-top:8px"><button class="btn sm primary" data-connectmail>Connect Gmail</button><button class="btn sm ghost" data-mailnudge-off>Not now</button></div></div></div>`;
+}
+function connectMail() {
+  const p = S.user.profile;
+  $("#modal").innerHTML = `<div class="modal-bg"><div class="modal" style="max-width:520px"><h2>Connect ${esc(p.firstName || "your")}${p.firstName ? "'s" : ""} Gmail</h2>
+    <div class="muted" style="margin-top:6px">AutoApply then types security codes in for you, clicks “verify your email” links, and shows replies from employers in the Email tab — including the last two months for jobs it already applied to. It only reads email about these applications, and never sends or deletes anything.</div>
+    <ol style="margin:12px 0;padding-left:20px;font-size:13.5px;line-height:1.6"><li>Open <a class="l" href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Google app passwords ↗</a> and sign in. (If Google says it isn't available, turn on 2-Step Verification first.)</li>
+      <li>Type <b>AutoApply</b> as the name and press <b>Create</b>.</li><li>Copy the 16-letter password Google shows and paste it below.</li></ol>
+    <label class="f"><span>Gmail address</span><input id="cmEmail" value="${esc(p.email ?? "")}" placeholder="you@gmail.com"></label>
+    <label class="f" style="margin-top:8px"><span>App password</span>${pwField("cmPass", "16 letters, e.g. abcd efgh ijkl mnop")}</label>
+    <div class="row" style="margin-top:14px"><button class="btn" data-cm="0">Cancel</button><span class="spacer"></span><button class="btn primary" id="cmGo">Connect</button></div></div></div>`;
+  $("#modal").querySelector("[data-cm]").onclick = () => { $("#modal").innerHTML = ""; };
+  $("#cmPass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#cmGo").click(); });
+  $("#cmGo").onclick = async () => {
+    const pass = $("#cmPass").value.replace(/\s+/g, "");
+    if (pass.length < 8) return toast("Paste the 16-letter app password from Google", true);
+    $("#cmGo").disabled = true; $("#cmGo").textContent = "Checking…";
+    try {
+      await api(`${U()}/mail/imap`, { method: "POST", body: { email: $("#cmEmail").value.trim(), appPassword: pass } });
+      $("#modal").innerHTML = "";
+      toast("✓ Gmail connected — looking for emails about your applications now");
+      await loadUsers(); render();
+    } catch (e) { $("#cmGo").disabled = false; $("#cmGo").textContent = "Connect"; fail(e); }
+  };
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-connectmail]")) { e.preventDefault(); return connectMail(); }
+  if (e.target.closest("[data-mailnudge-off]")) { try { localStorage.setItem(nudgeKey(), String(Date.now())); } catch { /* private window */ } e.target.closest(".mailad")?.remove(); }
+});
 
 // password field with an eye toggle; `reveal` loads a saved value the first time it is shown
 function pwField(id, placeholder, reveal) {
@@ -914,12 +960,12 @@ function renderTask(t, show) {
         <div>${esc(info.site ?? "The job site")} sent ${info.length ? `${[8, 11, 18].includes(info.length) ? "an" : "a"} ${info.length}-character` : "a"} code to <b>${esc(info.email ?? "")}</b> to confirm the application${info.job ? ` for ${esc(info.job)}` : ""}. Open that email and type the code here — the application is sent right after.</div>
         <input id="taskCode" class="codein" autocomplete="one-time-code" spellcheck="false" placeholder="${"•".repeat(info.length || 6)}" ${info.length ? `maxlength="${info.length}"` : ""}>
         <div class="row"><button class="btn primary" id="taskCodeSave">Send application</button><button class="btn ghost" data-resp="k">Skip this job</button></div>
-        ${info.mailConnected ? "" : `<div class="muted" style="font-size:12.5px">Tip: <a class="l" data-tab="mail">connect your email</a> and AutoApply enters these codes by itself.</div>`}
+        ${info.mailConnected ? "" : `<div class="muted" style="font-size:12.5px">Tip: <a class="l" data-connectmail>connect your email</a> and AutoApply enters these codes by itself.</div>`}
         ${info.timeoutSec ? `<div class="muted" style="font-size:12px">Waits up to ${Math.round(info.timeoutSec / 60)} minutes, then moves on (the job stays in For you).</div>` : ""}</div>`;
     } else if (info.kind === "verify") {
       promptHtml = `<div class="prompt"><b>✉️ Click the link ${esc(info.site ?? info.host ?? "the job site")} emailed you</b><div>${esc(info.site ?? info.host ?? "The job site")} sent an email to <b>${esc(info.email ?? "")}</b> to confirm your email address${info.job ? ` (for ${esc(info.job)})` : ""}. Open it, click the link, then press Done — AutoApply carries on with the application.</div>
         <div class="row"><button class="btn primary" data-resp="done">Done, I clicked it</button><button class="btn ghost" data-resp="k">Skip this job</button></div>
-        ${info.mailConnected ? "" : `<div class="muted" style="font-size:12.5px">Tip: <a class="l" data-tab="mail">connect your email</a> and AutoApply clicks these links by itself.</div>`}</div>`;
+        ${info.mailConnected ? "" : `<div class="muted" style="font-size:12.5px">Tip: <a class="l" data-connectmail>connect your email</a> and AutoApply clicks these links by itself.</div>`}</div>`;
     } else {
       promptHtml = `<div class="prompt"><b>${esc(p.question)}</b>${info.messages?.length ? `<div class="muted">${info.messages.map(esc).join("<br>")}</div>` : ""}
         <div class="row"><button class="btn primary" data-resp="">Continue</button><button class="btn" data-resp="k">Skip</button></div></div>`;
@@ -934,6 +980,7 @@ function renderTask(t, show) {
     ${outcomeList(t.result?.items ?? (t.result?.status ? [t.result] : []))}
     ${t.status === "failed" && t.error ? `<div style="color:var(--bad);margin-top:6px">${esc(t.error)}</div>` : ""}
     ${promptHtml}
+    ${["run", "apply", "autopilot"].includes(t.type) && !p ? mailNudge() : ""}
     <details class="log" ${isAdmin() ? "" : "hidden"}><summary>Activity log</summary><div class="log" id="tasklog">${esc(t.log.slice(-80).join("\n"))}</div></details>
     <div class="row">${t.result?.pdf ? `<a class="btn sm" target="_blank" href="/api${U()}/receipts/${encodeURIComponent(t.result.jobId)}/${encodeURIComponent(t.result.pdf)}">Open tailored resume ↗</a>` : ""}
     ${t.result?.receiptDir ? `<button class="btn sm" onclick="openJob('${esc(t.result.id)}')">View application details</button>` : ""}</div></div>`;
@@ -1132,7 +1179,7 @@ function whyBox(r, { compact } = {}) {
   const btn = ([k, l]) => k === "site" ? (r.url ? `<a class="btn sm" href="${esc(r.url)}" target="_blank" rel="noopener">${l} ↗</a>` : "")
     : k === "foryou" ? `<button class="btn sm" data-tab="questions">${l}</button>` : k === "profile" ? `<button class="btn sm" data-tab="profile">${l}</button>`
     : k === "password" ? `<button class="btn sm" data-tab="profile" data-ptab="accounts">${l}</button>`
-    : k === "mail" ? `<button class="btn sm" data-tab="mail">${l}</button>`
+    : k === "mail" ? `<button class="btn sm" data-connectmail>${l}</button>`
     : k === "markapplied" ? `<button class="btn sm" data-act="markapplied" data-id="${esc(r.id)}">${l}</button>` : `<button class="btn sm primary" data-act="apply" data-id="${esc(r.id)}">${l}</button>`;
   return `<div class="whybox ${r.status === "failed" ? "bad" : ""}"><div class="whyh">${r.status === "failed" ? "Why it didn't go through" : r.status === "needs_input" ? "What it's waiting for" : "What happened"}</div>
     <div>${esc(x.why)}</div>${x.todo ? `<div class="muted" style="margin-top:4px">${esc(x.todo)}</div>` : ""}
@@ -1842,6 +1889,7 @@ VIEWS.preferences = async (v) => {
     <div class="card"><h2>What to look for</h2><div style="height:10px"></div><div class="form">
       <label class="f wide"><span>Job titles</span><input id="titleInclude" value="${list(s.titleInclude)}"><small>A job matches when its title contains one of these. Comma separated.</small></label>
       <label class="f wide"><span>Skip titles containing</span><input id="titleExclude" value="${list(s.titleExclude)}"></label>
+      <label class="f wide"><span>Companies you skipped</span><input id="skipCompanies" value="${list(s.skipCompanies)}"><small>Jobs at these companies are left out. Remove a name to see its jobs again. Comma separated.</small></label>
       <label class="f wide"><span>Locations</span><input id="locations" value="${list(s.locations)}"></label>
       <label class="perm" style="border:0;padding:0"><span class="switch"><input id="remoteOk" type="checkbox" ${s.remoteOk ? "checked" : ""}><span></span></span><span class="txt"><b>Include remote jobs anywhere</b></span></label>
       <label class="perm" style="border:0;padding:0"><span class="switch"><input id="everywhere" type="checkbox" ${s.searchEverywhere !== false ? "checked" : ""}><span></span></span><span class="txt"><b>Search everywhere</b><small>Also search the ${"~"}50 employer job boards AutoApply knows (banks, insurers, tech companies with roles in Canada), not only the companies listed below</small></span></label>
@@ -1871,7 +1919,7 @@ VIEWS.preferences = async (v) => {
   $("#sSave").onclick = async () => {
     const body = { ...s, dailyCap: Number($("#dailyCap").value), minScore: Number($("#minScore").value), remoteOk: $("#remoteOk").checked, headless: $("#headless").checked, searchEverywhere: $("#everywhere").checked, strictTitles: $("#strictTitles").checked,
       autopilot: { ...(s.autopilot ?? {}), enabled: $("#apOn").checked, everyHours: Number($("#apEvery").value) || 6, minScore: Number($("#apMin").value) || s.minScore },
-      titleInclude: L("titleInclude"), titleExclude: L("titleExclude"), locations: L("locations"),
+      titleInclude: L("titleInclude"), titleExclude: L("titleExclude"), skipCompanies: L("skipCompanies"), locations: L("locations"),
       companies: { ...s.companies, greenhouse: L("c_greenhouse"), lever: L("c_lever"), ashby: L("c_ashby"), workday: L("c_workday"), smartrecruiters: L("c_smartrecruiters"), workable: L("c_workable") } };
     try { S.user = await api(`${U()}/search`, { method: "PUT", body }); render(); toast("Preferences saved"); } catch (e) { fail(e); }
   };
@@ -1895,29 +1943,41 @@ VIEWS.questions = async (v) => {
   });
   const KIND = { question: "❓", verify: "✉️", captcha: "🧩", mfa: "🔐", account: "👤", review: "👀" };
   const jobsLine = (q) => q.jobs?.length ? `${q.jobs.length} job${q.jobs.length > 1 ? "s" : ""} waiting: ${q.jobs.slice(0, 3).map((j) => esc(`${j.company} — ${j.title}`)).join(", ")}${q.jobs.length > 3 ? "…" : ""}` : `Asked by: ${(q.seenAt ?? []).map(esc).join(", ")}`;
-  const answerUi = (q, i) => {
-    if (q.kind !== "question") return `<div class="row"><button class="btn sm primary" data-done="${i}">Done${q.jobs?.length ? " — retry" : ""}</button><button class="btn sm ghost" data-dismiss="${i}">Dismiss</button></div>`;
-    if (q.options?.length && q.options.length <= 6) return `<div class="row" style="gap:6px">${q.options.map((o) => `<button class="btn sm" data-tap="${i}" data-val="${esc(o)}">${esc(o)}</button>`).join("")}<button class="btn sm ghost" data-dismiss="${i}">Skip</button></div>`;
-    const input = q.options?.length ? `<select data-q="${i}"><option value="">Choose…</option>${q.options.map((o) => `<option>${esc(o)}</option>`).join("")}</select>` : `<textarea data-q="${i}" style="min-height:60px" placeholder="Your answer"></textarea>`;
-    return `${input}<div class="row" style="margin-top:10px"><button class="btn sm primary" data-save="${i}">Save answer</button><button class="btn sm ghost" data-dismiss="${i}">Skip</button></div>`;
+  // a question's input (answered together with the rest of the application's questions, then one Save button)
+  const inputFor = (q, i) => {
+    if (q.options?.length && q.options.length <= 6) return `<div class="fyopts">${q.options.map((o) => `<label class="fyopt"><input type="radio" name="fq-${i}" value="${esc(o)}"><span>${esc(o)}</span></label>`).join("")}</div>`;
+    if (q.options?.length) return `<select data-q="${i}"><option value="">Choose…</option>${q.options.map((o) => `<option>${esc(o)}</option>`).join("")}</select>`;
+    return `<textarea data-q="${i}" rows="2" placeholder="Your answer"></textarea>`;
   };
+  // checks that aren't questions (verify an email, a human check…) keep their own button: they're done outside AutoApply
+  const actionUi = (i) => `<div class="row"><button class="btn sm" data-done="${i}">Done — try again</button><button class="btn sm ghost" data-dismiss="${i}">Dismiss</button></div>`;
   const WHAT = { question: "Question", verify: "Verify your email", captcha: "Human check", mfa: "Sign-in code", account: "Job-site account", review: "Check before sending" };
-  // One card per application: the employer and job title first, then what that application is waiting for.
+  // One card per role (employer + job title): all of its questions together, then one row of buttons. A question
+  // several roles share shows on each; answering it once covers them all.
   const groups = [];
+  const norm1 = (x) => String(x ?? "").trim().toLowerCase();
   un.forEach((q, i) => {
-    const j = q.jobs?.[0], from = (q.seenAt ?? [])[0] ?? "";
-    const key = j?.id ?? `seen|${from}`;
-    let g = groups.find((x) => x.key === key);
-    if (!g) groups.push(g = { key, job: j, company: j?.company ?? from.split(" — ")[0], title: j?.title ?? from.split(" — ").slice(1).join(" — "), items: [] });
-    g.items.push({ q, i });
+    const first = (q.seenAt ?? [])[0] ?? "";
+    const targets = q.jobs?.length ? q.jobs.map((j) => ({ company: j.company, title: j.title, id: j.id })) : [{ company: first.split(" — ")[0], title: first.split(" — ").slice(1).join(" — "), id: null }];
+    for (const t of targets) {
+      const key = `${norm1(t.company)}|${norm1(t.title)}`;
+      let g = groups.find((x) => x.key === key);
+      if (!g) groups.push(g = { key, company: displayCo(t.company), title: t.title, jobIds: [], items: [] });
+      if (t.id && !g.jobIds.includes(t.id)) g.jobIds.push(t.id);
+      if (!g.items.some((x) => x.i === i)) g.items.push({ q, i });
+    }
   });
-  const also = (q) => q.jobs?.length > 1 ? `<div class="muted" style="font-size:12.5px;margin-top:3px">Also asked by ${q.jobs.slice(1, 4).map((j) => esc(`${j.company} (${j.title})`)).join(", ")}${q.jobs.length > 4 ? " and others" : ""}. One answer covers all of them.</div>` : "";
-  const groupHtml = (g) => `<div class="card fy"><div class="fyhead" ${g.job ? `data-open="${esc(g.job.id)}" title="Open this application"` : ""}>${logoFor(g.company || "?")}<div style="min-width:0;flex:1"><div class="fyco">${esc(g.company || "An earlier application")}</div><div class="fyjob">${esc(g.title)}</div></div><span class="chip needs_input">${g.items.length === 1 ? "1 thing needed" : `${g.items.length} things needed`}</span></div>
-      ${g.items.map(({ q, i }) => `<div class="fyq"><div class="fyk">${esc(WHAT[q.kind] ?? "Question")}</div><div class="fyt">${esc(q.question)}</div>${also(q)}<div style="margin-top:10px">${answerUi(q, i)}</div></div>`).join("")}</div>`;
+  const also = (q, g) => { const others = (q.jobs ?? []).filter((j) => !g.jobIds.includes(j.id)).filter((j, k, all) => all.findIndex((x) => norm1(x.company) === norm1(j.company) && norm1(x.title) === norm1(j.title)) === k); return others.length ? `<div class="muted" style="font-size:12.5px;margin-top:3px">Also asked by ${others.slice(0, 3).map((j) => esc(`${displayCo(j.company)} (${j.title})`)).join(", ")}${others.length > 3 ? " and others" : ""}. One answer covers all of them.</div>` : ""; };
+  const groupHtml = (g, gi) => {
+    const qs = g.items.filter(({ q }) => q.kind === "question");
+    return `<div class="card fy" data-g="${gi}"><div class="fyhead" ${g.jobIds[0] ? `data-open="${esc(g.jobIds[0])}" title="Open this application"` : ""}>${logoFor(g.company || "?")}<div style="min-width:0;flex:1"><div class="fyco">${esc(g.company || "An earlier application")}</div><div class="fyjob">${esc(g.title)}${g.jobIds.length > 1 ? ` <span class="muted">· ${g.jobIds.length} openings</span>` : ""}</div></div><span class="chip needs_input">${qs.length ? `${qs.length} to answer` : `${g.items.length} to do`}</span></div>
+      ${g.items.map(({ q, i }) => `<div class="fyq"><div class="fyk">${esc(WHAT[q.kind] ?? "Question")}</div><div class="fyt">${esc(q.question)}</div>${also(q, g)}<div style="margin-top:10px">${q.kind === "question" ? inputFor(q, i) : actionUi(i)}</div></div>`).join("")}
+      <div class="fyfoot">${g.company ? `<button class="btn sm ghost" data-skipco="${gi}" title="Skip every job at ${esc(g.company)}, now and in future searches">Skip this company</button>` : ""}${g.jobIds.length ? `<button class="btn sm ghost" data-skiprole="${gi}">Skip this role</button>` : ""}${qs.length ? `<button class="btn sm primary" data-saveall="${gi}">${g.jobIds.length ? "Save answers & apply" : "Save answers"}</button>` : ""}</div></div>`;
+  };
   v.innerHTML = `<h1>For you</h1><p class="sub">Things only ${esc(S.user.profile.firstName || "you")} can do: questions AutoApply couldn't answer, emails to verify, and human checks. Answer once and it is remembered; the waiting jobs are retried right away.</p>
     ${failed.length ? `<h2 style="margin:18px 0 8px">Didn't go through</h2>${failed.map((r) => `<div class="card fy"><div class="fyhead" data-open="${esc(r.id)}" title="Open this application">${logoFor(r.company || "?")}<div style="min-width:0;flex:1"><div class="fyco">${esc(r.company)}</div><div class="fyjob">${esc(r.title)}</div></div><span class="chip failed">Not sent</span></div>
       <div class="fyq">${whyBox(r).replace(/<\/div>\s*$/, `<div class="row" style="margin-top:6px"><button class="btn sm ghost" data-seen="${esc(r.id)}">Got it, hide</button></div></div>`)}</div></div>`).join("")}` : ""}
-    ${un.length ? `${failed.length ? `<h2 style="margin:18px 0 8px">Questions and checks</h2>` : ""}${groups.map(groupHtml).join("")}`
+    ${un.length ? `${failed.length ? `<h2 style="margin:18px 0 8px">Questions and checks</h2>` : ""}${groups.map((g, gi) => groupHtml(g, gi)).join("")}`
       : failed.length ? "" : `<div class="card empty"><div class="big">🎉</div><p>Nothing needs you right now.</p></div>`}
     ${actMail.length ? `<div class="card"><div class="row"><h2 style="flex:1">Emails to look at</h2><a class="l" data-tab="mail">All email →</a></div><p class="muted" style="margin:2px 0 6px;font-size:13px">Interview invites, tests, offers and recruiter messages from the last two weeks.</p>
       ${actMail.map((m) => `<div class="mrow2"><div class="micon">${ICON.mail}</div><div style="min-width:0"><span class="chip">${esc(MAILKIND[m.kind] ?? m.kind)}</span> <span class="ms">${esc(m.subject)}</span><div class="mf">${esc(m.from ?? "")}${m.job ? ` · ${esc(m.job.company)} — ${esc(m.job.title)}` : ""}</div></div><div>${m.job ? `<button class="btn sm" data-open="${esc(m.job.id)}">Open</button>` : ""}</div></div>`).join("")}</div>` : ""}
@@ -1944,8 +2004,30 @@ VIEWS.questions = async (v) => {
       await loadUsers(); render();
     } catch (e) { fail(e); }
   };
-  v.querySelectorAll("[data-save]").forEach((b) => b.onclick = () => { const val = v.querySelector(`[data-q="${b.dataset.save}"]`).value.trim(); if (!val) return toast("Type or pick an answer", true); send(Number(b.dataset.save), val); });
-  v.querySelectorAll("[data-tap]").forEach((b) => b.onclick = () => send(Number(b.dataset.tap), b.dataset.val));
+  // the value given for question i: a picked option, a chosen item, or typed text
+  const valueOf = (i) => (v.querySelector(`input[name="fq-${i}"]:checked`)?.value ?? v.querySelector(`[data-q="${i}"]`)?.value ?? "").trim();
+  v.querySelectorAll("[data-saveall]").forEach((b) => b.onclick = async () => {
+    const g = groups[Number(b.dataset.saveall)];
+    const qs = g.items.filter(({ q }) => q.kind === "question");
+    const blank = qs.filter(({ i }) => !valueOf(i));
+    v.querySelectorAll(`[data-g="${b.dataset.saveall}"] .fyq`).forEach((el) => el.classList.remove("need"));
+    if (blank.length) {
+      for (const { i } of blank) (v.querySelector(`[data-q="${i}"]`) ?? v.querySelector(`input[name="fq-${i}"]`))?.closest(".fyq")?.classList.add("need");
+      v.querySelector(".fyq.need")?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return toast(blank.length === qs.length ? "Answer the questions first" : `${blank.length} question${blank.length > 1 ? "s" : ""} still need an answer`, true);
+    }
+    b.disabled = true;
+    try {
+      const r = await api(`${U()}/inbox`, { method: "POST", body: { answers: qs.map(({ q, i }) => ({ key: q.key, answer: valueOf(i) })), retry: g.jobIds.length > 0 } });
+      const n = r.requeued.length;
+      toast(n ? (r.task ? `Saved — applying to ${n} job${n > 1 ? "s" : ""} now` : `Saved — ${n} job${n > 1 ? "s" : ""} will be applied to next`) : "Answers saved");
+      if (r.task) pollTasks(true);
+      await loadUsers(); render();
+    } catch (e) { b.disabled = false; fail(e); }
+  });
+  const skip = async (body, msg) => { try { const r = await api(`${U()}/inbox/skip`, { method: "POST", body }); toast(msg(r.skipped)); await loadUsers(); render(); } catch (e) { fail(e); } };
+  v.querySelectorAll("[data-skiprole]").forEach((b) => b.onclick = () => { const g = groups[Number(b.dataset.skiprole)]; skip({ jobIds: g.jobIds }, () => `Skipped ${g.title} at ${g.company}`); });
+  v.querySelectorAll("[data-skipco]").forEach((b) => b.onclick = () => { const g = groups[Number(b.dataset.skipco)]; skip({ jobIds: g.jobIds, company: g.company }, (n) => `Skipped ${g.company}${n > 1 ? ` (${n} jobs)` : ""}. To undo: Job preferences → Companies you skipped`); });
   v.querySelectorAll("[data-done]").forEach((b) => b.onclick = () => send(Number(b.dataset.done), null));
   v.querySelectorAll("[data-dismiss]").forEach((b) => b.onclick = () => send(Number(b.dataset.dismiss), null, false));
   v.addEventListener("click", (e) => { if (e.target.matches("[data-rm]")) e.target.closest(".kv").remove(); });
@@ -1974,7 +2056,7 @@ VIEWS.mail = async (v) => {
   v.innerHTML = `<div class="row" style="align-items:flex-start"><div style="flex:1"><h1>Email</h1><p class="sub">Emails about the jobs AutoApply applied to for ${esc(S.user.profile.firstName || "this person")}, and reply drafts it wrote. Nothing else from the mailbox is kept, and AutoApply never sends email itself.</p></div>
       ${d.connected && !OFF ? `<button class="btn" id="mailCheck">Check for new email</button>` : ""}</div>
     ${d.connected ? `<div class="muted" style="font-size:13px;margin:-10px 0 14px">Connected to <b>${esc(d.email ?? "your mailbox")}</b>${d.lastSyncAt ? ` · last checked ${esc(new Date(d.lastSyncAt).toLocaleString())}` : ""}</div>`
-      : `<div class="banner info"><div>${ICON.mail}</div><div style="flex:1"><b>No mailbox connected.</b> Connect ${esc(S.user.profile.firstName || "their")}'s email so replies about these applications show up here and verification codes are entered automatically. Other email is never saved.</div><button class="btn sm primary" data-tab="profile" data-ptab="accounts">Connect email</button></div>`}
+      : `<div class="banner info"><div>${ICON.mail}</div><div style="flex:1"><b>No mailbox connected.</b> Connect ${esc(S.user.profile.firstName || "their")}'s email so replies about these applications show up here and verification codes are entered automatically. Other email is never saved.</div><button class="btn sm primary" data-connectmail>Connect Gmail</button></div>`}
     <div class="tabs">${[["all", "All", items.length], ["received", "Received", got.length], ["drafts", "Drafts", drafts.length]].map(([k, l, n]) => `<button data-mtab="${k}" class="${tab === k ? "on" : ""}">${l}<span class="n">${n}</span></button>`).join("")}</div>
     ${rows.length ? `<div class="card" style="padding:4px 14px">${rows.map(row).join("")}</div>` : `<div class="card empty"><div class="big">📭</div><p>${tab === "drafts" ? "No reply drafts." : "No emails yet. Replies from employers appear here after AutoApply applies."}</p></div>`}`;
   v.querySelectorAll("[data-mtab]").forEach((b) => b.onclick = () => { S.mailTab = b.dataset.mtab; render(); });
