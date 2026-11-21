@@ -4,40 +4,44 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AutoApply</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2032%2032%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%228%22%20fill%3D%22%2324459c%22%2F%3E%3Cpath%20d%3D%22M9.5%206.5h9.25L23.5%2011.25V25.5h-14z%22%20fill%3D%22%23fff%22%2F%3E%3Cpath%20d%3D%22M18.75%206.5v4.75h4.75z%22%20fill%3D%22%23b9c6ea%22%2F%3E%3Cpath%20d%3D%22m12.6%2018.2%202.7%202.7%205.2-5.4%22%20fill%3D%22none%22%20stroke%3D%22%2324459c%22%20stroke-width%3D%222.4%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <script>try { document.documentElement.dataset.theme = localStorage.getItem("aa.theme") || "light"; } catch { document.documentElement.dataset.theme = "light"; }</script>
 <style>
 :root {
-  --bg: #f5f6fa; --panel: #ffffff; --ink: #151821; --muted: #646d7c; --line: #e4e7ee; --accent: #5b4bf5; --accent-soft: #eeecff; --accent-ink: #fff;
-  --good: #14804a; --good-soft: #e5f6ec; --warn: #9a5b00; --warn-soft: #fff3e0; --bad: #c0261c; --bad-soft: #fdecea; --chip: #f0f2f6;
-  --shadow: 0 1px 2px rgba(16,24,40,.05), 0 2px 8px rgba(16,24,40,.06); --radius: 14px;
+  --bg: #f7f6f3; --panel: #ffffff; --ink: #1c1b19; --ink2: #4f4b45; --muted: #6f6a62; --line: #e6e3dd; --accent: #24459c; --accent-soft: #eaeef8; --accent-ink: #fff;
+  --good: #177245; --good-soft: #e7f2eb; --warn: #8a5300; --warn-soft: #faf0dc; --bad: #b42318; --bad-soft: #fbebe9; --chip: #f1efea;
+  --shadow: 0 1px 2px rgba(28,27,25,.05); --radius: 12px;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace; --ease: cubic-bezier(.22, 1, .36, 1);
 }
 /* Light by default (like Tsenta); dark when chosen in the sidebar, or "System" on a dark system */
-:root[data-theme="dark"] { --bg: #0e1015; --panel: #171a21; --ink: #e9ecf2; --muted: #9aa3b2; --line: #272c36; --accent: #8b7dff; --accent-soft: #252244; --chip: #20242d;
-  --good: #4cd08d; --good-soft: #15291f; --warn: #f2b45a; --warn-soft: #2d2414; --bad: #ff7b70; --bad-soft: #301a19; --shadow: none; color-scheme: dark; }
+:root[data-theme="dark"] { --bg: #151413; --panel: #1c1b19; --ink: #ecebe6; --ink2: #b9b5ad; --muted: #9b968d; --line: #2e2c29; --accent: #9db2ee; --accent-soft: #222a3d; --accent-ink: #10131c; --chip: #262422;
+  --good: #4cc38a; --good-soft: #16291f; --warn: #e9b05c; --warn-soft: #2c2416; --bad: #f0716a; --bad-soft: #2f1b1a; --shadow: none; color-scheme: dark; }
 @media (prefers-color-scheme: dark) {
-  :root[data-theme="system"] { --bg: #0e1015; --panel: #171a21; --ink: #e9ecf2; --muted: #9aa3b2; --line: #272c36; --accent: #8b7dff; --accent-soft: #252244; --chip: #20242d;
-    --good: #4cd08d; --good-soft: #15291f; --warn: #f2b45a; --warn-soft: #2d2414; --bad: #ff7b70; --bad-soft: #301a19; --shadow: none; color-scheme: dark; }
+  :root[data-theme="system"] { --bg: #151413; --panel: #1c1b19; --ink: #ecebe6; --ink2: #b9b5ad; --muted: #9b968d; --line: #2e2c29; --accent: #9db2ee; --accent-soft: #222a3d; --accent-ink: #10131c; --chip: #262422;
+    --good: #4cc38a; --good-soft: #16291f; --warn: #e9b05c; --warn-soft: #2c2416; --bad: #f0716a; --bad-soft: #2f1b1a; --shadow: none; color-scheme: dark; }
 }
 :root:not([data-theme]), :root[data-theme="light"] { color-scheme: light; }
 * { box-sizing: border-box; }
-body { margin: 0; font: 14px/1.5 "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+body { margin: 0; font: 14px/1.5 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; font-variant-numeric: tabular-nums; background: var(--bg); color: var(--ink); }
 a { color: var(--accent); }
 .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
 aside { background: var(--panel); border-right: 1px solid var(--line); padding: 18px 14px; display: flex; flex-direction: column; gap: 16px; position: sticky; top: 0; height: 100vh; }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 750; font-size: 18px; letter-spacing: -.02em; padding: 2px 6px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 18px; letter-spacing: -.02em; padding: 2px 6px; }
 .logo { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), #b05bf5); color: #fff; display: grid; place-items: center; font-size: 15px; }
 .me { display: flex; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
-.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; flex: none; }
-.me select { border: 0; padding: 0; background: none; color: var(--ink); font-weight: 600; width: 100%; cursor: pointer; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 500; flex: none; }
+.me select { border: 0; padding: 0; background: none; color: var(--ink); font-weight: 500; width: 100%; cursor: pointer; }
 /* drop-down lists follow the app's theme (otherwise Windows draws them white with the page's light text) */
 select option, select optgroup { background: var(--panel); color: var(--ink); }
 .me small { color: var(--muted); display: block; }
 nav { display: grid; gap: 2px; }
 nav button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: none; color: var(--ink); padding: 9px 10px; border-radius: 10px; cursor: pointer; font: inherit; }
 nav button:hover { background: var(--chip); }
-nav button.on { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
+nav button.on { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
 nav .ic { width: 18px; text-align: center; }
-nav .n { margin-left: auto; font-size: 11.5px; font-weight: 650; background: var(--accent); color: #fff; border-radius: 999px; padding: 0 7px; }
+nav .n { margin-left: auto; font-size: 11.5px; font-weight: 500; background: var(--accent); color: #fff; border-radius: 999px; padding: 0 7px; }
 nav button.on .n { background: var(--accent); color: #fff; }
 nav .n.soft, nav button.on .n.soft { background: var(--chip); color: var(--muted); }
 .side-foot { margin-top: auto; display: grid; gap: 8px; }
@@ -59,7 +63,7 @@ h3 { font-size: 14px; margin: 0; }
 .stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
 .stat b { display: block; font-size: 24px; letter-spacing: -.02em; }
 .stat span { color: var(--muted); font-size: 12.5px; }
-button.btn, .btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 8px 14px; border-radius: 10px; cursor: pointer; font: inherit; font-weight: 550; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+button.btn, .btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 8px 14px; border-radius: 10px; cursor: pointer; font: inherit; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .btn:hover { border-color: var(--muted); }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .btn.primary:hover { filter: brightness(1.08); }
@@ -71,7 +75,7 @@ input, select, textarea { font: inherit; color: var(--ink); background: var(--pa
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
 textarea { min-height: 90px; resize: vertical; }
 label.f { display: grid; gap: 5px; font-size: 13px; }
-label.f > span { font-weight: 600; color: var(--ink); }
+label.f > span { font-weight: 500; color: var(--ink); }
 label.f > small { color: var(--muted); font-size: 12px; }
 .form { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 .form .wide { grid-column: 1 / -1; }
@@ -82,8 +86,8 @@ label.f > small { color: var(--muted); font-size: 12px; }
 /* permission toggles */
 .perm { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-top: 1px solid var(--line); }
 .perm:first-of-type { border-top: 0; padding-top: 4px; }
-.perm .txt { flex: 1; } .perm .txt b { display: block; font-weight: 600; } .perm .txt small { color: var(--muted); }
-.aimode { flex: 1 1 180px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; font-weight: 600; } .aimode small { display: block; font-weight: 400; color: var(--muted); margin-top: 3px; font-size: 12px; } .aimode.on { border-color: var(--accent); background: var(--accent-soft); }
+.perm .txt { flex: 1; } .perm .txt b { display: block; font-weight: 500; } .perm .txt small { color: var(--muted); }
+.aimode { flex: 1 1 180px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; font-weight: 500; } .aimode small { display: block; font-weight: 400; color: var(--muted); margin-top: 3px; font-size: 12px; } .aimode.on { border-color: var(--accent); background: var(--accent-soft); }
 .switch { position: relative; width: 42px; height: 24px; flex: none; margin-top: 2px; }
 .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
 .switch span { position: absolute; inset: 0; background: var(--line); border-radius: 999px; transition: .15s; cursor: pointer; }
@@ -92,27 +96,27 @@ label.f > small { color: var(--muted); font-size: 12px; }
 .switch input:checked + span::after { transform: translateX(18px); }
 .seg { display: inline-flex; background: var(--chip); border-radius: 10px; padding: 3px; gap: 2px; }
 .seg button { border: 0; background: none; padding: 6px 12px; border-radius: 8px; font: inherit; cursor: pointer; color: var(--muted); }
-.seg button.on { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: var(--shadow); }
+.seg button.on { background: var(--panel); color: var(--ink); font-weight: 500; box-shadow: var(--shadow); }
 /* job cards */
 .jobs { display: grid; gap: 10px; }
 .job { display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
 .job:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
 .ring { --p: 0; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--c, var(--good)) calc(var(--p) * 1%), var(--chip) 0); }
 .ring b { width: 42px; height: 42px; border-radius: 50%; background: var(--panel); display: grid; place-items: center; font-size: 13px; }
-.job .title { font-weight: 650; cursor: pointer; } .job .title:hover { color: var(--accent); }
+.job .title { font-weight: 500; cursor: pointer; } .job .title:hover { color: var(--accent); }
 .job .meta { color: var(--muted); font-size: 13px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 2px; }
 .job .acts { display: flex; gap: 6px; align-items: center; }
 .job select { width: auto; padding: 5px 8px; font-size: 12.5px; }
-.chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 9px; font-size: 12px; background: var(--chip); color: var(--muted); font-weight: 550; }
+.chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 9px; font-size: 12px; background: var(--chip); color: var(--muted); font-weight: 500; }
 .chip.submitted { background: var(--good-soft); color: var(--good); }
 .chip.failed, .chip.needs_input { background: var(--bad-soft); color: var(--bad); }
 .chip.filled, .chip.skipped, .chip.running { background: var(--warn-soft); color: var(--warn); }
 .chip.matched { background: var(--accent-soft); color: var(--accent); }
 table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
 th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
-th { font-size: 12px; color: var(--muted); font-weight: 600; background: var(--chip); }
+th { font-size: 12px; color: var(--muted); font-weight: 500; background: var(--chip); }
 tr:last-child td { border-bottom: 0; }
-td.t { font-weight: 600; cursor: pointer; } td.t:hover { color: var(--accent); }
+td.t { font-weight: 500; cursor: pointer; } td.t:hover { color: var(--accent); }
 .muted { color: var(--muted); }
 .banner { display: flex; gap: 12px; align-items: center; border-radius: var(--radius); padding: 12px 16px; margin-bottom: 18px; background: var(--warn-soft); color: var(--warn); }
 .banner.info { background: var(--accent-soft); color: var(--accent); }
@@ -138,13 +142,13 @@ details.log summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
 .log { font: 12px/1.45 ui-monospace, Consolas, monospace; background: var(--chip); border-radius: 10px; padding: 8px; max-height: 200px; overflow: auto; white-space: pre-wrap; margin: 6px 0; }
 .prompt { border: 1.5px solid var(--accent); background: var(--accent-soft); border-radius: 12px; padding: 12px; margin-top: 10px; display: grid; gap: 8px; }
 .toasts { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50; display: grid; gap: 8px; }
-.toast { background: var(--ink); color: var(--panel); padding: 10px 16px; border-radius: 10px; font-weight: 550; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+.toast { background: var(--ink); color: var(--panel); padding: 10px 16px; border-radius: 10px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
 .toast.err { background: var(--bad); color: #fff; }
 .kv { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 8px; align-items: start; margin-bottom: 8px; }
 .tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
 .feedgrid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; align-items: start; }
 .feedhead { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; } .feedhead .views { display: flex; gap: 22px; }
-.feedhead .views button { border: 0; background: none; font: inherit; font-size: 30px; font-weight: 700; color: var(--muted); opacity: .55; cursor: pointer; padding: 0; letter-spacing: -.02em; display: flex; align-items: center; gap: 6px; }
+.feedhead .views button { border: 0; background: none; font: inherit; font-size: 30px; font-weight: 500; color: var(--muted); opacity: .55; cursor: pointer; padding: 0; letter-spacing: -.02em; display: flex; align-items: center; gap: 6px; }
 .feedhead .views button.on { color: var(--ink); opacity: 1; } .feedhead .badge { font-size: 12px; background: var(--ink); color: var(--panel); border-radius: 999px; min-width: 20px; height: 20px; display: inline-grid; place-items: center; padding: 0 6px; }
 .chipbox { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 24px; padding: 8px 8px 8px 12px; background: var(--panel); box-sizing: border-box; width: 100%; overflow: hidden; } /* rounded corners that still hold several rows of chips */
 .chipbox:focus-within { border-color: var(--accent); }
@@ -158,22 +162,22 @@ details.log summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
 .fchip .pop > button { text-align: left; border: 0; background: none; color: var(--ink); padding: 6px 8px; border-radius: 8px; cursor: pointer; font: inherit; } .fchip .pop > button:hover, .fchip .pop > button.on { background: var(--chip); }
 .cpick { display: flex; gap: 6px; align-items: center; padding: 3px 2px; font-size: 13px; } .cpick input { width: auto; }
 .jlist { display: grid; } .jrow { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto auto; gap: 12px; align-items: center; padding: 12px 4px; border-bottom: 1px solid var(--line); }
-.jrow:hover { background: var(--chip); } .jmain { cursor: pointer; min-width: 0; } .jt { font-weight: 600; font-size: 15.5px; } .jm { color: var(--muted); font-size: 13px; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.clogo { width: 36px; height: 36px; border-radius: 10px; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; flex: none; }
+.jrow:hover { background: var(--chip); } .jmain { cursor: pointer; min-width: 0; } .jt { font-weight: 500; font-size: 15.5px; } .jm { color: var(--muted); font-size: 13px; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.clogo { width: 36px; height: 36px; border-radius: 10px; color: #fff; display: grid; place-items: center; font-weight: 500; font-size: 13px; flex: none; }
 .ibtn { width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; font-size: 15px; } .ibtn.send:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .fside { position: sticky; top: 16px; display: grid; gap: 14px; min-width: 0; } .sbox { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
-.shead { display: flex; gap: 8px; align-items: center; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 650; margin-bottom: 8px; } .shead a { margin-left: auto; }
+.shead { display: flex; gap: 8px; align-items: center; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 8px; } .shead a { margin-left: auto; }
 .logos { display: flex; flex-wrap: wrap; gap: 6px; } .logos .clogo { width: 30px; height: 30px; font-size: 11px; border-radius: 999px; }
 .sitem > span:last-child { white-space: nowrap; font-size: 11.5px; }
 .sbox { min-width: 0; overflow: hidden; }
-.sitem { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; min-width: 0; gap: 8px; align-items: center; padding: 6px 0; cursor: pointer; font-size: 12.5px; } .sitem .clogo { width: 30px; height: 30px; font-size: 11px; } .sitem b { font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px; } .sitem .warn { color: var(--warn); }
+.sitem { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; min-width: 0; gap: 8px; align-items: center; padding: 6px 0; cursor: pointer; font-size: 12.5px; } .sitem .clogo { width: 30px; height: 30px; font-size: 11px; } .sitem b { font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px; } .sitem .warn { color: var(--warn); }
 a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 @media (max-width: 900px) { .feedgrid { grid-template-columns: 1fr; } .fside { position: static; } }
 .feedmain { min-width: 0; position: relative; padding-bottom: 60px; }
 #feedList { transition: opacity .15s ease; } #feedList.loading { opacity: .45; pointer-events: none; }
 .fchip .pop > button .tick { float: right; color: var(--good); }
 .fchip .pop.msel { width: 300px; max-width: 90vw; padding: 0; gap: 0; overflow: hidden; }
-.msel .mhead { font-size: 12px; font-weight: 650; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 12px 14px 6px; }
+.msel .mhead { font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 12px 14px 6px; }
 .msel .msearch { margin: 2px 12px 8px; width: calc(100% - 24px); }
 .msel .row .msearch { margin: 0; width: auto; flex: 1; } .msel > .row { padding: 4px 12px 10px; }
 .msel .mlist { max-height: 280px; overflow: auto; padding: 0 6px 6px; }
@@ -181,30 +185,30 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 .msel .mrow:hover { background: var(--chip); }
 .msel .mrow input { position: absolute; opacity: 0; pointer-events: none; }
 .msel .mbox { width: 18px; height: 18px; border: 1.5px solid var(--line); border-radius: 5px; display: grid; place-items: center; background: var(--panel); }
-.msel .mrow input:checked + .mbox { background: var(--ink); border-color: var(--ink); } .msel .mrow input:checked + .mbox::after { content: "✓"; color: var(--panel); font-size: 12px; font-weight: 700; }
+.msel .mrow input:checked + .mbox { background: var(--ink); border-color: var(--ink); } .msel .mrow input:checked + .mbox::after { content: "✓"; color: var(--panel); font-size: 12px; font-weight: 500; }
 .msel .mrow input:focus-visible + .mbox { outline: 2px solid var(--accent); outline-offset: 2px; }
 .msel .mlabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .msel .mcount { color: var(--muted); font-size: 12px; }
 .msel .mwords { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 12px 10px; max-height: 160px; overflow: auto; }
 .msel .mfoot { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--panel); }
-.msel .mclear { border: 0; background: none; color: var(--ink); font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; padding: 4px 2px; text-decoration: underline; text-underline-offset: 3px; } .msel .mclear:disabled { color: var(--muted); text-decoration: none; cursor: default; }
+.msel .mclear { border: 0; background: none; color: var(--ink); font: inherit; font-weight: 500; font-size: 13px; cursor: pointer; padding: 4px 2px; text-decoration: underline; text-underline-offset: 3px; } .msel .mclear:disabled { color: var(--muted); text-decoration: none; cursor: default; }
 .headicons { display: flex; align-items: center; gap: 10px; } .hicon { position: relative; width: 36px; height: 36px; border-radius: 999px; border: 0; background: none; color: var(--ink); font-size: 18px; cursor: pointer; } .hicon:hover { background: var(--chip); }
 .hicon .dot { position: absolute; top: -2px; right: -4px; background: #16a34a; color: #fff; font-size: 10px; border-radius: 999px; padding: 0 5px; line-height: 16px; }
 .avatar.sm { width: 34px; height: 34px; font-size: 12px; background: #1f3d34; color: #fff; }
 .searchrow { display: flex; gap: 10px; align-items: flex-start; } .searchrow .chipbox { flex: 1; }
-.pillbtn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; } .pillbtn:hover { background: var(--chip); }
-.blackbtn { border: 0; background: var(--ink); color: var(--panel); border-radius: 999px; padding: 8px 14px; font: inherit; font-weight: 650; font-size: 13px; cursor: pointer; white-space: nowrap; } .blackbtn.sm { padding: 5px 12px; font-size: 12.5px; } .blackbtn:hover { opacity: .88; }
+.pillbtn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 10px 16px; font: inherit; font-weight: 500; cursor: pointer; white-space: nowrap; } .pillbtn:hover { background: var(--chip); }
+.blackbtn { border: 0; background: var(--ink); color: var(--panel); border-radius: 999px; padding: 8px 14px; font: inherit; font-weight: 500; font-size: 13px; cursor: pointer; white-space: nowrap; } .blackbtn.sm { padding: 5px 12px; font-size: 12.5px; } .blackbtn:hover { opacity: .88; }
 .fchip-btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; } .fchip-btn.on { background: var(--ink); color: var(--panel); border-color: var(--ink); }
 .fchip .n { background: var(--panel); color: var(--ink); border-radius: 999px; padding: 0 6px; font-size: 11px; margin-left: 2px; } .fchip .caret { opacity: .6; font-size: 10px; }
 .fchip .pop .pophint { font-size: 12.5px; color: var(--muted); } .fchip .pop .wordlist { display: flex; flex-wrap: wrap; gap: 6px; }
 .fchip .pop input { width: 100%; min-width: 0; padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); font: inherit; }
 .fchip .pop .clist { max-height: 260px; overflow: auto; } .fchip .pop.alignright { left: auto; right: 0; } .fchip .pop { min-width: 260px; max-width: 340px; }
-.linkrow { display: flex; align-items: center; gap: 16px; margin: 8px 0 10px; font-size: 13px; } .linkrow .strong { color: var(--ink); font-weight: 650; } .linkrow .muted { color: var(--muted); }
-.jk { font-size: 12px; color: var(--muted); margin-top: 2px; } .jk .good { color: var(--good); font-weight: 600; }
+.linkrow { display: flex; align-items: center; gap: 16px; margin: 8px 0 10px; font-size: 13px; } .linkrow .strong { color: var(--ink); font-weight: 500; } .linkrow .muted { color: var(--muted); }
+.jk { font-size: 12px; color: var(--muted); margin-top: 2px; } .jk .good { color: var(--good); font-weight: 500; }
 .ibtn.star { border-color: transparent; opacity: 0; } .jrow:hover .ibtn.star, .ibtn.star.on { opacity: 1; }
 .leftpill { display: inline-flex; gap: 8px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 13px; box-shadow: var(--shadow); margin-top: 14px; }
 .fside .sbox.plain { background: none; border: 0; padding: 4px 2px; }
 .fside { border-left: 1px solid var(--line); padding-left: 22px; min-height: calc(100vh - 60px); align-content: start; }
-.srow { display: flex; justify-content: space-between; align-items: center; } .sname { font-size: 18px; font-weight: 700; } .sstat { font-size: 12.5px; }
+.srow { display: flex; justify-content: space-between; align-items: center; } .sname { font-size: 18px; font-weight: 500; } .sstat { font-size: 12.5px; }
 .sdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #9aa3b2; margin-right: 6px; } .sdot.on { background: #16a34a; }
 .orb { width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #f3f4f6, #9aa6b8 70%, #6b7686); }
 .pill { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12.5px; background: var(--panel); }
@@ -212,31 +216,31 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 .askbox input { flex: 1; border: 0; outline: none; background: none; color: var(--ink); font: inherit; padding: 8px 0; }
 .askbox button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--muted); color: #fff; font-size: 16px; cursor: pointer; } .askbox button:hover { background: var(--ink); }
 .themesw { display: grid; gap: 4px; font-size: 12px; } .themesw .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.themesw .seg button { flex: 1; border: 0; background: none; color: var(--muted); padding: 5px 4px; font: inherit; font-size: 12px; cursor: pointer; } .themesw .seg button.on { background: var(--chip); color: var(--ink); font-weight: 650; }
+.themesw .seg button { flex: 1; border: 0; background: none; color: var(--muted); padding: 5px 4px; font: inherit; font-size: 12px; cursor: pointer; } .themesw .seg button.on { background: var(--chip); color: var(--ink); font-weight: 500; }
 .claudesw { display: grid; gap: 4px; font-size: 12px; } .claudesw .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .claudesw .seg button { flex: 1; border: 0; background: none; color: var(--muted); padding: 6px 4px; font: inherit; font-size: 12px; cursor: pointer; }
-.claudesw .seg button.on { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
-.acct { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; } .acct b { color: var(--ink); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.claudesw .seg button.on { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.acct { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; } .acct b { color: var(--ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acct a { margin-left: auto; color: var(--accent); cursor: pointer; }
 .auth { position: fixed; inset: 0; z-index: 50; display: grid; grid-template-columns: 1fr 1fr; background: var(--panel); overflow: auto; }
 .auth .pitch { background: linear-gradient(160deg, var(--accent-soft), var(--bg) 70%); padding: 40px 56px; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
 .auth .pitch .brand { font-size: 18px; } .auth .pitch .mid { margin: auto 0; max-width: 460px; }
-.auth .pitch small { letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-size: 11px; font-weight: 650; }
+.auth .pitch small { letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-size: 11px; font-weight: 500; }
 .auth .pitch h2 { font-size: 40px; line-height: 1.1; margin: 12px 0 14px; letter-spacing: -.02em; } .auth .pitch p { color: var(--muted); margin: 0 0 22px; }
-.auth .pitch ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; } .auth .pitch li::before { content: "✓"; color: var(--accent); font-weight: 700; margin-right: 10px; }
+.auth .pitch ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; } .auth .pitch li::before { content: "✓"; color: var(--accent); font-weight: 500; margin-right: 10px; }
 .auth .side { display: grid; place-items: center; padding: 32px 20px; } .auth form { width: 100%; max-width: 380px; }
 .auth h1 { font-size: 26px; text-align: center; margin: 0 0 6px; } .auth .lead { text-align: center; color: var(--muted); margin: 0 0 24px; font-size: 14px; }
-.auth .oauth { width: 100%; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.auth .oauth { width: 100%; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-weight: 500; cursor: pointer; }
 .auth .oauth:hover { background: var(--chip); } .auth .or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; margin: 20px 0; } .auth .or::before, .auth .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .auth .f { margin-top: 12px; } .auth .go { width: 100%; justify-content: center; margin-top: 18px; padding: 12px; border-radius: 999px; font-size: 15px; }
-.auth .alt { margin-top: 16px; font-size: 13.5px; text-align: center; color: var(--muted); } .auth a.l { color: var(--accent); cursor: pointer; font-weight: 600; text-decoration: none; }
+.auth .alt { margin-top: 16px; font-size: 13.5px; text-align: center; color: var(--muted); } .auth a.l { color: var(--accent); cursor: pointer; font-weight: 500; text-decoration: none; }
 .auth .who { display: flex; justify-content: space-between; align-items: center; background: var(--chip); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
 .auth .fine { margin-top: 18px; font-size: 12px; text-align: center; color: var(--muted); }
-.ferr { display: none; color: var(--bad); font-size: 13px; font-weight: 550; margin-top: 2px; } .ferr.on { display: block; }
+.ferr { display: none; color: var(--bad); font-size: 13px; font-weight: 500; margin-top: 2px; } .ferr.on { display: block; }
 .auth #err-form.on { margin-top: 12px; background: var(--bad-soft); border-radius: 10px; padding: 9px 12px; }
 .auth input.bad { border-color: var(--bad); outline: 2px solid var(--bad-soft); }
 .pwrules { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px; font-size: 12.5px; color: var(--muted); }
-.pwrules li::before { content: "○"; display: inline-block; width: 16px; } .pwrules li.ok { color: var(--good); } .pwrules li.ok::before { content: "✓"; font-weight: 700; }
+.pwrules li::before { content: "○"; display: inline-block; width: 16px; } .pwrules li.ok { color: var(--good); } .pwrules li.ok::before { content: "✓"; font-weight: 500; }
 .auth .mbrand { display: none; justify-content: center; margin-bottom: 18px; }
 @media (max-width: 860px) { .auth { grid-template-columns: 1fr; } .auth .pitch { display: none; } .auth .mbrand { display: flex; } }
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 12px; } .tabs button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; }
@@ -253,7 +257,7 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 .qbar { display: flex; align-items: center; gap: 14px; justify-content: space-between; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 14px; padding: 12px 16px; margin: 4px 0 8px; font-size: 13.5px; }
 .qbar .muted { font-size: 12.5px; margin-top: 2px; } .qbar .btn { white-space: nowrap; }
 @media (max-width: 640px) { .qbar { flex-direction: column; align-items: stretch; } .qbar .btn { width: 100%; } }
-.tbtn.queue.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.tbtn.queue.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 500; }
 .tbtn.nope:hover { border-color: var(--bad, #d92d20); color: var(--bad, #d92d20); }
 .jrow.gone { opacity: 0; transform: translateX(30px); transition: .25s; }
 @media (max-width: 640px) { .jrow { grid-template-columns: 40px minmax(0, 1fr) auto; } .jrow .tbtn { grid-column: 2 / span 2; justify-self: start; } .jrow .tbtn.nope { margin-right: 8px; } }
@@ -261,9 +265,9 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 .drop:hover, .drop.over { border-color: var(--accent, #4f46e5); background: var(--accent-soft, rgba(79,70,229,.06)); }
 .whybox { margin-top: 12px; border: 1px solid var(--line); border-left: 4px solid var(--warn, #d08700); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; background: var(--panel); }
 .whybox.bad { border-left-color: var(--bad); }
-.whyh { font-weight: 650; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 3px; }
+.whyh { font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 3px; }
 .why1 { font-size: 12.5px; margin-top: 3px; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.codein { font: 600 20px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .25em; text-align: center; max-width: 280px; }
+.codein { font: 500 20px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .25em; text-align: center; max-width: 280px; }
 .modal.rv { max-height: 90vh; overflow: auto; }
 .rvsec { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
 .rvsec h3 { margin: 0 0 2px; font-size: 15px; } .rvsec > p { margin: 0 0 10px; font-size: 13px; }
@@ -285,19 +289,19 @@ a.l { color: var(--accent); cursor: pointer; text-decoration: none; }
 .ico { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; display: block; }
 .hicon { display: inline-grid; place-items: center; padding: 0; } .hicon .ico { width: 20px; height: 20px; }
 .hicon .dot { top: 0; right: -2px; width: auto; height: auto; min-width: 16px; text-align: center; background: var(--accent); }
-button.avatar { border: 0; cursor: pointer; font: inherit; font-weight: 700; padding: 0; } button.avatar:hover { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.avatar { border: 0; cursor: pointer; font: inherit; font-weight: 500; padding: 0; } button.avatar:hover { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* account menu behind the initials */
 .menu { position: fixed; z-index: 45; width: 264px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,.22); padding: 8px; display: grid; gap: 2px; }
 .menu[hidden], [hidden] { display: none !important; }
 .menu .mhd { padding: 8px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; } .menu .mhd b { display: block; } .menu .mhd small { color: var(--muted); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mitem { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: none; color: var(--ink); padding: 9px 10px; border-radius: 9px; cursor: pointer; font: inherit; }
-.mitem:hover { background: var(--chip); } .mitem.on { background: var(--accent-soft); color: var(--accent); font-weight: 650; } .mitem .mic { width: 18px; display: grid; place-items: center; color: var(--muted); } .mitem.on .mic { color: var(--accent); }
+.mitem:hover { background: var(--chip); } .mitem.on { background: var(--accent-soft); color: var(--accent); font-weight: 500; } .mitem .mic { width: 18px; display: grid; place-items: center; color: var(--muted); } .mitem.on .mic { color: var(--accent); }
 .menu .themesw { padding: 8px 10px 4px; border-top: 1px solid var(--line); margin-top: 4px; } .menu .acct { padding: 8px 10px 4px; }
 /* For you: one card per application */
 .fyhead { display: flex; gap: 12px; align-items: center; padding-bottom: 14px; } .fyhead[data-open] { cursor: pointer; }
-.fyco { font-weight: 700; font-size: 16px; } .fyjob { color: var(--muted); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fyq { padding: 14px 0 6px; border-top: 1px solid var(--line); } .fyk { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 650; }
-.fyt { font-weight: 600; font-size: 14.5px; margin-top: 3px; }
+.fyco { font-weight: 500; font-size: 16px; } .fyjob { color: var(--muted); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fyq { padding: 14px 0 6px; border-top: 1px solid var(--line); } .fyk { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 500; }
+.fyt { font-weight: 500; font-size: 14.5px; margin-top: 3px; }
 .mailad { display: flex; gap: 12px; align-items: flex-start; margin-top: 10px; padding: 12px 14px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); background: color-mix(in srgb, var(--accent) 7%, transparent); font-size: 13px; }
 .mailad-ic { font-size: 22px; line-height: 1; }
 .fyfoot { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; padding-top: 14px; margin-top: 6px; border-top: 1px solid var(--line); }
@@ -306,7 +310,7 @@ button.avatar { border: 0; cursor: pointer; font: inherit; font-weight: 700; pad
 .fyq.need { border-left: 3px solid var(--bad, #c0392b); padding-left: 10px; } .fyq textarea { min-height: 54px; } .fyq select { max-width: 420px; }
 /* email list */
 .mrow2 { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 12px 6px; border-bottom: 1px solid var(--line); } .mrow2:last-child { border-bottom: 0; }
-.mrow2 .ms { font-weight: 600; } .mrow2 .mf { color: var(--muted); font-size: 12.5px; } .mrow2 .mp { font-size: 13px; margin-top: 3px; color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.mrow2 .ms { font-weight: 500; } .mrow2 .mf { color: var(--muted); font-size: 12.5px; } .mrow2 .mp { font-size: 13px; margin-top: 3px; color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .mrow2 .mwhen { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .micon { width: 36px; height: 36px; border-radius: 10px; background: var(--chip); display: grid; place-items: center; color: var(--muted); }
 @media (max-width: 800px) { aside { padding: 12px; gap: 10px; } nav { grid-auto-flow: column; grid-auto-columns: 1fr; overflow-x: auto; } nav button { flex-direction: column; gap: 3px; font-size: 11.5px; padding: 7px 4px; text-align: center; position: relative; white-space: nowrap; } nav .n { position: absolute; top: 2px; right: 6px; margin: 0; } .side-foot { display: none; } }
@@ -319,12 +323,155 @@ button.avatar { border: 0; cursor: pointer; font: inherit; font-weight: 700; pad
   h1 { font-size: 21px; } .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; } .stat { padding: 10px; } .stat b { font-size: 19px; }
   .drawer { padding: 16px; } table { display: block; overflow-x: auto; }
 }
+/* ---- Look and feel: a paper desk with an ink-blue pen. Quiet chrome; color only where it means something.
+   Redesign pass based on unslop by Damir Sokolovsky (@heydamir, github.com/heydamir/unslop), CC BY 4.0. ---- */
+b, strong { font-weight: 500; }
+h1 { font-size: 26px; font-weight: 500; letter-spacing: 0; line-height: 1.2; margin: 0 0 4px; }
+h2, h3 { font-weight: 500; }
+.sub { color: var(--muted); margin: 0 0 24px; max-width: 76ch; }
+code, .log, .codein { font-family: var(--mono); }
+/* brand: the word plus a flat mark (a form with a tick) */
+.brand { font-weight: 500; font-size: 17px; letter-spacing: 0; gap: 10px; }
+.logo { width: 28px; height: 28px; background: none; border-radius: 8px; }
+.logo svg { width: 28px; height: 28px; display: block; }
+/* left menu */
+aside { padding: 16px 12px; }
+.me { border-radius: 10px; padding: 8px; }
+.avatar { background: var(--chip); color: var(--ink); font-weight: 500; }
+.avatar.sm { background: var(--ink); color: var(--panel); }
+nav button { height: 36px; padding: 0 10px; border-radius: 8px; color: var(--ink2); transition: background-color .15s var(--ease), color .15s var(--ease); }
+nav button .ico { color: var(--muted); }
+nav button.on { background: var(--chip); color: var(--ink); font-weight: 500; box-shadow: inset 0 0 0 1px var(--line); }
+nav button.on .ico { color: var(--accent); }
+nav .n, nav button.on .n { background: none; color: var(--accent); font: 500 12px/1 var(--mono); padding: 0; border-radius: 0; }
+nav .n.soft, nav button.on .n.soft { background: none; color: var(--muted); }
+main { padding: 32px 40px 140px; }
+/* cards, tables, chips */
+.card { padding: 20px; }
+.card + .card, .section + .section { margin-top: 12px; }
+.card-head { gap: 12px; margin-bottom: 16px; }
+.cic { width: 36px; height: 36px; border-radius: 8px; background: var(--chip); color: var(--muted); display: grid; place-items: center; flex: none; }
+.cic .ico { width: 20px; height: 20px; }
+th, td { padding: 12px 16px; }
+th { font-weight: 500; background: var(--panel); color: var(--muted); }
+td.t { font-weight: 500; }
+.chip { white-space: nowrap; border-radius: 6px; font-weight: 500; padding: 2px 8px; }
+.empty .big { font-size: 0; color: var(--muted); display: grid; place-items: center; margin-bottom: 12px; }
+.empty .big .ico { width: 28px; height: 28px; stroke-width: 1.5; }
+.empty h1 { font-size: 22px; }
+.stat b { font: 500 26px/1.1 var(--mono); letter-spacing: 0; }
+/* buttons and controls */
+button.btn, .btn { border-radius: 8px; font-weight: 500; transition: background-color .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease), transform .12s var(--ease); }
+.btn:active:not(:disabled), .pillbtn:active, .blackbtn:active { transform: scale(.98); }
+.btn.primary:hover { filter: none; background: color-mix(in srgb, var(--accent) 86%, var(--ink)); border-color: color-mix(in srgb, var(--accent) 86%, var(--ink)); }
+.btn.sm { border-radius: 6px; padding: 4px 10px; }
+.btn .ico, .tbtn .ico { width: 16px; height: 16px; }
+.ico { stroke-width: 1.6; }
+a:not(.btn) .ico { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-left: 2px; }
+input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pw .eye { display: grid; place-items: center; } .pw .eye .ico { width: 16px; height: 16px; }
+.tabs button { border-radius: 8px; transition: background-color .15s var(--ease), color .15s var(--ease); }
+.tabs button.on { background: var(--ink); border-color: var(--ink); color: var(--panel); }
+.tabs button .n { font-family: var(--mono); font-size: 12px; }
+.fchip > summary, .fchip-btn { border-radius: 8px; padding: 4px 10px; }
+.fchip .n { font-family: var(--mono); border-radius: 4px; }
+.chipbox { border-radius: 12px; }
+.chipbox .btn, .tchip { border-radius: 6px; }
+.pillbtn { border-radius: 10px; font-weight: 500; }
+.blackbtn { border-radius: 8px; font-weight: 500; }
+.leftpill { border-radius: 8px; box-shadow: none; }
+.pill { border-radius: 6px; }
+.askbox { border-radius: 12px; }
+.askbox button { border-radius: 8px; background: var(--ink); color: var(--panel); display: grid; place-items: center; transition: opacity .15s var(--ease); }
+.askbox button:hover { background: var(--ink); opacity: .86; }
+.askbox button .ico { width: 16px; height: 16px; }
+.ibtn { border-radius: 8px; }
+.tbtn.send { background: var(--panel); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); color: var(--accent); font-weight: 500; }
+.ibtn.send:hover, .tbtn.send:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tbtn { border-radius: 8px; transition: background-color .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease); }
+.clogo { background: var(--chip) !important; color: var(--ink2); border: 1px solid var(--line); border-radius: 8px; font: 500 12px/1 var(--mono); }
+.logos .clogo { border-radius: 8px; }
+.orb { display: none; }
+/* small labels: sentence case, no wide tracking */
+.shead, .msel .mhead, .whyh, .fyk, .auth .pitch small { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 12.5px; color: var(--muted); }
+.shead { font-size: 13px; color: var(--ink2); }
+.sname { font-size: 16px; font-weight: 500; }
+.feedhead .views button { font-weight: 500; font-size: 28px; letter-spacing: -.01em; }
+.feedhead .badge { font: 500 12px/20px var(--mono); border-radius: 6px; }
+.fyco { font-weight: 500; }
+/* tinted boxes become quiet surfaces */
+.mailad { border-color: var(--line); background: var(--chip); }
+.mailad-ic { font-size: 0; color: var(--muted); } .mailad-ic .ico { width: 20px; height: 20px; }
+.qbar { background: var(--chip); border-color: var(--line); }
+.banner.info { background: var(--chip); color: var(--ink); }
+.banner > div:first-child .ico { width: 18px; height: 18px; }
+.prompt { border-width: 1px; }
+.whybox { border-left-width: 3px; }
+.tstat { display: inline-flex; vertical-align: -3px; margin-right: 6px; color: var(--muted); } .tstat.bad { color: var(--bad); } .tstat.ok { color: var(--good); } .tstat .ico { width: 16px; height: 16px; }
+.drawer-bg, .modal-bg { background: rgba(20,19,17,.4); }
+.modal { border-radius: 16px; box-shadow: 0 16px 48px rgba(0,0,0,.18); }
+.toast { border-radius: 8px; font-weight: 500; }
+.menu { border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+.fchip .pop { border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+.jrow { padding: 12px 8px; transition: background-color .15s var(--ease); }
+.jt { font-weight: 500; font-size: 15px; }
+.jrow.gone { transition: opacity .25s var(--ease), transform .25s var(--ease); }
+.switch span, .switch span::after { transition: background-color .15s var(--ease), transform .15s var(--ease); }
+.sdot.on { background: var(--good); }
+.hicon .dot { background: var(--accent); color: var(--accent-ink); }
+.found span { border-radius: 6px; }
+.drop { border-width: 1.5px; } .drop .cic { width: 44px; height: 44px; }
+/* Applications: where the sent applications stand, as one strip */
+.pipe { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(140px, .9fr); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 24px; overflow: hidden; }
+.pstep { all: unset; box-sizing: border-box; cursor: pointer; padding: 16px 20px 20px; display: grid; gap: 4px; align-content: start; border-right: 1px solid var(--line); transition: background-color .15s var(--ease); }
+.pstep:hover { background: var(--chip); } .pstep:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.pstep .pl { font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.pstep .pl span { font: 12px/20px var(--mono); }
+.pstep .pn { font: 500 28px/1.15 var(--mono); color: var(--ink); }
+.pstep .pb { height: 4px; border-radius: 2px; background: var(--chip); margin-top: 12px; overflow: hidden; }
+.pstep .pb i { display: block; height: 100%; min-width: 0; background: color-mix(in srgb, var(--ink) 30%, transparent); border-radius: 2px; }
+.pstep.lead .pn { color: var(--accent); } .pstep.lead .pb i { background: var(--accent); }
+.pstep.out { border-right: 0; background: color-mix(in srgb, var(--chip) 55%, transparent); }
+.pstep.out .pn { color: var(--ink2); }
+.pstep .pr { font: 12px/1.4 var(--mono); color: var(--muted); margin-top: 12px; }
+/* the signature: a "Sent" receipt wherever an application went out */
+.rcpt { display: inline-flex; align-items: center; gap: 8px; font: 12px/1.4 var(--mono); color: var(--muted); white-space: nowrap; }
+.stamp { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px 1px 4px; border: 1px solid color-mix(in srgb, var(--good) 50%, transparent); color: var(--good); border-radius: 4px; font: 500 11px/16px var(--mono); transform: rotate(-2deg); white-space: nowrap; }
+.stamp .ico { width: 12px; height: 12px; stroke-width: 2; }
+/* sign-in: the left half shows the product at work */
+.auth .pitch { background: var(--bg); padding: 40px 56px; }
+.auth .pitch .mid { max-width: 520px; padding: 48px 0; }
+.auth .pitch h2 { font-size: 44px; font-weight: 500; line-height: 1.08; letter-spacing: -.02em; margin: 0 0 16px; }
+.auth .pitch p { font-size: 17px; line-height: 1.6; color: var(--ink2); max-width: 30em; margin: 0 0 40px; }
+.demo { position: relative; padding-bottom: 32px; }
+.dform { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 8px 24px rgba(28,27,25,.06); padding: 20px; max-width: 400px; }
+.dform .dh { display: flex; gap: 12px; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.dform .dt b { display: block; font-weight: 500; } .dform .dt span { font-size: 13px; color: var(--muted); }
+.dfield { display: grid; gap: 4px; padding: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+.dfield > div { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; color: var(--ink); font-size: 13.5px; display: flex; gap: 8px; align-items: center; min-width: 0; }
+.dfield .ico { width: 16px; height: 16px; color: var(--muted); }
+.dfield .dtag { margin-left: auto; font: 500 11px/16px var(--mono); color: var(--accent); }
+.dfield .typing { display: block; border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.dfield .typing::after { content: ""; display: inline-block; width: 1.5px; height: 15px; margin-left: 2px; background: var(--accent); vertical-align: -2px; }
+.dreceipt { position: absolute; left: 356px; bottom: 0; width: 200px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgba(28,27,25,.1); padding: 14px 16px; transform: rotate(2.5deg); font: 12px/1.6 var(--mono); color: var(--muted); }
+.dreceipt b { display: block; color: var(--ink); font: 500 14px/1.4 "IBM Plex Sans", system-ui, sans-serif; margin-bottom: 4px; }
+.dreceipt > div { margin-top: 10px; }
+.auth h1 { font-size: 28px; font-weight: 500; }
+.auth .go, .auth .oauth { border-radius: 10px; }
+.auth .who { border-radius: 10px; }
+@media (max-width: 1100px) { .dreceipt { left: auto; right: 0; } }
+@media (max-width: 800px) {
+  .pipe { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pstep { padding: 12px; border-bottom: 1px solid var(--line); } .pstep .pn { font-size: 22px; } .pstep .pl span { display: none; }
+  main { padding: 20px 16px 140px; }
+}
 </style>
 </head>
 <body>
 <div class="app">
   <aside>
-    <div class="brand"><div class="logo">⚡</div>AutoApply</div>
+    <div class="brand"><div class="logo"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#24459c"/><path d="M9.5 6.5h9.25L23.5 11.25V25.5h-14z" fill="#fff"/><path d="M18.75 6.5v4.75h4.75z" fill="#b9c6ea"/><path d="m12.6 18.2 2.7 2.7 5.2-5.4" fill="none" stroke="#24459c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>AutoApply</div>
     <div class="me"><button class="avatar" id="avatar" data-menu title="Profile and settings">?</button><div style="min-width:0;flex:1"><small>Applying as</small><select id="userSel" title="Switch person"></select></div></div>
     <nav id="nav"></nav>
     <div class="side-foot">
@@ -433,14 +580,14 @@ async function goOffline() {
   setInterval(async () => {
     if (!API || $("#offBack")) return;
     const up = await fetch(`${API}/api/auth/state`, { headers: authHeader(), signal: AbortSignal.timeout(8000) }).then((r) => r.ok).catch(() => false);
-    if (up) $("#offbar").innerHTML = `<span>✅</span><div><b>You're up to date again.</b></div><button class="btn sm primary" id="offBack" onclick="location.reload()">Refresh</button>`;
+    if (up) $("#offbar").innerHTML = `<span>${ICON.check}</span><div><b>You're up to date again.</b></div><button class="btn sm primary" id="offBack" onclick="location.reload()">Refresh</button>`;
   }, 60e3);
 }
 function offBanner() {
   let el = $("#offbar");
   if (!el) { el = document.createElement("div"); el.id = "offbar"; document.body.prepend(el); }
   const n = OFF.pending.length;
-  el.innerHTML = `<span>📴</span><div><b>AutoApply is catching up.</b> You're seeing your jobs as of ${OFF.copiedAt ? esc(agoText(new Date(OFF.copiedAt).toISOString())) : "earlier"}. Anything you do now is saved and carried out shortly.${n ? ` <b>${n} waiting.</b>` : ""}</div>`;
+  el.innerHTML = `<span>${ICON.cloudOff}</span><div><b>AutoApply is catching up.</b> You're seeing your jobs as of ${OFF.copiedAt ? esc(agoText(new Date(OFF.copiedAt).toISOString())) : "earlier"}. Anything you do now is saved and carried out shortly.${n ? ` <b>${n} waiting.</b>` : ""}</div>`;
 }
 const offBody = (b) => (typeof b === "string" ? JSON.parse(b || "{}") : b ?? {});
 const offJobs = (D) => [D["feed:all"]?.rows ?? [], D["feed:saved"]?.rows ?? [], D["jobs:open"] ?? [], D["jobs:applications"] ?? []];
@@ -545,6 +692,27 @@ const ICON = {
   preferences: ico(`<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>`),
   team: ico(`<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>`),
   online: ico(`<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>`),
+  check: ico(`<path d="M20 6 9 17l-5-5"/>`),
+  alert: ico(`<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.5v.01"/>`),
+  info: ico(`<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/>`),
+  lock: ico(`<rect x="4.5" y="11" width="15" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/>`),
+  key: ico(`<circle cx="7.5" cy="15.5" r="4"/><path d="m10.5 12.5 9-9M16.5 6.5l2.5 2.5M14 9l2 2"/>`),
+  shield: ico(`<path d="M12 3 4.5 6v6c0 4.6 3.2 7.7 7.5 9 4.3-1.3 7.5-4.4 7.5-9V6z"/>`),
+  eye: ico(`<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>`),
+  eyeOff: ico(`<path d="M3 3l18 18M10.6 5.6A9 9 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-3 3.8M6.6 6.6A16 16 0 0 0 2.5 12S6 18.5 12 18.5a9 9 0 0 0 5-1.5M9.9 9.9a3 3 0 0 0 4.2 4.2"/>`),
+  ext: ico(`<path d="M7 17 17 7M8.5 7H17v8.5"/>`),
+  x: ico(`<path d="M18 6 6 18M6 6l12 12"/>`),
+  clock: ico(`<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>`),
+  download: ico(`<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>`),
+  inbox: ico(`<path d="M3 13h5l1.5 3h5l1.5-3h5"/><path d="M5.5 5h13L21 13v6H3v-6z"/>`),
+  clipboard: ico(`<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3.5h6v3H9zM9 12h6M9 16h4"/>`),
+  cloud: ico(`<path d="M7 18.5a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.4 1.6A3.7 3.7 0 0 1 17.5 18.5z"/>`),
+  cloudOff: ico(`<path d="M3 3l18 18M8.5 8.6A4.5 4.5 0 0 0 7 18.5h10.5M20.6 16.4a3.7 3.7 0 0 0-2.7-5.3A6 6 0 0 0 10.6 6"/>`),
+  code: ico(`<path d="m8 8-4 4 4 4M16 8l4 4-4 4"/>`),
+  database: ico(`<ellipse cx="12" cy="5.5" rx="7.5" ry="2.5"/><path d="M4.5 5.5v13c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5v-13M4.5 12c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5"/>`),
+  route: ico(`<path d="M4.5 12a7.5 7.5 0 0 1 13.2-4.9M19.5 12a7.5 7.5 0 0 1-13.2 4.9"/><path d="M18 3.5v4h-4M6 20.5v-4h4"/>`),
+  plug: ico(`<path d="M9 2.5v5M15 2.5v5M6 7.5h12v3.5a6 6 0 0 1-12 0zM12 17v4.5"/>`),
+  arrowUp: ico(`<path d="M12 19V5M6 11l6-6 6 6"/>`),
 };
 // The left menu holds only what people use every day. Profile, preferences and settings open from the initials.
 const ALL_TABS = [["jobs", ICON.jobs, "Jobs"], ["queue", ICON.queue, "Queue"], ["applications", ICON.applications, "Applications"], ["questions", ICON.questions, "For you"], ["mail", ICON.mail, "Email"], ["resumes", ICON.resumes, "Resumes"]];
@@ -556,6 +724,8 @@ const isAdmin = () => ["owner", "admin"].includes(S.me?.role);
 const U = () => `/users/${encodeURIComponent(S.userId)}`;
 const STATUS = { matched: "Ready to apply", submitted: "Applied", needs_input: "Needs your input", failed: "Didn't go through", filled: "Preview ready", skipped: "Skipped", discovered: "New", rejected: "Not a match", paused: "Waiting for the job site" };
 const statusChip = (s) => `<span class="chip ${esc(s)}">${esc(STATUS[s] ?? s)}</span>`;
+// the "Sent" receipt (stamp plus the exact time), shown wherever an application went out
+const receipt = (at) => `<span class="rcpt"><span class="stamp">${ICON.check}Sent</span>${esc(new Date(at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}</span>`;
 
 // Job-site health for everyone on this AutoApply: today / last 7 days, paused sites, hourly checks, shared fixes.
 function healthTable(stats) {
@@ -597,7 +767,7 @@ const nudgeKey = () => `aa.mailnudge.${S.userId}`;
 function mailNudgeHidden() { try { return Date.now() - Number(localStorage.getItem(nudgeKey()) || 0) < 3 * 864e5; } catch { return false; } }
 function mailNudge() {
   if (OFF || S.user?.mailConnected || mailNudgeHidden()) return "";
-  return `<div class="mailad"><div class="mailad-ic">📬</div><div style="flex:1;min-width:0"><b>Let AutoApply read your job emails</b>
+  return `<div class="mailad"><div class="mailad-ic">${ICON.mail}</div><div style="flex:1;min-width:0"><b>Let AutoApply read your job emails</b>
       <div class="muted">Security codes get typed in for you, and replies from employers show up right here — no more checking your inbox.</div>
       <div class="row" style="margin-top:8px"><button class="btn sm primary" data-connectmail>Connect Gmail</button><button class="btn sm ghost" data-mailnudge-off>Not now</button></div></div></div>`;
 }
@@ -605,7 +775,7 @@ function connectMail() {
   const p = S.user.profile;
   $("#modal").innerHTML = `<div class="modal-bg"><div class="modal" style="max-width:520px"><h2>Connect ${esc(p.firstName || "your")}${p.firstName ? "'s" : ""} Gmail</h2>
     <div class="muted" style="margin-top:6px">AutoApply then types security codes in for you, clicks “verify your email” links, and shows replies from employers in the Email tab — including the last two months for jobs it already applied to. It only reads email about these applications, and never sends or deletes anything.</div>
-    <ol style="margin:12px 0;padding-left:20px;font-size:13.5px;line-height:1.6"><li>Open <a class="l" href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Google app passwords ↗</a> and sign in. (If Google says it isn't available, turn on 2-Step Verification first.)</li>
+    <ol style="margin:12px 0;padding-left:20px;font-size:13.5px;line-height:1.6"><li>Open <a class="l" href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Google app passwords ${ICON.ext}</a> and sign in. (If Google says it isn't available, turn on 2-Step Verification first.)</li>
       <li>Type <b>AutoApply</b> as the name and press <b>Create</b>.</li><li>Copy the 16-letter password Google shows and paste it below.</li></ol>
     <label class="f"><span>Gmail address</span><input id="cmEmail" type="email" value="${esc(gmailOf(p.email))}" placeholder="john.doe@gmail.com"></label>
     <label class="f" style="margin-top:8px"><span>App password</span>${pwField("cmPass", "Paste the app password from Google")}</label>
@@ -619,7 +789,7 @@ function connectMail() {
     try {
       await api(`${U()}/mail/imap`, { method: "POST", body: { email: $("#cmEmail").value.trim(), appPassword: pass } });
       $("#modal").innerHTML = "";
-      toast("✓ Gmail connected — looking for emails about your applications now");
+      toast("Gmail connected. Looking for emails about your applications now");
       await loadUsers(); render();
     } catch (e) { $("#cmGo").disabled = false; $("#cmGo").textContent = "Connect"; fail(e); }
   };
@@ -632,7 +802,7 @@ document.addEventListener("click", (e) => {
 // password field with an eye toggle; `reveal` loads a saved value the first time it is shown
 function pwField(id, placeholder, reveal) {
   return `<div class="pw"><input id="${id}" type="password" autocomplete="new-password" placeholder="${esc(placeholder)}">
-    <button type="button" class="eye" data-eye="${id}" title="Show / hide" aria-label="Show or hide">👁</button></div>`;
+    <button type="button" class="eye" data-eye="${id}" title="Show / hide" aria-label="Show or hide">${ICON.eye}</button></div>`;
 }
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-eye]"); if (!b) return;
@@ -641,8 +811,8 @@ document.addEventListener("click", async (e) => {
     if (!inp.value && inp.dataset.reveal === "ats") {
       try { inp.value = (await api(`${U()}/secrets`)).atsPassword; } catch (err) { return fail(err); }
     }
-    inp.type = "text"; b.textContent = "🙈";
-  } else { inp.type = "password"; b.textContent = "👁"; }
+    inp.type = "text"; b.innerHTML = ICON.eyeOff;
+  } else { inp.type = "password"; b.innerHTML = ICON.eye; }
 });
 
 // ---------------- shell ----------------
@@ -712,7 +882,7 @@ function renderNav() {
 function offlineSetupBanner() {
   return ""; // offline sign-in is set up automatically now (ensureOfflineSignIn); kept for reference
   if (!S.offlineAvail || !S.me || S.me.offline || OFF) return "";
-  return `<div class="banner" id="offSetup" style="background:var(--accent-soft, #eef2ff);color:inherit"><div>📴</div><div style="flex:1"><b>Use AutoApply even when this computer is off.</b> Confirm your password once to turn it on.
+  return `<div class="banner" id="offSetup" style="background:var(--accent-soft, #eef2ff);color:inherit"><div>${ICON.cloudOff}</div><div style="flex:1"><b>Use AutoApply even when this computer is off.</b> Confirm your password once to turn it on.
     <form class="row" style="margin-top:8px;gap:8px" onsubmit="event.preventDefault();offlineConfirm()"><input id="offPw" type="password" autocomplete="current-password" placeholder="Your AutoApply password" style="max-width:260px"><button class="btn sm primary">Turn on</button></form></div></div>`;
 }
 async function offlineConfirm() {
@@ -728,13 +898,13 @@ function setupBanner() {
   const probs = [...(S.user.problems ?? [])];
   if (!S.settings?.backend && isAdmin()) probs.push("AI answers are off: connect Claude in AI & settings");
   if (!probs.length) return "";
-  return `<div class="banner"><div>⚠️</div><div><b>Finish setup to let AutoApply apply for ${esc(S.user.profile.firstName)}</b><ul>${probs.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div></div>`;
+  return `<div class="banner"><div>${ICON.alert}</div><div><b>Finish setup to let AutoApply apply for ${esc(S.user.profile.firstName)}</b><ul>${probs.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div></div>`;
 }
 
 async function render() {
   renderNav();
   const m = $("#main");
-  if (!S.user && !["settings", "team", "online"].includes(S.tab)) { m.innerHTML = `<div class="card empty"><div class="big">👋</div><h1>Welcome to AutoApply</h1><p>Add the first person to apply for.</p><button class="btn primary" onclick="newUser()">＋ Add a person</button></div>`; return; }
+  if (!S.user && !["settings", "team", "online"].includes(S.tab)) { m.innerHTML = `<div class="card empty"><div class="big">${ICON.profile}</div><h1>Set up AutoApply</h1><p>Add the first person to apply for.</p><button class="btn primary" onclick="newUser()">＋ Add a person</button></div>`; return; }
   m.innerHTML = offlineSetupBanner() + (S.user ? setupBanner() : "") + `<div id="view"></div>`;
   await VIEWS[S.tab]($("#view")).catch(fail);
 }
@@ -752,7 +922,7 @@ $("#newUserBtn").addEventListener("click", () => newUser());
 async function newUser() {
   const box = (inner) => { $("#modal").innerHTML = `<div class="modal-bg"><div class="modal" style="width:min(600px,100%)">${inner}</div></div>`; };
   box(`<h2>Add a person</h2><p class="muted">Upload their resume. AutoApply reads their details from it, so there's almost nothing to fill in.</p>
-    <label class="drop" id="obDrop"><input id="obPdf" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden><div style="font-size:30px">📄</div><b>Choose the resume (PDF or Word)</b><small class="muted">or drop it here</small></label>
+    <label class="drop" id="obDrop"><input id="obPdf" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden><div class="cic">${ICON.resumes}</div><b>Choose the resume (PDF or Word)</b><small class="muted">or drop it here</small></label>
     <div class="row"><a class="l muted" id="obManual">No resume yet? Enter a name instead</a><span class="spacer"></span><button class="btn" id="obCancel">Cancel</button></div>`);
   $("#obCancel").onclick = () => { $("#modal").innerHTML = ""; };
   $("#obManual").onclick = () => newUserManual();
@@ -796,7 +966,7 @@ async function newUser() {
     $("#modal").innerHTML = `<div class="modal-bg"><div class="modal rv" style="width:min(760px,100%)">
       <h2>Check ${esc(p.firstName || "the")}${p.firstName ? "'s" : ""} details before searching</h2>
       <p class="muted" style="margin-top:2px">This is everything AutoApply will put on applications. Fix anything that's wrong — you can change it later in Profile too.</p>
-      ${ob.readable === false ? `<div class="banner" style="margin-top:10px"><div>ℹ️</div><div>This resume has little readable text (maybe a scan), so please fill in the details below. It's still the file employers will get.</div></div>` : ""}
+      ${ob.readable === false ? `<div class="banner" style="margin-top:10px"><div>${ICON.info}</div><div>This resume has little readable text (maybe a scan), so please fill in the details below. It's still the file employers will get.</div></div>` : ""}
       <div id="obForm">
       ${sec("Needed before applying", "Only you can answer these. Every application asks them.", `<div class="form">${MUST.map(field).join("")}</div>`)}
       ${sec("From the resume", ob.found.length ? `Read from the resume: ${ob.found.map(esc).join(", ")}.` : "Nothing could be read automatically — please fill these in.", `<div class="form">${RESUME_FIELDS.map(field).join("")}</div>`)}
@@ -927,10 +1097,10 @@ function renderTask(t, show) {
     } else if (info.kind === "resume") {
       promptHtml = `<div class="prompt"><b>Use the resume tailored for this job?</b>
         <ul style="margin:0;padding-left:18px">${(info.changes ?? []).map((c) => `<li>${esc(c)}</li>`).join("")}</ul>
-        <a target="_blank" href="/api${U()}/receipts/${encodeURIComponent(info.receiptId)}/${encodeURIComponent(info.pdf)}">Preview tailored PDF ↗</a>
+        <a target="_blank" href="/api${U()}/receipts/${encodeURIComponent(info.receiptId)}/${encodeURIComponent(info.pdf)}">Preview tailored PDF ${ICON.ext}</a>
         <div class="row"><button class="btn primary" data-resp="y">Use tailored resume</button><button class="btn" data-resp="n">Use my original</button></div></div>`;
     } else if (info.kind === "password") {
-      promptHtml = `<div class="prompt"><b>🔐 You already have an account at ${esc((info.host ?? "this site").split(".")[0])}</b>
+      promptHtml = `<div class="prompt"><b>You already have an account at ${esc((info.host ?? "this site").split(".")[0])}</b>
         <div>${info.rejected ? `The password saved for <b>${esc(info.host ?? "")}</b> didn't work. Type the right one.` : `An account for <b>${esc(info.email ?? "")}</b> already exists at <b>${esc(info.host ?? "")}</b> with your own password. Type it once — AutoApply remembers it and signs in by itself from now on.`}</div>
         ${pwField("taskPw", "Your password on this site")}
         <div class="row"><button class="btn primary" id="taskPwSave">Save & continue</button><button class="btn" data-resp="k">Skip this job</button></div></div>`;
@@ -947,25 +1117,25 @@ function renderTask(t, show) {
         if (q.kind === "date") return `<input id="${id}" placeholder="MM/YYYY or MM/DD/YYYY">`;
         return q.kind === "textarea" ? `<textarea id="${id}" rows="3"></textarea>` : `<input id="${id}">`;
       };
-      promptHtml = `<div class="prompt"><b>❓ ${qs.length} new question${qs.length > 1 ? "s" : ""} — ${esc(info.job ?? "")}</b>
+      promptHtml = `<div class="prompt"><b>${qs.length} new question${qs.length > 1 ? "s" : ""} — ${esc(info.job ?? "")}</b>
         <div class="muted" style="font-size:12.5px">AutoApply hasn't seen ${qs.length > 1 ? "these" : "this"} before. Your answer${qs.length > 1 ? "s are" : " is"} remembered, so you won't be asked again.</div>
         <div style="display:grid;gap:10px;max-height:300px;overflow:auto">${qs.map((q) => `<label class="f" style="display:grid;gap:4px"><span style="font-size:13px">${esc(q.label)}</span>${input(q)}</label>`).join("")}</div>
         <div class="row"><button class="btn primary" id="qaSave">Save & continue</button>
-          ${info.aiMode === "ask" ? `<button class="btn" id="qaClaude" ${info.claudeReady ? "" : "disabled title=\"AI answers aren't set up yet\""}>✨ Let AI answer</button>` : ""}
+          ${info.aiMode === "ask" ? `<button class="btn" id="qaClaude" ${info.claudeReady ? "" : "disabled title=\"AI answers aren't set up yet\""}>Let AI answer</button>` : ""}
           <button class="btn ghost" data-resp="k">Skip this job</button></div></div>`;
     } else if (info.kind === "click") {
-      promptHtml = `<div class="prompt"><b>👆 One click needed: "${esc(info.button)}"</b>
+      promptHtml = `<div class="prompt"><b>One click needed: "${esc(info.button)}"</b>
         <div>${esc((info.host ?? "").split(".")[0])}'s Workday only accepts this button from a person. Your email and password are already filled in — switch to the browser window and click <b>${esc(info.button)}</b>. That's all: AutoApply finishes and submits the application by itself.</div>
         <div class="row"><button class="btn ghost" data-resp="k">Skip this job</button></div></div>`;
     } else if (info.kind === "code") {
-      promptHtml = `<div class="prompt"><b>✉️ Type the code ${esc(info.site ?? "the job site")} emailed you</b>
+      promptHtml = `<div class="prompt"><b> Type the code ${esc(info.site ?? "the job site")} emailed you</b>
         <div>${esc(info.site ?? "The job site")} sent ${info.length ? `${[8, 11, 18].includes(info.length) ? "an" : "a"} ${info.length}-character` : "a"} code to <b>${esc(info.email ?? "")}</b> to confirm the application${info.job ? ` for ${esc(info.job)}` : ""}. Open that email and type the code here — the application is sent right after.</div>
         <input id="taskCode" class="codein" autocomplete="one-time-code" spellcheck="false" placeholder="${"•".repeat(info.length || 6)}" ${info.length ? `maxlength="${info.length}"` : ""}>
         <div class="row"><button class="btn primary" id="taskCodeSave">Send application</button><button class="btn ghost" data-resp="k">Skip this job</button></div>
         ${info.mailConnected ? "" : `<div class="muted" style="font-size:12.5px">Tip: <a class="l" data-connectmail>connect your email</a> and AutoApply enters these codes by itself.</div>`}
         ${info.timeoutSec ? `<div class="muted" style="font-size:12px">Waits up to ${Math.round(info.timeoutSec / 60)} minutes, then moves on (the job stays in For you).</div>` : ""}</div>`;
     } else if (info.kind === "verify") {
-      promptHtml = `<div class="prompt"><b>✉️ Click the link ${esc(info.site ?? info.host ?? "the job site")} emailed you</b><div>${esc(info.site ?? info.host ?? "The job site")} sent an email to <b>${esc(info.email ?? "")}</b> to confirm your email address${info.job ? ` (for ${esc(info.job)})` : ""}. Open it, click the link, then press Done — AutoApply carries on with the application.</div>
+      promptHtml = `<div class="prompt"><b> Click the link ${esc(info.site ?? info.host ?? "the job site")} emailed you</b><div>${esc(info.site ?? info.host ?? "The job site")} sent an email to <b>${esc(info.email ?? "")}</b> to confirm your email address${info.job ? ` (for ${esc(info.job)})` : ""}. Open it, click the link, then press Done — AutoApply carries on with the application.</div>
         <div class="row"><button class="btn primary" data-resp="done">Done, I clicked it</button><button class="btn ghost" data-resp="k">Skip this job</button></div>
         ${info.mailConnected ? "" : `<div class="muted" style="font-size:12.5px">Tip: <a class="l" data-connectmail>connect your email</a> and AutoApply clicks these links by itself.</div>`}</div>`;
     } else {
@@ -974,8 +1144,8 @@ function renderTask(t, show) {
     }
   }
   const running = t.status === "running";
-  const html = `<div class="card"><div class="row"><b>${running ? "⏳" : t.status === "failed" ? "⚠️" : "✅"} ${esc(t.label)}</b><span class="spacer"></span>
-    ${running ? `<button class="btn sm danger" id="stopTask">Stop</button>` : `<button class="btn sm ghost" id="hideTask">✕</button>`}</div>
+  const html = `<div class="card"><div class="row"><b><span class="tstat ${running ? "" : t.status === "failed" ? "bad" : "ok"}">${running ? ICON.clock : t.status === "failed" ? ICON.alert : ICON.check}</span>${esc(t.label)}</b><span class="spacer"></span>
+    ${running ? `<button class="btn sm danger" id="stopTask">Stop</button>` : `<button class="btn sm ghost" id="hideTask" aria-label="Hide">${ICON.x}</button>`}</div>
     ${running && !p ? `<div class="progress"><i></i></div><div class="muted" style="font-size:13px">${esc(lastLine(t))}</div>` : ""}
     ${["discover", "addjob", "autopilot"].includes(t.type) && t.result?.message ? `<div style="margin-top:6px"><b>${esc(t.result.message)}</b>${t.result.newMatches ? `<div class="row" style="margin-top:6px"><button class="btn sm primary" data-jobstab-open="open">See new matches</button></div>` : ""}${searchHint(t.result)}${t.result.rejected && t.result.newMatches ? `<div class="muted" style="font-size:12.5px;margin-top:4px">Jobs that don't fit your preferences aren't listed — type in the search box to look through them too.</div>` : ""}</div>` : ""}
     ${t.result?.counts ? `<div class="muted" style="margin-top:6px">${esc(Object.entries(t.result.counts).map(([k, n]) => `${n} ${STATUS[k] ?? k}`).join(" · ") || t.result.message || "Nothing to do")}</div>` : ""}
@@ -984,7 +1154,7 @@ function renderTask(t, show) {
     ${promptHtml}
     ${["run", "apply", "autopilot"].includes(t.type) && !p ? mailNudge() : ""}
     <details class="log" ${isAdmin() ? "" : "hidden"}><summary>Activity log</summary><div class="log" id="tasklog">${esc(t.log.slice(-80).join("\n"))}</div></details>
-    <div class="row">${t.result?.pdf ? `<a class="btn sm" target="_blank" href="/api${U()}/receipts/${encodeURIComponent(t.result.jobId)}/${encodeURIComponent(t.result.pdf)}">Open tailored resume ↗</a>` : ""}
+    <div class="row">${t.result?.pdf ? `<a class="btn sm" target="_blank" href="/api${U()}/receipts/${encodeURIComponent(t.result.jobId)}/${encodeURIComponent(t.result.pdf)}">Open tailored resume ${ICON.ext}</a>` : ""}
     ${t.result?.receiptDir ? `<button class="btn sm" onclick="openJob('${esc(t.result.id)}')">View application details</button>` : ""}</div></div>`;
   // The panel refreshes every second while a run is going. Never redraw what hasn't changed, and when it has,
   // keep whatever the user is typing (password boxes, etc.), where the cursor is, and whether the log is open.
@@ -1001,7 +1171,7 @@ function renderTask(t, show) {
     const i = document.getElementById(id);
     if (!i || ((id === "taskPw" || id === "taskCode" || id.startsWith("qa-")) && !samePrompt)) continue;
     i.value = k.value; if (i.tagName === "INPUT") i.type = k.type;
-    const eye = el.querySelector(`[data-eye="${CSS.escape(id)}"]`); if (eye) eye.textContent = k.type === "text" ? "🙈" : "👁";
+    const eye = el.querySelector(`[data-eye="${CSS.escape(id)}"]`); if (eye) eye.innerHTML = k.type === "text" ? ICON.eyeOff : ICON.eye;
     if (k.focused) { i.focus(); try { i.setSelectionRange(k.s, k.e); } catch { /* not a text box */ } }
   }
   if (samePrompt) el.querySelectorAll("input[type=checkbox][name]").forEach((b) => { if (ticked.includes(`${b.name}\u0000${b.value}`)) b.checked = true; });
@@ -1178,7 +1348,7 @@ const displayCo = (c) => String(c ?? "").trim();
 function whyBox(r, { compact } = {}) {
   const x = explain(r); if (!x) return "";
   if (compact) return `<div class="why1">${esc(x.why)}</div>`;
-  const btn = ([k, l]) => k === "site" ? (r.url ? `<a class="btn sm" href="${esc(r.url)}" target="_blank" rel="noopener">${l} ↗</a>` : "")
+  const btn = ([k, l]) => k === "site" ? (r.url ? `<a class="btn sm" href="${esc(r.url)}" target="_blank" rel="noopener">${l} ${ICON.ext}</a>` : "")
     : k === "foryou" ? `<button class="btn sm" data-tab="questions">${l}</button>` : k === "profile" ? `<button class="btn sm" data-tab="profile">${l}</button>`
     : k === "password" ? `<button class="btn sm" data-tab="profile" data-ptab="accounts">${l}</button>`
     : k === "mail" ? `<button class="btn sm" data-connectmail>${l}</button>`
@@ -1189,31 +1359,31 @@ function whyBox(r, { compact } = {}) {
     ${isAdmin() && x.raw ? `<details style="margin-top:6px"><summary class="muted" style="cursor:pointer;font-size:12px">Technical detail</summary><div class="muted" style="font-size:12px;word-break:break-word">${esc(x.raw)}${r.step ? ` · step: ${esc(r.step)}` : ""}</div></details>` : ""}</div>`;
 }
 function actionButtons(j) {
-  if (j.status === "submitted") return `${statusChip("submitted")}<button class="btn sm" data-act="people" data-id="${esc(j.id)}">👥 Find people</button>`;
-  return `<button class="btn sm ghost" data-act="people" data-id="${esc(j.id)}" title="Find the recruiter and hiring manager">👥</button>
+  if (j.status === "submitted") return `${statusChip("submitted")}<button class="btn sm" data-act="people" data-id="${esc(j.id)}">${ICON.team}Find people</button>`;
+  return `<button class="btn sm ghost" data-act="people" data-id="${esc(j.id)}" title="Find the recruiter and hiring manager" aria-label="Find people">${ICON.team}</button>
     <button class="btn sm ghost" data-act="tailor" data-id="${esc(j.id)}" title="Make a tailored resume for this job">Tailor</button>
     <button class="btn sm" data-act="dry" data-id="${esc(j.id)}" title="Fill the application without submitting">Preview</button>
     ${["matched", "discovered"].includes(j.status) ? `<button class="btn sm" data-act="nope" data-id="${esc(j.id)}">Not interested</button>` : ""}
-    <button class="btn sm primary" data-act="apply" data-id="${esc(j.id)}">⚡ ${["matched", "discovered"].includes(j.status) ? "Apply for me" : "Try again"}</button>`;
+    <button class="btn sm ${["matched", "discovered"].includes(j.status) ? "primary" : ""}" data-act="apply" data-id="${esc(j.id)}">${["matched", "discovered"].includes(j.status) ? "Apply for me" : "Try again"}</button>`;
 }
 
 // ---------------- people to contact (networking) ----------------
 function peopleSection(j) {
   const c = j.contacts;
-  const head = `<div class="row" style="margin-top:22px"><h2 style="flex:1;margin:0">👥 People to contact</h2><button class="btn sm" data-act="people" data-id="${esc(j.id)}">${c ? "Search again" : "Find recruiter & hiring manager"}</button></div>`;
+  const head = `<div class="row" style="margin-top:22px"><h2 style="flex:1;margin:0">People to contact</h2><button class="btn sm" data-act="people" data-id="${esc(j.id)}">${c ? "Search again" : "Find recruiter & hiring manager"}</button></div>`;
   if (!c) return head + `<p class="muted" style="font-size:13px">Finds the recruiter and the likely hiring manager for this role from public profiles, and drafts a short LinkedIn note and email. AutoApply never sends anything — you choose who to contact.</p>`;
   const roleChip = (r) => `<span class="chip ${r === "hiring manager" ? "matched" : r === "recruiter" ? "submitted" : ""}">${esc(r)}</span>`;
   return head + `${c.notes ? `<details style="margin:6px 0 10px"><summary class="muted" style="cursor:pointer;font-size:12.5px">How these were found and how sure it is</summary><div class="muted" style="font-size:12.5px;white-space:pre-wrap;margin-top:6px">${esc(c.notes.replace(/\*\*/g, ""))}</div></details>` : ""}
     ${c.contacts?.length ? `<div style="display:grid;gap:8px">${c.contacts.map((p) => `<div class="card" style="padding:10px 12px"><div class="row"><b style="flex:1">${esc(p.name)}</b>${roleChip(p.role)}<span class="chip">${esc(p.confidence)} confidence</span></div>
       <div class="muted" style="font-size:13px">${esc(p.title)}</div><div style="font-size:12.5px;margin:4px 0">${esc(p.why)}</div>
-      <div class="row"><a class="btn sm" href="${esc(p.profileUrl)}" target="_blank" rel="noopener">Open profile ↗</a></div></div>`).join("")}</div>` : `<p class="muted">No one found with confidence. Try the searches below.</p>`}
-    <div class="row" style="margin-top:8px">${(c.links ?? []).map((l) => `<a class="btn sm ghost" href="${esc(l.url)}" target="_blank" rel="noopener">🔎 ${esc(l.label)}</a>`).join("")}</div>
+      <div class="row"><a class="btn sm" href="${esc(p.profileUrl)}" target="_blank" rel="noopener">Open profile ${ICON.ext}</a></div></div>`).join("")}</div>` : `<p class="muted">No one found with confidence. Try the searches below.</p>`}
+    <div class="row" style="margin-top:8px">${(c.links ?? []).map((l) => `<a class="btn sm ghost" href="${esc(l.url)}" target="_blank" rel="noopener">${ICON.search}${esc(l.label)}</a>`).join("")}</div>
     ${c.linkedinNote ? `<h3 style="margin-top:14px">LinkedIn note <span class="muted" style="font-weight:400">(${c.linkedinNote.length}/300)</span></h3><pre>${esc(c.linkedinNote)}</pre><button class="btn sm" data-copy="${esc(c.linkedinNote)}">Copy note</button>` : ""}
     ${c.emailBody ? `<h3 style="margin-top:14px">Email</h3><pre><b>${esc(c.emailSubject ?? "")}</b>\n\n${esc(c.emailBody)}</pre><button class="btn sm" data-copy="${esc(`${c.emailSubject ?? ""}\n\n${c.emailBody}`)}">Copy email</button>` : ""}`;
 }
 
 // ---------------- email routed to this application ----------------
-const MAILKIND = { interview: "📅 Interview", rejection: "✖ Rejection", offer: "🎉 Offer", assessment: "📝 Assessment", received: "✓ Received", recruiter: "✉ Recruiter" };
+const MAILKIND = { interview: "Interview", rejection: "Rejection", offer: "Offer", assessment: "Assessment", received: "Received", recruiter: "Recruiter" };
 function mailSection(j) {
   if (!j.emails?.length && !j.drafts?.length) return "";
   const gmailCompose = (d) => `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent((d.to.match(/<([^>]+)>/)?.[1] ?? d.to))}&su=${encodeURIComponent(d.subject)}&body=${encodeURIComponent(d.body)}`;
@@ -1234,7 +1404,7 @@ async function openJob(id) {
   const answers = j.receipts.includes("answers.json") ? await fetch(r("answers.json")).then((x) => x.json()).catch(() => null) : null;
   const fit = j.fit ?? {};
   $("#drawer").innerHTML = `<div class="drawer-bg" onclick="closeDrawer()"></div><div class="drawer">
-    <div class="row"><div style="flex:1"><h1>${esc(j.title)}</h1><div class="muted">${esc(j.company)} · ${esc(j.location ?? "")} · <a href="${esc(j.url)}" target="_blank" rel="noopener">View posting ↗</a></div></div><button class="btn sm ghost" onclick="closeDrawer()">✕</button></div>
+    <div class="row"><div style="flex:1"><h1>${esc(j.title)}</h1><div class="muted">${esc(j.company)} · ${esc(j.location ?? "")} · <a href="${esc(j.url)}" target="_blank" rel="noopener">View posting ${ICON.ext}</a></div></div><button class="btn sm ghost" onclick="closeDrawer()" aria-label="Close">${ICON.x}</button></div>
     <div class="row" style="margin-top:12px">${j.score != null ? `<span class="chip matched">${j.score}% match</span>` : ""}${statusChip(j.status)}${j.status === "submitted" ? stageChip(j.stage) : ""}${j.ats && isAdmin() ? `<span class="chip">${esc(j.ats)}</span>` : ""}</div>
     ${whyBox(j)}
     <div class="row" style="margin-top:14px">${explain(j)?.actions.length ? actionButtons(j).replace(/<button class="btn sm primary" data-act="apply"[^]*?<\/button>/, "") : actionButtons(j)}${j.status === "submitted" ? `${stageSelect(j)}<button class="btn sm ghost" data-act="undo" data-id="${esc(j.id)}">Mark as not applied</button>` : ""}</div>
@@ -1282,7 +1452,7 @@ function applyFilter(jobs, f = S.filter) {
 }
 const filterActive = () => JSON.stringify(S.filter) !== JSON.stringify(EMPTY_FILTER);
 function commandBar(placeholder) {
-  return `<div class="card" style="margin-bottom:12px;padding:12px 14px"><div class="row"><span style="font-size:18px">✨</span>
+  return `<div class="card" style="margin-bottom:12px;padding:12px 14px"><div class="row"><span class="muted" style="display:grid">${ICON.search}</span>
       <input id="cmd" placeholder="${esc(placeholder)}" style="flex:1;min-width:200px"><button class="btn primary" id="cmdGo">Ask</button></div>
       <div id="cmdReply" class="muted" style="font-size:13px;margin-top:6px">${esc(S.cmdReply ?? "")}</div></div>`;
 }
@@ -1317,7 +1487,7 @@ function filterBar(jobs, { stages } = {}) {
       <select id="fScore" style="width:auto"><option value="0">Any match</option>${[70, 80, 85, 90].map((n) => opt(String(n), String(f.minScore), `${n}%+`)).join("")}</select>`}
     <select id="fAts" style="width:auto"><option value="">Any site</option>${atsList.map((a) => opt(a, f.ats[0])).join("")}</select>
     <label class="row" style="gap:4px;font-size:13px"><input type="checkbox" id="fRemote" style="width:auto" ${f.remoteOnly ? "checked" : ""}>Remote</label>
-    ${filterActive() ? `<button class="btn sm ghost" id="fClear">✕ Clear filters</button>` : ""}</div>`;
+    ${filterActive() ? `<button class="btn sm ghost" id="fClear">Clear filters</button>` : ""}</div>`;
 }
 function wireFilters() {
   const set = (k, v) => { S.filter = { ...S.filter, [k]: v }; S.cmdReply = ""; render(); };
@@ -1583,7 +1753,7 @@ async function refreshFeed(quiet) {
     const q = S.feedUi.q[id]; if (q) { const inp = dt.querySelector("[data-search]"); if (inp) { inp.value = q; inp.dispatchEvent(new Event("input", { bubbles: true })); } }
   }
   const filtersOn = FILTERS.some(([id, kind]) => kind !== "toggle" && id !== "sort" && id !== "exclude" && filterOn(f, id)) || f.all || f.visa || f.noclear;
-  $("#linkrow").innerHTML = `${filtersOn ? `<a class="l strong" id="clearF">Clear filters</a>` : `<span class="muted">Clear filters</span>`}<a class="l muted" id="useMine">Use my search</a><a class="l strong" id="tune">Ask AutoApply to tune this →</a>
+  $("#linkrow").innerHTML = `${filtersOn ? `<a class="l strong" id="clearF">Clear filters</a>` : `<span class="muted">Clear filters</span>`}<a class="l muted" id="useMine">Use my search</a><a class="l strong" id="tune">Ask AutoApply to tune this</a>
     <span class="spacer"></span><span class="muted">${d.total} job${d.total === 1 ? "" : "s"}</span>${f.view === "saved" ? "" : d.rows.filter(strong).length ? `<button class="blackbtn" id="top5">Apply to the top ${Math.min(5, d.rows.filter(strong).length)}</button>` : ""}`;
   // the list
   $("#feedList").innerHTML = (d.rows.length ? `<div class="jlist">${d.rows.map((j) => `<div class="jrow" data-open="${esc(j.id)}">${logoFor(j.company)}
@@ -1594,21 +1764,21 @@ async function refreshFeed(quiet) {
       <button class="tbtn queue ${j.saved ? "on" : ""}" data-save="${esc(j.id)}" data-on="${j.saved ? 1 : 0}" title="${j.saved ? "Remove from your queue" : "Add to your queue, then apply to all of them in one click"}">${j.saved ? "✓ In queue" : "＋ Queue"}</button>
       <button class="tbtn nope" data-nope="${esc(j.id)}" title="Hide this job and show others">Not interested</button>
       <button class="tbtn send" data-send="${esc(j.id)}" title="Apply for me"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7Z"/></svg>Apply for me</button></div>`).join("")}</div>`
-    : `<div class="card empty"><div class="big">🔎</div><p>${f.view === "saved" ? "Your queue is empty. Press <b>＋ Queue</b> on the jobs you want, then <b>Apply to all</b> here — AutoApply applies to every one of them. Questions only you can answer wait in For you." : d.counts.all ? "No jobs match these filters."
+    : `<div class="card empty"><div class="big">${ICON.search}</div><p>${f.view === "saved" ? "Your queue is empty. Press <b>＋ Queue</b> on the jobs you want, then <b>Apply to all</b> here — AutoApply applies to every one of them. Questions only you can answer wait in For you." : d.counts.all ? "No jobs match these filters."
       : d.lastSearch && !d.lastSearch.newMatches ? `<b>${esc(d.lastSearch.message)}</b><br><span class="muted" style="font-size:13px">Last searched ${esc(agoText(d.lastSearch.at))}.${d.lastSearch.busy ? " A few company sites were busy and are searched again next time." : ""}</span>`
-      : "No jobs yet. Add search terms above (e.g. ServiceNow, CMDB), then press ⌕ to search — AutoApply looks through all the employer boards it knows plus your own companies."}</p>
+      : "No jobs yet. Add a job title or skill above, like data analyst or python, then search. AutoApply looks through every employer board it knows, plus your own companies."}</p>
       ${f.view !== "saved" && !d.counts.all && d.lastSearch?.hint ? searchHint(d.lastSearch).replace('class="row"', 'class="row" style="justify-content:center;margin-top:8px"') : ""}</div>`);
   $("#feedList").classList.remove("loading");
-  $("#leftpill").innerHTML = `<b>${Math.max(0, (s.dailyCap ?? 0) - (st.submittedToday ?? 0))}</b> applications left today <a class="l" data-tab="preferences">Change →</a>`;
+  $("#leftpill").innerHTML = `<b>${Math.max(0, (s.dailyCap ?? 0) - (st.submittedToday ?? 0))}</b> applications left today <a class="l" data-tab="preferences">Change</a>`;
   // side panel (the ask box keeps what's typed)
   const askVal = $("#askIn")?.value ?? "";
   $("#fside").innerHTML = `
     <div class="sbox plain"><div class="srow"><div><div class="sname">AutoApply</div><div class="muted sstat"><span class="sdot ${s.autopilot?.enabled ? "on" : ""}"></span>${s.autopilot?.enabled ? "Applying on my own" : "Not applying on my own"} · <a class="l" id="apToggle">${s.autopilot?.enabled ? "Turn off" : "Turn on"}</a></div></div><div class="orb"></div></div></div>
-    <div class="sbox plain"><div class="shead">Applied<a class="l" data-tab="applications" title="All applications">→</a></div><div class="logos">${d.side.applied.map((a) => `<span data-open="${esc(a.id)}" style="cursor:pointer">${logoFor(a.company)}</span>`).join("") || `<span class="muted" style="font-size:12.5px">Nothing yet</span>`}</div></div>
+    <div class="sbox plain"><div class="shead">Applied<a class="l" data-tab="applications">See all</a></div>${d.side.applied.slice(0, 4).map((a) => `<div class="sitem" data-open="${esc(a.id)}">${logoFor(a.company)}<div><b>${esc(a.title)}</b><div class="muted">${esc(a.company)}</div></div><span class="stamp">${ICON.check}Sent</span></div>`).join("") || `<span class="muted" style="font-size:12.5px">Nothing yet</span>`}</div>
     <div class="sbox plain"><div class="shead">In progress${d.side.inProgress.length ? `<button class="blackbtn sm" data-tab="applications">Review all</button>` : ""}</div>${d.side.inProgress.map((a) => `<div class="sitem" data-open="${esc(a.id)}">${logoFor(a.company)}<div><b>${esc(a.title)}</b><div class="muted">${esc(a.company)}</div></div><span class="${a.status === "needs_input" ? "warn" : "muted"}">${esc(a.status === "applying" ? "Applying…" : a.status === "filled" ? "Ready to submit" : STATUS[a.status] ?? a.status)}</span></div>`).join("") || `<div class="muted" style="font-size:12.5px">Nothing in progress</div>`}</div>
     <div class="sbox plain"><div class="shead">Up next</div>${d.side.upNext.map((a) => `<div class="sitem" data-open="${esc(a.id)}">${logoFor(a.company)}<div><b>${esc(a.title)}</b><div class="muted">${esc(a.company)}</div></div><span class="muted">${a.score}%</span></div>`).join("") || `<div class="muted" style="font-size:12.5px">Strong matches show up here</div>`}</div>
     <div class="sbox plain"><div class="shead">Your searches</div><div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill">${s.mode === "review" ? "Review before I submit" : "Submit for me"}</span>${(f.loc.length ? f.loc : (s.locations ?? []).filter((l) => l.length > 2).slice(0, 3)).map((l) => `<span class="pill">${esc(l[0].toUpperCase() + l.slice(1))}</span>`).join("")}<a class="l muted" data-tab="preferences">Edit</a></div></div>
-    <div class="askbox"><input id="askIn" placeholder="Ask AutoApply anything" value="${esc(askVal)}"><button id="askGo" aria-label="Ask">↑</button></div>`;
+    <div class="askbox"><input id="askIn" placeholder="Ask AutoApply anything" value="${esc(askVal)}"><button id="askGo" aria-label="Ask">${ICON.arrowUp}</button></div>`;
 }
 
 /** A multi-select menu: search (for long lists), options with counts, and a Clear all / Done footer. */
@@ -1651,7 +1821,7 @@ VIEWS.queue = async (v) => {
       <button class="tbtn send" data-send="${esc(j.id)}" title="Apply to this one now"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4 18-7Z"/></svg>Apply for me</button></div>`;
   v.innerHTML = `<h1>Queue</h1><p class="sub">Jobs you picked to apply to. Apply to all of them in one click; remove a job to put it back in Jobs.</p>
     ${rows.length ? `${queueBar(rows)}<div class="card" style="padding:4px 16px"><div class="jlist">${rows.map(row).join("")}</div></div>`
-      : `<div class="card empty"><div class="big">📋</div><p>Your queue is empty. In <a class="l" data-tab="jobs">Jobs</a>, press <b>＋ Queue</b> on the jobs you want — they move here. Then press <b>Apply to all</b>.</p></div>`}`;
+      : `<div class="card empty"><div class="big">${ICON.clipboard}</div><p>Your queue is empty. In <a class="l" data-tab="jobs">Jobs</a>, press <b>＋ Queue</b> on the jobs you want and they move here. Then press <b>Apply to all</b>.</p></div>`}`;
   v.onclick = async (e) => {
     const un = e.target.closest("[data-unqueue]"), send = e.target.closest("[data-send]");
     if (un) {
@@ -1667,6 +1837,15 @@ VIEWS.queue = async (v) => {
   };
 };
 
+// Applications: where the sent applications stand, as one strip. The furthest stage reached carries the accent.
+const pipeline = (by, sent) => {
+  const steps = STAGES.filter(([k]) => !["rejected", "ghosted"].includes(k));
+  const lead = [...steps].reverse().find(([k]) => by[k])?.[0];
+  const pct = (k) => (sent ? Math.round(((by[k] ?? 0) / sent) * 100) : 0);
+  const cell = ([k, l], out) => `<button class="pstep ${k === lead ? "lead" : ""} ${out ? "out" : ""}" data-stagefilter="${k}"><span class="pl">${l}${sent && !out ? `<span>${pct(k)}%</span>` : ""}</span><span class="pn">${by[k] ?? 0}</span>${out ? `<span class="pr">${by.ghosted ?? 0} no reply</span>` : `<span class="pb"><i style="width:${pct(k)}%"></i></span>`}</button>`;
+  return `<div class="pipe">${steps.map((s) => cell(s)).join("")}${cell(["rejected", "Rejected"], true)}</div>`;
+};
+
 VIEWS.applications = async (v) => {
   const [everythingRaw, stats] = await Promise.all([api(`${U()}/jobs?status=applications`), api(`${U()}/stats`).catch(() => null)]);
   const everything = everythingRaw.filter((r) => r.status !== "discovered");
@@ -1677,18 +1856,18 @@ VIEWS.applications = async (v) => {
   const applied = everything.filter((r) => r.status === "submitted");
   const rows = applyFilter(all);
   const by = applied.reduce((m, r) => ((m[r.stage ?? "applied"] = (m[r.stage ?? "applied"] ?? 0) + 1), m), {});
-  v.innerHTML = `<h1>Applications</h1><p class="sub">Every job AutoApply worked on for ${esc(S.user.profile.firstName)}. Move applied jobs along as you hear back — changing a stage never contacts the employer.</p>
-    <div class="stats">${STAGES.filter(([k]) => k !== "ghosted").map(([k, l]) => `<div class="stat" style="cursor:pointer" data-stagefilter="${k}"><b>${by[k] ?? 0}</b><span>${l}</span></div>`).join("")}</div>
+  v.innerHTML = `<h1>Applications</h1><p class="sub">Every job AutoApply worked on for ${esc(S.user.profile.firstName)}. Move applied jobs along as you hear back. Changing a stage never contacts the employer.</p>
+    ${pipeline(by, applied.length)}
     <div class="tabs">${TRACK.map(([k, l]) => `<button data-track="${k}" class="${S.track === k ? "on" : ""}">${l}<span class="n">${counts[k]}</span></button>`).join("")}</div>
     ${commandBar("Ask AutoApply… e.g. “show my interviews”, “find recruiters for my BMO applications”")}
     ${filterBar(all, { stages: S.track === "applied" })}
     ${rows.length ? `<table><thead><tr><th>Role</th><th class="hide-sm">Date</th><th>Status</th><th></th></tr></thead><tbody>
-    ${rows.map((r) => `<tr><td class="t" onclick="openJob('${esc(r.id)}')">${esc(r.title)}<div class="muted" style="font-weight:400">${esc(r.company)}${r.contacts?.contacts?.length ? ` · 👥 ${r.contacts.contacts.length} people` : ""}${whyBox(r, { compact: true })}</div></td>
-      <td class="hide-sm muted">${esc(new Date(r.submittedAt ?? r.updatedAt ?? Date.now()).toLocaleDateString())}</td><td>${r.status === "submitted" ? stageSelect(r) : statusChip(r.status)}</td>
-      <td style="text-align:right;white-space:nowrap">${r.status === "submitted" ? `<button class="btn sm ghost" data-act="people" data-id="${esc(r.id)}">👥 Find people</button>` : actionButtons(r)}<button class="btn sm" onclick="openJob('${esc(r.id)}')">Details</button></td></tr>`).join("")}</tbody></table>`
-    : `<div class="card empty"><div class="big">📋</div><p>${everything.length ? "Nothing here." : "No applications yet. Go to <b>Job matches</b> and press <b>Apply for me</b>."}</p></div>`}`;
+    ${rows.map((r) => `<tr><td class="t" onclick="openJob('${esc(r.id)}')">${esc(r.title)}<div class="muted" style="font-weight:400">${esc(r.company)}${r.contacts?.contacts?.length ? ` · ${r.contacts.contacts.length} people` : ""}${whyBox(r, { compact: true })}</div></td>
+      <td class="hide-sm muted">${r.status === "submitted" && r.submittedAt ? receipt(r.submittedAt) : esc(new Date(r.submittedAt ?? r.updatedAt ?? Date.now()).toLocaleDateString())}</td><td>${r.status === "submitted" ? stageSelect(r) : statusChip(r.status)}</td>
+      <td style="text-align:right;white-space:nowrap">${r.status === "submitted" ? `<button class="btn sm ghost" data-act="people" data-id="${esc(r.id)}">${ICON.team}Find people</button>` : actionButtons(r)}<button class="btn sm" onclick="openJob('${esc(r.id)}')">Details</button></td></tr>`).join("")}</tbody></table>`
+    : `<div class="card empty"><div class="big">${ICON.clipboard}</div><p>${everything.length ? "Nothing here." : "No applications yet. Go to <b>Job matches</b> and press <b>Apply for me</b>."}</p></div>`}`;
   const pausedSites = (stats?.health ?? []).filter((s) => s.paused);
-  if (pausedSites.length) v.insertAdjacentHTML("beforeend", `<div class="card" style="margin-top:14px;border-color:#e0a800"><b>⏸ Paused: ${esc(pausedSites.map((s) => s.name).join(", "))}</b><div class="muted" style="font-size:13px;margin-top:4px">Applications on ${pausedSites.length === 1 ? "this job site" : "these job sites"} kept failing, so AutoApply stopped sending them instead of wasting yours. Jobs there wait in your list and are applied to automatically once the site works again.</div></div>`);
+  if (pausedSites.length) v.insertAdjacentHTML("beforeend", `<div class="card" style="margin-top:14px;border-color:var(--warn)"><b>Paused: ${esc(pausedSites.map((s) => s.name).join(", "))}</b><div class="muted" style="font-size:13px;margin-top:4px">Applications on ${pausedSites.length === 1 ? "this job site" : "these job sites"} kept failing, so AutoApply stopped sending them instead of wasting yours. Jobs there wait in your list and are applied to automatically once the site works again.</div></div>`);
   if (stats?.canManage && (stats.ats.length || stats.e2e || stats.health?.length || stats.fixes?.count)) v.insertAdjacentHTML("beforeend", `<details class="card" style="margin-top:14px" ${pausedSites.length ? "open" : ""}><summary style="cursor:pointer"><b>Success rate by job site</b>${stats.e2e ? ` <span class="muted" style="font-size:12.5px">· test suite on mock sites: ${stats.e2e.passed}/${stats.e2e.total} (${stats.e2e.successRate}%) on ${esc(new Date(stats.e2e.at).toLocaleDateString())}</span>` : ""}</summary>
     ${healthTable(stats)}
     <h3 style="margin:14px 0 6px;font-size:14px">${esc(S.user.profile.firstName)}'s applications</h3>
@@ -1713,9 +1892,9 @@ VIEWS.applications = async (v) => {
 VIEWS.resumes = async (v) => {
   const rs = S.user.resumes;
   v.innerHTML = `<h1>Resumes</h1><p class="sub">Keep one or more resumes. Each job uses the resume whose target titles fit it best, otherwise the default.</p>
-    <div class="grid">${rs.map((r) => `<div class="card"><div class="row"><span style="font-size:22px">📄</span><b style="flex:1">${esc(r.name)}</b>${r.isDefault ? `<span class="chip matched">Default</span>` : ""}</div>
+    <div class="grid">${rs.map((r) => `<div class="card"><div class="row"><span class="cic">${ICON.resumes}</span><b style="flex:1">${esc(r.name)}</b>${r.isDefault ? `<span class="chip matched">Default</span>` : ""}</div>
       <p class="muted" style="margin:8px 0">${r.targetTitles.length ? `Used for: ${r.targetTitles.map(esc).join(", ")}` : "Used for all jobs"}</p>
-      <p style="margin:6px 0;font-size:13px">${r.hasPdf ? "✅ PDF" : "<span style='color:var(--bad)'>✗ No PDF</span>"} · ${r.textLength ? "✅ Text for tailoring" : "<span style='color:var(--warn)'>No text (needed for tailoring)</span>"}</p>
+      <p style="margin:6px 0;font-size:13px">${r.hasPdf ? "PDF ready" : "<span style='color:var(--bad)'>✗ No PDF</span>"} · ${r.textLength ? "Text ready for tailoring" : "<span style='color:var(--warn)'>No text (needed for tailoring)</span>"}</p>
       <div class="row">${r.hasPdf ? `<a class="btn sm" target="_blank" href="/api${U()}/resumes/${encodeURIComponent(r.id)}/pdf">View</a>` : ""}
         <button class="btn sm" data-edit="${esc(r.id)}">Edit</button>
         ${r.isDefault ? "" : `<button class="btn sm" data-def="${esc(r.id)}">Make default</button>`}
@@ -1799,16 +1978,16 @@ VIEWS.profile = async (v) => {
   v.innerHTML = `<h1>Profile</h1><p class="sub">Everything AutoApply uses to fill applications for ${esc(p.firstName)}. It only uses these facts and the resume — it never makes things up.</p>
     <div class="tabs" id="profTabs">${[["details", "Details"], ["permissions", "Permissions"], ["accounts", "Sign-ins & email"]].map(([k, l]) => `<button data-ptabsel="${k}" class="${(S.profTab ?? "details") === k ? "on" : ""}">${l}</button>`).join("")}</div>
 
-    <div data-pgroup="permissions"><div class="card"><div class="card-head"><div style="font-size:22px">🛡️</div><div><h2>Permissions</h2><p>What AutoApply may do on ${esc(p.firstName)}'s behalf when applying.</p></div></div>
+    <div data-pgroup="permissions"><div class="card"><div class="card-head"><div class="cic">${ICON.shield}</div><div><h2>Permissions</h2><p>What AutoApply may do on ${esc(p.firstName)}'s behalf when applying.</p></div></div>
       ${toggle("pAuto", "One-click apply: submit for me", "When on, pressing Apply fills and submits the whole application with no further questions (Workday may still need one sign-in click). When off, you get a final look before each one is sent.", s.mode === "auto")}
       ${toggle("pAccounts", "Create job-site accounts for me", `Workday, iCIMS and similar sites need an account per employer. AutoApply creates it with ${esc(p.email ?? "your email")} and the password below.`, perms.createAccounts !== false)}
       ${toggle("pConsent", "Accept privacy notices and site terms for me", "Ticks \"I have read the privacy notice / terms\" boxes. Real choices (like recording interviews) are always left to you.", p.consentToApplicationNotices === true)}
       <div class="perm" style="display:block"><b>AI answers</b>
         <small style="display:block;margin:2px 0 8px">Applying normally uses no AI: answers come from the profile, the resume and answers you gave before. Choose what happens with a question AutoApply hasn't seen.</small>
         <div class="row" style="gap:6px" id="aiModeBox">${[
-          ["off", "🚫 Off", "No AI. New questions are sent to For you."],
-          ["ask", "✋ Ask me first", "AI only when you allow it. New questions are sent to you, with a “Let AI answer” button."],
-          ["auto", "⚡ Automatic", "AI answers new questions, scores jobs and tailors resumes on its own."],
+          ["off", "Off", "No AI. New questions are sent to For you."],
+          ["ask", "Ask me first", "AI only when you allow it. New questions are sent to you, with a “Let AI answer” button."],
+          ["auto", "Automatic", "AI answers new questions, scores jobs and tailors resumes on its own."],
         ].map(([k, l, h]) => `<label class="aimode ${s.aiMode === k ? "on" : ""}" title="${esc(h)}"><input type="radio" name="aiMode" value="${k}" ${s.aiMode === k ? "checked" : ""} style="width:auto"> ${l}<small>${esc(h)}</small></label>`).join("")}</div></div>
       ${toggle("pRescue", "Let AI finish applications that get stuck", "When a job site's form doesn't work the way AutoApply expects, it first tries again by itself; if it's still stuck, AI looks at the page and finishes it using only the profile and resume. Questions only you can answer still go to For you. Not used when AI answers are Off.", s.aiRescue !== false && s.aiMode !== "off")}
       ${toggle("pJudge", "Pick “prefer not to answer” when it's offered", "For sensitive multiple-choice questions your profile doesn't cover, choose the decline option instead of asking you. (In Automatic mode AI may also pick the best-fitting option.)", s.bestJudgment !== false)}
@@ -1823,16 +2002,16 @@ VIEWS.profile = async (v) => {
       <div class="row" style="margin-top:6px"><button class="btn primary" id="permSave">Save permissions</button></div>
     </div></div>
 
-    <div data-pgroup="accounts"><div class="card"><div class="card-head"><div style="font-size:22px">🔐</div><div><h2>Job-site account password</h2><p>AutoApply uses <b>${esc(p.email ?? "")}</b> and this one password on every job site (Workday and similar): it signs in where you already have an account and signs up where you don't. ${S.user.passwordGenerated ? "AutoApply created this password for you — press 👁 to see it." : "If you don't set one, AutoApply creates a strong one for you."} It is kept private.</p></div></div>
-      <div class="row"><div style="flex:1;max-width:340px">${pwField("atsPw", S.user.hasAtsPassword ? "Saved — press 👁 to view" : "Choose a password")}</div>
+    <div data-pgroup="accounts"><div class="card"><div class="card-head"><div class="cic">${ICON.lock}</div><div><h2>Job-site account password</h2><p>AutoApply uses <b>${esc(p.email ?? "")}</b> and this one password on every job site (Workday and similar): it signs in where you already have an account and signs up where you don't. ${S.user.passwordGenerated ? "AutoApply created this password for you. Use the eye button to see it." : "If you don't set one, AutoApply creates a strong one for you."} It is kept private.</p></div></div>
+      <div class="row"><div style="flex:1;max-width:340px">${pwField("atsPw", S.user.hasAtsPassword ? "Saved. Use the eye button to view it" : "Choose a password")}</div>
         <button class="btn primary" id="pwSave">${S.user.hasAtsPassword ? "Update password" : "Save password"}</button>
-        ${S.user.hasAtsPassword ? `<span class="chip submitted">✓ ${S.user.passwordGenerated ? "Created by AutoApply" : "Saved"}</span>` : `<span class="chip">Created automatically on first use</span>`}</div>
+        ${S.user.hasAtsPassword ? `<span class="chip submitted">${S.user.passwordGenerated ? "Created by AutoApply" : "Saved"}</span>` : `<span class="chip">Created automatically on first use</span>`}</div>
       <p class="muted" style="font-size:12.5px;margin:8px 0 0">At least 8 characters with an uppercase letter, a lowercase letter, a number and a symbol.</p>
       ${S.user.sitePasswordHosts?.length ? `<p class="muted" style="margin:10px 0 0;font-size:12.5px">Own password remembered for: ${S.user.sitePasswordHosts.map((h) => esc(h.split(".")[0])).join(", ")}</p>` : ""}
       ${S.user.accounts?.length ? `<p style="margin:12px 0 0"><b>Job-site accounts:</b> ${S.user.accounts.map((a) => `<span class="chip ${a.verified ? "submitted" : "filled"}">${esc(a.host.split(".")[0])}${a.verified ? "" : " · verify email"}</span>`).join(" ")}</p>` : ""}
     </div>
 
-    <div class="card" id="mailCard"><div class="card-head"><div style="font-size:22px">✉️</div><div><h2>Email <span class="chip">Optional</span></h2><p>Lets AutoApply enter verification codes for ${esc(p.firstName)} and show replies from employers it applied to. <b>Only emails about AutoApply's applications are kept.</b> Other email is never saved or shown. It never sends or deletes anything.</p></div></div><div class="muted">Loading…</div></div>
+    <div class="card" id="mailCard"><div class="card-head"><div class="cic">${ICON.mail}</div><div><h2>Email <span class="chip">Optional</span></h2><p>Lets AutoApply enter verification codes for ${esc(p.firstName)} and show replies from employers it applied to. <b>Only emails about AutoApply's applications are kept.</b> Other email is never saved or shown. It never sends or deletes anything.</p></div></div><div class="muted">Loading…</div></div>
     </div>
     <div data-pgroup="details"><div id="pf">${PROFILE_SECTIONS.map(([t, help, fields]) => `<div class="card"><h2>${esc(t)}</h2>${help ? `<p class="muted" style="margin:0 0 12px">${esc(help)}</p>` : `<div style="height:10px"></div>`}<div class="form">${fields.map(inputFor).join("")}</div></div>`).join("")}</div>
     <div class="row" style="margin-top:14px"><button class="btn primary" id="pSave">Save profile</button></div></div>`;
@@ -1860,7 +2039,7 @@ VIEWS.profile = async (v) => {
         ${m.inboundReady ? `<div class="muted" style="font-size:12px">Worker key: shown to the owner after saving an address.</div>` : ""}</details>`;
     $("#imapOn") && ($("#imapOn").onclick = async () => {
       toast("Checking the app password…");
-      try { await api(`${U()}/mail/imap`, { method: "POST", body: { email: $("#imapEmail").value.trim(), appPassword: $("#imapPass").value } }); toast("✓ Connected. Verification codes and replies about your applications are handled automatically."); render(); } catch (e) { fail(e); }
+      try { await api(`${U()}/mail/imap`, { method: "POST", body: { email: $("#imapEmail").value.trim(), appPassword: $("#imapPass").value } }); toast(" Connected. Verification codes and replies about your applications are handled automatically."); render(); } catch (e) { fail(e); }
     });
     $("#imapOff") && ($("#imapOff").onclick = async () => { await api(`${U()}/mail/imap`, { method: "POST", body: { remove: true } }).catch(fail); render(); });
     $("#aliasSave").onclick = async () => { try { const r = await api(`${U()}/mail/alias`, { method: "POST", body: { alias: $("#aliasIn").value.trim() } }); if (r.inboundKey) modal({ title: "Saved", body: `Put this key in the Cloudflare Email Worker as <b>AUTOAPPLY_KEY</b>:<br><code style="user-select:all;word-break:break-all">${esc(r.inboundKey)}</code>`, ok: "Done", cancel: "" }); render(); } catch (e) { fail(e); } };
@@ -1902,7 +2081,7 @@ VIEWS.preferences = async (v) => {
       <label class="f"><span>Minimum match score</span><input id="minScore" type="number" min="0" max="100" value="${s.minScore}"><small>0–100. Higher means fewer, closer matches.</small></label>
       <label class="perm" ${isAdmin() ? "" : "hidden"} style="border:0;padding:0"><span class="switch"><input id="headless" type="checkbox" ${s.headless ? "checked" : ""}><span></span></span><span class="txt"><b>Apply in the background</b><small>Hide the browser window while applying</small></span></label>
     </div></div>
-    <div class="card"><div class="card-head"><div style="font-size:22px">🛫</div><div><h2>Autopilot</h2><p>While AutoApply is running, every few hours it finds new jobs and applies to matches at or above the score below, up to the daily cap. Questions it can't answer aren't asked — those jobs wait under For you. ${ap.lastRunAt ? `Last run: ${esc(new Date(ap.lastRunAt).toLocaleString())}.` : ""}</p></div></div>
+    <div class="card"><div class="card-head"><div class="cic">${ICON.route}</div><div><h2>Autopilot</h2><p>While AutoApply is running, every few hours it finds new jobs and applies to matches at or above the score below, up to the daily cap. Questions it can't answer aren't asked — those jobs wait under For you. ${ap.lastRunAt ? `Last run: ${esc(new Date(ap.lastRunAt).toLocaleString())}.` : ""}</p></div></div>
       <div class="form">
       <label class="perm" style="border:0;padding:0"><span class="switch"><input id="apOn" type="checkbox" ${s.autopilot?.enabled ? "checked" : ""}><span></span></span><span class="txt"><b>Turn on autopilot</b></span></label>
       <label class="f"><span>Run every (hours)</span><input id="apEvery" type="number" min="1" max="72" value="${s.autopilot?.everyHours ?? 6}"></label>
@@ -1943,7 +2122,6 @@ VIEWS.questions = async (v) => {
       toast(dl ? "Forgotten" : "Answer updated"); render();
     } catch (err) { fail(err); }
   });
-  const KIND = { question: "❓", verify: "✉️", captcha: "🧩", mfa: "🔐", account: "👤", review: "👀" };
   const jobsLine = (q) => q.jobs?.length ? `${q.jobs.length} job${q.jobs.length > 1 ? "s" : ""} waiting: ${q.jobs.slice(0, 3).map((j) => esc(`${j.company} — ${j.title}`)).join(", ")}${q.jobs.length > 3 ? "…" : ""}` : `Asked by: ${(q.seenAt ?? []).map(esc).join(", ")}`;
   // a question's input (answered together with the rest of the application's questions, then one Save button)
   const inputFor = (q, i) => {
@@ -1980,20 +2158,20 @@ VIEWS.questions = async (v) => {
     ${failed.length ? `<h2 style="margin:18px 0 8px">Didn't go through</h2>${failed.map((r) => `<div class="card fy"><div class="fyhead" data-open="${esc(r.id)}" title="Open this application">${logoFor(r.company || "?")}<div style="min-width:0;flex:1"><div class="fyco">${esc(r.company)}</div><div class="fyjob">${esc(r.title)}</div></div><span class="chip failed">Not sent</span></div>
       <div class="fyq">${whyBox(r).replace(/<\/div>\s*$/, `<div class="row" style="margin-top:6px"><button class="btn sm ghost" data-seen="${esc(r.id)}">Got it, hide</button></div></div>`)}</div></div>`).join("")}` : ""}
     ${un.length ? `${failed.length ? `<h2 style="margin:18px 0 8px">Questions and checks</h2>` : ""}${groups.map((g, gi) => groupHtml(g, gi)).join("")}`
-      : failed.length ? "" : `<div class="card empty"><div class="big">🎉</div><p>Nothing needs you right now.</p></div>`}
-    ${actMail.length ? `<div class="card"><div class="row"><h2 style="flex:1">Emails to look at</h2><a class="l" data-tab="mail">All email →</a></div><p class="muted" style="margin:2px 0 6px;font-size:13px">Interview invites, tests, offers and recruiter messages from the last two weeks.</p>
+      : failed.length ? "" : `<div class="card empty"><div class="big">${ICON.check}</div><p>Nothing needs you right now.</p></div>`}
+    ${actMail.length ? `<div class="card"><div class="row"><h2 style="flex:1">Emails to look at</h2><a class="l" data-tab="mail">All email</a></div><p class="muted" style="margin:2px 0 6px;font-size:13px">Interview invites, tests, offers and recruiter messages from the last two weeks.</p>
       ${actMail.map((m) => `<div class="mrow2"><div class="micon">${ICON.mail}</div><div style="min-width:0"><span class="chip">${esc(MAILKIND[m.kind] ?? m.kind)}</span> <span class="ms">${esc(m.subject)}</span><div class="mf">${esc(m.from ?? "")}${m.job ? ` · ${esc(m.job.company)} — ${esc(m.job.title)}` : ""}</div></div><div>${m.job ? `<button class="btn sm" data-open="${esc(m.job.id)}">Open</button>` : ""}</div></div>`).join("")}</div>` : ""}
     <details class="card"><summary style="cursor:pointer"><b>Saved answers</b> <span class="muted">· ${learned.length} remembered, ${Object.keys(bank).length} of your own</span></summary>
     <div style="margin-top:14px"><div class="row"><h2 style="flex:1">Answers remembered from past applications (${learned.length})</h2>
-      ${learned.length ? `<a class="btn sm" href="/api${U()}/learned?format=csv">⬇ Download (opens in Excel)</a>` : ""}</div>
+      ${learned.length ? `<a class="btn sm" href="/api${U()}/learned?format=csv">${ICON.download}Download (opens in Excel)</a>` : ""}</div>
       <p class="muted" style="margin:4px 0 12px">When a new question is answered, the answer is saved here and reused the next time the question comes up. Company-specific questions ("Why do you want to work here?") are always written fresh. Edit any answer to change what's given next time.</p>
       ${learned.length ? `<div id="learned">${learned.map((e, i) => `<div class="kv" style="grid-template-columns:1fr 1.2fr auto auto"><div><b style="font-weight:550">${esc(e.question)}</b><div class="muted" style="font-size:12px">${e.source === "you" ? "edited by you" : e.source === "judgment" ? "best judgment" : "AI"} · ${esc(e.from ?? "")}${e.uses ? ` · reused ${e.uses}×` : ""}</div></div>
         ${e.options?.length ? `<select data-l="${i}">${e.options.map((o) => `<option ${o === e.answer ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>` : `<textarea data-l="${i}" style="min-height:40px">${esc(Array.isArray(e.answer) ? e.answer[0] : e.answer)}</textarea>`}
-        <button class="btn sm" data-lsave="${i}">Save</button><button class="btn sm ghost danger" data-ldel="${i}" title="Forget">✕</button></div>`).join("")}</div>`
+        <button class="btn sm" data-lsave="${i}">Save</button><button class="btn sm ghost danger" data-ldel="${i}" title="Forget" aria-label="Forget">${ICON.x}</button></div>`).join("")}</div>`
       : `<div class="muted" style="font-size:13px">Nothing yet — answers appear here after the first applications.</div>`}
     </div>
     <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)"><h2>Your own answers</h2><p class="muted" style="margin:0 0 12px">A phrase from the question → the answer to give. These always win. The longest matching phrase wins.</p>
-    <div id="bank">${Object.entries(bank).map(([k, a]) => `<div class="kv"><input value="${esc(k)}"><input value="${esc(a ?? "")}"><button class="btn sm ghost danger" data-rm>✕</button></div>`).join("")}</div>
+    <div id="bank">${Object.entries(bank).map(([k, a]) => `<div class="kv"><input value="${esc(k)}"><input value="${esc(a ?? "")}"><button class="btn sm ghost danger" data-rm aria-label="Remove">${ICON.x}</button></div>`).join("")}</div>
     <div class="row"><button class="btn sm" id="addKv">＋ Add</button><span class="spacer"></span><button class="btn primary" id="bankSave">Save answers</button></div></div></details>`;
   v.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => openJob(b.dataset.open));
   v.querySelectorAll("[data-seen]").forEach((b) => b.onclick = async () => { try { await api(`${U()}/jobs/${encodeURIComponent(b.dataset.seen)}/seen`, { method: "POST", body: {} }); await loadUsers(); render(); } catch (e) { fail(e); } });
@@ -2033,7 +2211,7 @@ VIEWS.questions = async (v) => {
   v.querySelectorAll("[data-done]").forEach((b) => b.onclick = () => send(Number(b.dataset.done), null));
   v.querySelectorAll("[data-dismiss]").forEach((b) => b.onclick = () => send(Number(b.dataset.dismiss), null, false));
   v.addEventListener("click", (e) => { if (e.target.matches("[data-rm]")) e.target.closest(".kv").remove(); });
-  $("#addKv").onclick = () => $("#bank").insertAdjacentHTML("beforeend", `<div class="kv"><input placeholder="question phrase"><input placeholder="answer"><button class="btn sm ghost danger" data-rm>✕</button></div>`);
+  $("#addKv").onclick = () => $("#bank").insertAdjacentHTML("beforeend", `<div class="kv"><input placeholder="question phrase"><input placeholder="answer"><button class="btn sm ghost danger" data-rm aria-label="Remove">${ICON.x}</button></div>`);
   $("#bankSave").onclick = async () => {
     const out = {};
     $("#bank").querySelectorAll(".kv").forEach((r) => { const [k, a] = r.querySelectorAll("input"); if (k.value.trim()) out[k.value.trim().toLowerCase()] = a.value.trim() || null; });
@@ -2060,7 +2238,7 @@ VIEWS.mail = async (v) => {
     ${d.connected ? `<div class="muted" style="font-size:13px;margin:-10px 0 14px">Connected to <b>${esc(d.email ?? "your mailbox")}</b>${d.lastSyncAt ? ` · last checked ${esc(new Date(d.lastSyncAt).toLocaleString())}` : ""}</div>`
       : `<div class="banner info"><div>${ICON.mail}</div><div style="flex:1"><b>No mailbox connected.</b> Connect ${esc(S.user.profile.firstName || "their")}'s email so replies about these applications show up here and verification codes are entered automatically. Other email is never saved.</div><button class="btn sm primary" data-connectmail>Connect Gmail</button></div>`}
     <div class="tabs">${[["all", "All", items.length], ["received", "Received", got.length], ["drafts", "Drafts", drafts.length]].map(([k, l, n]) => `<button data-mtab="${k}" class="${tab === k ? "on" : ""}">${l}<span class="n">${n}</span></button>`).join("")}</div>
-    ${rows.length ? `<div class="card" style="padding:4px 14px">${rows.map(row).join("")}</div>` : `<div class="card empty"><div class="big">📭</div><p>${tab === "drafts" ? "No reply drafts." : "No emails yet. Replies from employers appear here after AutoApply applies."}</p></div>`}`;
+    ${rows.length ? `<div class="card" style="padding:4px 14px">${rows.map(row).join("")}</div>` : `<div class="card empty"><div class="big">${ICON.inbox}</div><p>${tab === "drafts" ? "No reply drafts." : "No emails yet. Replies from employers appear here after AutoApply applies."}</p></div>`}`;
   v.querySelectorAll("[data-mtab]").forEach((b) => b.onclick = () => { S.mailTab = b.dataset.mtab; render(); });
   v.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => openJob(b.dataset.open));
   $("#mailCheck") && ($("#mailCheck").onclick = async (e) => { e.target.disabled = true; toast("Checking email…"); try { const r = await api(`${U()}/mail/sync`, { method: "POST", body: {} }); toast(`Checked ${r.scanned} new email${r.scanned === 1 ? "" : "s"}${r.routed?.length ? `, ${r.routed.length} about your applications` : ""}`); } catch (err) { fail(err); } render(); });
@@ -2071,14 +2249,14 @@ VIEWS.settings = async (v) => {
   const key = st.key;
   const sub = st.backend === "subscription";
   v.innerHTML = `<h1>AI & settings</h1><p class="sub">Claude reads each question on the job site and answers it from the resume and the job description. Answers are saved, so the same question is never sent to Claude twice.</p>
-    <div class="card"><div class="card-head"><div style="font-size:22px">✨</div><div><h2>Use my Claude subscription <span class="chip matched">Recommended · no extra cost</span></h2>
+    <div class="card"><div class="card-head"><div class="cic">${ICON.plug}</div><div><h2>Use my Claude subscription <span class="chip matched">Recommended · no extra cost</span></h2>
       <p>Uses Claude Code (installed with your Claude desktop app), signed in with your own Claude account. Counts toward your plan's usage limits; no API credit is used.</p></div></div>
-      ${!st.cli ? `<div class="banner"><div>⚠️</div><div>Claude Code wasn't found on this computer. Open the Claude desktop app's Code tab once, then reload this page.</div></div>` : `
+      ${!st.cli ? `<div class="banner"><div>${ICON.alert}</div><div>Claude Code wasn't found on this computer. Open the Claude desktop app's Code tab once, then reload this page.</div></div>` : `
       <div class="row" style="margin-bottom:10px">${sub ? `<span class="chip submitted">● In use</span>` : `<span class="chip">○ Not in use</span>`}<span class="muted" id="subMsg"></span></div>
       <ol class="muted" style="margin:0 0 12px;padding-left:18px;font-size:13px"><li>Press <b>Sign in</b>. A window opens; sign in with your Claude account in the browser (one time only).</li><li>Close that window and press <b>Check connection</b>.</li></ol>
       <div class="row"><button class="btn primary" id="subLogin">Sign in with Claude</button><button class="btn" id="subCheck">Check connection</button></div>`}
     </div>
-    <div class="card"><div class="card-head"><div style="font-size:22px">🔑</div><div><h2>Or use an API key</h2><p>Optional. Billed per use to an Anthropic Console account.</p></div></div>
+    <div class="card"><div class="card-head"><div class="cic">${ICON.key}</div><div><h2>Or use an API key</h2><p>Optional. Billed per use to an Anthropic Console account.</p></div></div>
       <div class="row" style="margin-bottom:10px">${key ? `<span class="chip ${st.backend === "api" ? "submitted" : ""}">${st.backend === "api" ? "● In use" : "○ Saved"}</span><span class="muted">Key ending in …${esc(key.last4)}</span>` : `<span class="chip">○ None</span>`}</div>
       ${key?.source === "environment" ? "" : `<div class="row"><div style="flex:1;max-width:420px">${pwField("apiKey", key ? "Paste a new key to replace it" : "sk-ant-…")}</div>
         <button class="btn" id="keySave">${key ? "Replace key" : "Save key"}</button>
@@ -2095,7 +2273,7 @@ VIEWS.settings = async (v) => {
   $("#subCheck") && ($("#subCheck").onclick = async () => {
     $("#subMsg").textContent = "Checking… (takes a few seconds)";
     const r = await api("/settings/subscription", { method: "POST", body: {} }).catch((e) => ({ ok: false, error: e.message }));
-    if (r.ok) { toast("✓ Connected to your Claude subscription"); await loadUsers(); render(); }
+    if (r.ok) { toast(" Connected to your Claude subscription"); await loadUsers(); render(); }
     else { $("#subMsg").textContent = ""; toast(/not signed in|not logged/i.test(r.error) ? "Not signed in yet — press Sign in with Claude first" : `Couldn't connect: ${r.error}`, true); }
   });
   $("#keySave") && ($("#keySave").onclick = async () => {
@@ -2167,28 +2345,28 @@ VIEWS.online = async (v) => {
   const [c, g, gm] = await Promise.all([api("/cloud"), api("/cloud/github").catch(() => ({})), api("/cloud/gmail").catch(() => ({}))]);
   const t = c.tunnel;
   v.innerHTML = `<h1>Online access</h1><p class="sub">Let family use AutoApply from their own computers or phones through the website.</p>
-    <div class="card"><div class="card-head"><div style="font-size:22px">☁️</div><div><h2>1 · Web address (Cloudflare)</h2><p>Gives this dashboard a secure https:// address through Cloudflare. Only people you invited can sign in.</p></div></div>
-      ${!t.installed ? `<div class="banner"><div>⚠️</div><div>Cloudflare's connector isn't installed yet. Run <code>scripts\\share-online.ps1</code> once, then reload this page.</div></div>` : `
+    <div class="card"><div class="card-head"><div class="cic">${ICON.cloud}</div><div><h2>1 · Web address (Cloudflare)</h2><p>Gives this dashboard a secure https:// address through Cloudflare. Only people you invited can sign in.</p></div></div>
+      ${!t.installed ? `<div class="banner"><div>${ICON.alert}</div><div>Cloudflare's connector isn't installed yet. Run <code>scripts\\share-online.ps1</code> once, then reload this page.</div></div>` : `
       <div class="row">${t.running ? `<span class="chip submitted">● Online</span>${t.url ? `<a href="${esc(t.url)}" target="_blank" rel="noopener"><b>${esc(t.url)}</b></a><button class="btn sm" data-copy="${esc(t.url)}">Copy</button>` : `<span class="muted">Getting the address…</span>`}<button class="btn sm ghost danger" id="tunStop">Turn off</button>`
         : `<span class="chip">○ Offline</span><button class="btn primary" id="tunStart">Go online</button>${t.error ? `<span class="muted">${esc(t.error)}</span>` : ""}`}</div>
       <p class="muted" style="font-size:12.5px;margin:10px 0 0">${t.named ? "Using your named Cloudflare tunnel (fixed address)." : "Free quick address: it changes each time you go online. For a fixed address (e.g. jobs.yourfamily.com), create a Cloudflare tunnel and save its token as <code>cloudflareTunnelToken</code> — see SHARING.md."}</p>`}
       <label class="f" style="margin-top:12px;max-width:520px"><span>Extra public addresses allowed (fixed Cloudflare hostnames)</span><input id="pubHosts" value="${esc(c.publicHosts.join(", "))}" placeholder="jobs.example.com"></label>
     </div>
-    <div class="card"><div class="card-head"><div style="font-size:22px">🐙</div><div><h2>2 · Website on GitHub Pages <span class="chip matched">Free</span></h2><p>Publishes the AutoApply page (only the page — no profiles, resumes or passwords) to a public GitHub repository, at a fixed address like <b>yourname.github.io/autoapply-web</b>. It connects to this computer through the Cloudflare address above, and updates itself each time you go online.</p></div></div>
-      ${!g.installed ? `<div class="banner"><div>⚠️</div><div>GitHub's command-line tool isn't installed.</div></div>` : !g.signedIn ? `<div class="row"><span class="chip">○ Not signed in to GitHub</span><button class="btn primary" id="ghLogin">Sign in to GitHub</button><button class="btn" onclick="render()">I've signed in</button></div>
+    <div class="card"><div class="card-head"><div class="cic">${ICON.code}</div><div><h2>2 · Website on GitHub Pages <span class="chip matched">Free</span></h2><p>Publishes the AutoApply page (only the page — no profiles, resumes or passwords) to a public GitHub repository, at a fixed address like <b>yourname.github.io/autoapply-web</b>. It connects to this computer through the Cloudflare address above, and updates itself each time you go online.</p></div></div>
+      ${!g.installed ? `<div class="banner"><div>${ICON.alert}</div><div>GitHub's command-line tool isn't installed.</div></div>` : !g.signedIn ? `<div class="row"><span class="chip">○ Not signed in to GitHub</span><button class="btn primary" id="ghLogin">Sign in to GitHub</button><button class="btn" onclick="render()">I've signed in</button></div>
         <p class="muted" style="font-size:12.5px;margin:8px 0 0">A window opens: press Enter, then approve in your browser with the code it shows (one time).</p>`
       : `<div class="row"><span class="chip submitted">● GitHub: ${esc(g.login)}</span>${g.pageUrl ? `<a href="${esc(g.pageUrl)}" target="_blank" rel="noopener"><b>${esc(g.pageUrl)}</b></a><button class="btn sm" data-copy="${esc(g.pageUrl)}">Copy</button>` : ""}
         <button class="btn ${g.pageUrl ? "" : "primary"}" id="ghPublish">${g.pageUrl ? "Update website" : "Publish website"}</button></div>
         <p class="muted" style="font-size:12.5px;margin:8px 0 0">${t.running ? "" : "Go online first (step 1) so the website knows where to reach this computer. "}${g.publishedAt ? `Last published ${esc(new Date(g.publishedAt).toLocaleString())}. ` : ""}A new site can take a minute or two to appear the first time.</p>`}
     </div>
-    <div class="card"><div class="card-head"><div style="font-size:22px">🌎</div><div><h2>More jobs: Adzuna search <span class="chip">Optional · free</span> ${c.adzunaSet ? `<span class="chip submitted">● On</span>` : ""}</h2><p>Adds jobs from most Canadian job boards to every search (on top of the employer boards AutoApply already knows). Get a free key at developer.adzuna.com → Register → copy the App ID and App Key.</p></div></div>
+    <div class="card"><div class="card-head"><div class="cic">${ICON.online}</div><div><h2>More jobs: Adzuna search <span class="chip">Optional · free</span> ${c.adzunaSet ? `<span class="chip submitted">● On</span>` : ""}</h2><p>Adds jobs from most Canadian job boards to every search (on top of the employer boards AutoApply already knows). Get a free key at developer.adzuna.com → Register → copy the App ID and App Key.</p></div></div>
       <div class="form"><label class="f"><span>App ID</span><input id="adzId" placeholder="${c.adzunaSet ? "Saved — paste to replace" : "e.g. 1a2b3c4d"}"></label><label class="f"><span>App Key</span>${pwField("adzKey", c.adzunaSet ? "Saved — paste to replace" : "32-character key")}</label></div>
       <div class="row" style="margin-top:10px"><button class="btn" id="adzSave">Save</button></div></div>
-    <div class="card"><div class="card-head"><div style="font-size:22px">✉️</div><div><h2>Gmail connection <span class="chip">Optional</span></h2><p>One Google OAuth client for this AutoApply. Each person then connects their own Gmail (read-only) from their Profile. Create it in Google Cloud Console → APIs & Services → Credentials → <b>OAuth client ID</b>, type <b>Desktop app</b>, with the Gmail API enabled.</p></div></div>
+    <div class="card"><div class="card-head"><div class="cic">${ICON.mail}</div><div><h2>Gmail connection <span class="chip">Optional</span></h2><p>One Google OAuth client for this AutoApply. Each person then connects their own Gmail (read-only) from their Profile. Create it in Google Cloud Console → APIs & Services → Credentials → <b>OAuth client ID</b>, type <b>Desktop app</b>, with the Gmail API enabled.</p></div></div>
       <div class="form"><label class="f"><span>Client ID ${gm.clientIdSet ? `<span class="chip submitted">saved</span>` : ""}</span><input id="gmId" placeholder="….apps.googleusercontent.com"></label>
       <label class="f"><span>Client secret ${gm.clientSecretSet ? `<span class="chip submitted">saved</span>` : ""}</span>${pwField("gmSecret", gm.clientSecretSet ? "Saved — paste to replace" : "GOCSPX-…")}</label></div>
       <div class="row" style="margin-top:10px"><button class="btn" id="gmSave">Save</button></div></div>
-    <div class="card"><div class="card-head"><div style="font-size:22px">🗄️</div><div><h2>3 · Offline mode, accounts & backup (Supabase) <span class="chip">Optional</span></h2><p><b>Keeps the website working while this computer is off:</b> people see the last copy of their jobs and applications, and what they do (save, edit, Apply) happens when it is back on. With Supabase, sign-ins are handled by Supabase Auth and everyone's job-search data is backed up to your Supabase database every 30 minutes. Job-site passwords and browser sign-ins are never uploaded.</p></div></div>
+    <div class="card"><div class="card-head"><div class="cic">${ICON.database}</div><div><h2>3 · Offline mode, accounts & backup (Supabase) <span class="chip">Optional</span></h2><p><b>Keeps the website working while this computer is off:</b> people see the last copy of their jobs and applications, and what they do (save, edit, Apply) happens when it is back on. With Supabase, sign-ins are handled by Supabase Auth and everyone's job-search data is backed up to your Supabase database every 30 minutes. Job-site passwords and browser sign-ins are never uploaded.</p></div></div>
       <div class="form">
         <label class="f wide"><span>Project URL</span><input id="sbUrl" value="${esc(c.supabaseUrl)}" placeholder="https://abcdefgh.supabase.co"></label>
         <label class="f"><span>anon / publishable key ${c.anonKeySet ? `<span class="chip submitted">saved</span>` : ""}</span>${pwField("sbAnon", c.anonKeySet ? "Saved — paste to replace" : "eyJ… or sb_publishable_…")}<small>For sign-in.</small></label>
@@ -2219,7 +2397,7 @@ VIEWS.online = async (v) => {
     if ($("#sbService").value.trim()) body.serviceKey = $("#sbService").value.trim();
     try { await api("/cloud", { method: "PUT", body }); toast("Saved"); render(); } catch (e) { fail(e); }
   };
-  $("#sbTest").onclick = () => call("/cloud/test", {}, () => "✓ Supabase is connected and the table is ready");
+  $("#sbTest").onclick = () => call("/cloud/test", {}, () => "Supabase is connected and the table is ready");
   $("#sbBackup").onclick = () => { toast("Backing up…"); call("/cloud/backup", {}, (r) => `Backed up ${r.files} files for ${r.workspaces} people`); };
   $("#sbRestore").onclick = async () => {
     if (!(await modal({ title: "Restore from Supabase?", body: "Files on this computer are replaced by the copies in Supabase (job-site passwords and browser sign-ins are not touched).", ok: "Restore" }))) return;
@@ -2230,15 +2408,20 @@ VIEWS.online = async (v) => {
 async function testKey() {
   toast("Testing connection…");
   const r = await api("/settings/test", { method: "POST", body: {} }).catch((e) => ({ ok: false, error: e.message }));
-  r.ok ? toast("✓ Claude AI is working") : toast(`Claude AI test failed: ${r.error}`, true);
+  r.ok ? toast(" Claude AI is working") : toast(`Claude AI test failed: ${r.error}`, true);
 }
 
 // ---------------- sign-in ----------------
 // Modelled on Tsenta's: split screen, "Continue with Google", then email first. Log in and Sign up are both offered;
 // the email step finds out which one applies, so nobody has to guess.
-const PITCH = `<div class="pitch"><div class="brand"><div class="logo">⚡</div>AutoApply</div><div class="mid"><small>Your job search, on autopilot</small>
-  <h2>Apply to the jobs that fit you. Hands off.</h2><p>AutoApply finds the right roles, tailors your resume and fills in every application for you.</p>
-  <ul><li>Matches you with roles from the companies you choose</li><li>Tailors your resume and cover letter for each job</li><li>Fills in and submits applications, Workday accounts included</li></ul></div></div>`;
+const PITCH = `<div class="pitch"><div class="brand"><div class="logo"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#24459c"/><path d="M9.5 6.5h9.25L23.5 11.25V25.5h-14z" fill="#fff"/><path d="M18.75 6.5v4.75h4.75z" fill="#b9c6ea"/><path d="m12.6 18.2 2.7 2.7 5.2-5.4" fill="none" stroke="#24459c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>AutoApply</div><div class="mid">
+  <h2>Your job applications, filled in and sent</h2><p>AutoApply finds roles that fit, tailors your resume and cover letter for each one and submits the application, job-site accounts included. It asks you only when a site needs something only you can answer.</p>
+  <div class="demo" aria-hidden="true"><div class="dform"><div class="dh"><div class="clogo">MA</div><div class="dt"><b>Data Analyst</b><span>Maple Analytics · Toronto, ON</span></div></div>
+    <div class="dfield">Full name<div>John Doe</div></div>
+    <div class="dfield">Email<div>john.doe@gmail.com</div></div>
+    <div class="dfield">Resume<div>${ICON.resumes}John_Doe_Data_Analyst.pdf<span class="dtag">Tailored</span></div></div>
+    <div class="dfield">Why do you want to join Maple Analytics?<div class="typing">Three years building sales reports in SQL and Looker for retail teams</div></div></div>
+    <div class="dreceipt"><b>Application sent</b>Maple Analytics<br>Data Analyst<br>Nov 21 · 9:42 AM<div><span class="stamp">${ICON.check}Sent</span></div></div></div></div></div>`;
 const GOOGLE = `<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>`;
 let AUTH = { mode: "login", step: "email", email: "", name: "" };
 // Password rules (the server checks the same ones). All unmet rules are shown, live, as the person types.
@@ -2254,35 +2437,35 @@ async function showLogin(mode) {
   if (!el) { el = document.createElement("div"); el.className = "auth"; el.id = "login"; document.body.append(el); }
   const sb = st.supabase;
   const google = sb?.google && AUTH.step === "email" ? `<button type="button" class="oauth" id="lgGoogle">${GOOGLE} Continue with Google</button><div class="or">Or continue with email</div>` : "";
-  const T = { login: ["Welcome back", "Log in to AutoApply."], signup: ["Create your account", "Start applying in minutes."], setup: ["Set up AutoApply", "Create the owner account. You can invite family afterwards."],
+  const T = { login: ["Log in to AutoApply", "Your jobs, applications and anything that needs you"], signup: ["Create your account", "Start applying in minutes."], setup: ["Set up AutoApply", "Create the owner account. You can invite family afterwards."],
     forgot: ["Forgot your password?", "We'll help you choose a new one."], reset: ["Choose a new password", AUTH.email ? `For ${AUTH.email}` : ""] }[AUTH.mode];
   const who = `<div class="who"><span>${esc(AUTH.email)}</span><a class="l" data-lg-back>Change</a></div>`;
   const err = (id) => `<div class="ferr" id="err-${id}" role="alert"></div>`;
   const emailField = `<label class="f"><span>Email address</span><input id="lgEmail" type="email" inputmode="email" autocomplete="username" placeholder="john.doe@gmail.com" value="${esc(AUTH.email)}">${err("email")}</label>`;
-  const pwInput = (auto) => `<div class="pw"><input id="lgPw" type="password" autocomplete="${auto}"><button type="button" class="eye" id="lgEye" title="Show or hide the password" aria-label="Show or hide the password">👁</button></div>`;
+  const pwInput = (auto) => `<div class="pw"><input id="lgPw" type="password" autocomplete="${auto}"><button type="button" class="eye" id="lgEye" title="Show or hide the password" aria-label="Show or hide the password">${ICON.eye}</button></div>`;
   const newPw = (label) => `<label class="f"><span>${label}</span>${pwInput("new-password")}</label>
       <ul class="pwrules" id="pwRules">${PW_RULES.map(([id, t]) => `<li data-rule="${id}">${t}</li>`).join("")}</ul>${err("pw")}`;
   const note = AUTH.notice ? `<div class="banner info" style="margin:0 0 14px"><div>${esc(AUTH.notice)}</div></div>` : "";
   let body;
   const offlineLogin = st.offline && SB.cfg;
   if (AUTH.mode === "reset") body = AUTH.resetError
-      ? `<div class="banner"><div>⚠️</div><div>${esc(AUTH.resetError)}</div></div><button type="button" class="btn primary go" data-lg="forgot">Ask for a new link</button>`
+      ? `<div class="banner"><div>${ICON.alert}</div><div>${esc(AUTH.resetError)}</div></div><button type="button" class="btn primary go" data-lg="forgot">Ask for a new link</button>`
       : `${newPw("New password")}<button class="btn primary go" type="submit">Save password and log in</button>`;
-  else if (offlineLogin) body = `<div class="banner"><div>📴</div><div><b>Sign in to see your jobs and applications.</b> Anything you do now is saved and carried out shortly.</div></div>
+  else if (offlineLogin) body = `<div class="banner"><div>${ICON.cloudOff}</div><div><b>Sign in to see your jobs and applications.</b> Anything you do now is saved and carried out shortly.</div></div>
       ${emailField}
       <label class="f"><span>Password</span>${pwInput("current-password")}${err("pw")}</label>
       <button class="btn primary go" type="submit">Log in</button>`;
-  else if (st.offline) body = `<div class="banner"><div>⚠️</div><div><b>AutoApply can't be reached right now.</b> Please try again in a few minutes.</div></div><button type="button" class="btn primary go" onclick="location.reload()">Try again</button>`;
-  else if (AUTH.mode === "forgot" && AUTH.step === "sent") body = `<div class="banner info"><div>✉️</div><div>${AUTH.emailed
+  else if (st.offline) body = `<div class="banner"><div>${ICON.alert}</div><div><b>AutoApply can't be reached right now.</b> Please try again in a few minutes.</div></div><button type="button" class="btn primary go" onclick="location.reload()">Try again</button>`;
+  else if (AUTH.mode === "forgot" && AUTH.step === "sent") body = `<div class="banner info"><div>${ICON.mail}</div><div>${AUTH.emailed
         ? `If <b>${esc(AUTH.email)}</b> has an account, a link to choose a new password is on its way. It can take a few minutes; check the spam folder too.`
         : `If <b>${esc(AUTH.email)}</b> has an account, the person who runs this AutoApply has been told. They'll send you a link to choose a new password.`}</div></div>
       <button type="button" class="btn primary go" data-lg="login">Back to log in</button>`;
   else if (AUTH.mode === "forgot") body = `${emailField}<button class="btn primary go" type="submit">Reset my password</button>`;
-  else if (AUTH.step === "email" && AUTH.mode === "login") body = `${google}${emailField}<button class="btn primary go" type="submit">Continue →</button>`;
+  else if (AUTH.step === "email" && AUTH.mode === "login") body = `${google}${emailField}<button class="btn primary go" type="submit">Continue</button>`;
   else if (AUTH.step === "password") body = `${who}<label class="f"><span>Password</span>${pwInput("current-password")}${err("pw")}</label>
       <div style="text-align:right;margin-top:8px;font-size:13px"><a class="l" data-lg="forgot">Forgot password?</a></div>
       <button class="btn primary go" type="submit">Log in</button>`;
-  else if (AUTH.step === "closed") body = `${who}<div class="banner" style="margin-top:14px"><div>🔒</div><div>There's no account for this email, and new sign-ups are by invitation only. Ask the person who runs AutoApply to invite you.</div></div>`;
+  else if (AUTH.step === "closed") body = `${who}<div class="banner" style="margin-top:14px"><div>${ICON.lock}</div><div>There's no account for this email, and new sign-ups are by invitation only. Ask the person who runs AutoApply to invite you.</div></div>`;
   else body = `${note}${AUTH.step === "email" ? google : who}
       <label class="f"><span>Full name</span><input id="lgName" autocomplete="name" value="${esc(AUTH.name)}">${err("name")}</label>
       ${AUTH.step === "email" ? emailField : ""}
@@ -2290,7 +2473,7 @@ async function showLogin(mode) {
       <button class="btn primary go" type="submit">${AUTH.mode === "setup" ? "Create owner account" : "Create account"}</button>
       ${AUTH.mode === "signup" && st.signups === "approval" && !AUTH.invited ? `<div class="fine">New accounts are approved by the person who runs AutoApply before they can apply.</div>` : ""}`;
   const foot = st.offline || AUTH.mode === "setup" || AUTH.mode === "reset" ? "" : AUTH.mode === "login" ? `Don't have an account? <a class="l" data-lg="signup">Sign up</a>` : AUTH.mode === "forgot" ? `Remembered it? <a class="l" data-lg="login">Log in</a>` : `Already have an account? <a class="l" data-lg="login">Log in</a>`;
-  el.innerHTML = `${PITCH}<div class="side"><form novalidate><div class="brand mbrand"><div class="logo">⚡</div>AutoApply</div><h1>${AUTH.step === "password" && AUTH.name ? `Welcome back, ${esc(AUTH.name.split(" ")[0])}` : T[0]}</h1><p class="lead">${esc(T[1])}</p>${body}
+  el.innerHTML = `${PITCH}<div class="side"><form novalidate><div class="brand mbrand"><div class="logo"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#24459c"/><path d="M9.5 6.5h9.25L23.5 11.25V25.5h-14z" fill="#fff"/><path d="M18.75 6.5v4.75h4.75z" fill="#b9c6ea"/><path d="m12.6 18.2 2.7 2.7 5.2-5.4" fill="none" stroke="#24459c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>AutoApply</div><h1>${T[0]}</h1><p class="lead">${esc(T[1])}</p>${body}
     ${err("form")}<div class="alt">${foot}</div><div class="fine">Your data is private to your account.</div></form></div>`;
 
   // ---- helpers: errors appear under the field they are about, and stay until the person fixes them ----
@@ -2300,7 +2483,7 @@ async function showLogin(mode) {
   const paintRules = () => { const p = $("#lgPw")?.value ?? ""; $("#pwRules")?.querySelectorAll("li").forEach((li) => li.classList.toggle("ok", PW_RULES.find(([id]) => id === li.dataset.rule)[2](p))); };
   $("#lgPw")?.addEventListener("input", () => { paintRules(); if ($("#pwRules") && !pwMissing($("#lgPw").value).length) { $("#err-pw").textContent = ""; $("#lgPw").classList.remove("bad"); } });
   paintRules();
-  $("#lgEye")?.addEventListener("click", () => { const i = $("#lgPw"); i.type = i.type === "password" ? "text" : "password"; $("#lgEye").textContent = i.type === "password" ? "👁" : "🙈"; i.focus(); });
+  $("#lgEye")?.addEventListener("click", () => { const i = $("#lgPw"); i.type = i.type === "password" ? "text" : "password"; $("#lgEye").innerHTML = i.type === "password" ? ICON.eye : ICON.eyeOff; i.focus(); });
   el.querySelectorAll("[data-lg]").forEach((x) => x.onclick = () => { AUTH = { mode: x.dataset.lg, step: "email", email: $("#lgEmail")?.value.trim() || AUTH.email, name: "" }; if (x.dataset.lg === "forgot") history.replaceState(null, "", location.pathname); showLogin(); });
   el.querySelector("[data-lg-back]")?.addEventListener("click", () => { AUTH = { ...AUTH, step: "email", notice: "" }; showLogin(); });
   $("#lgGoogle")?.addEventListener("click", () => { location.href = `${sb.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(location.href.split("#")[0])}`; });
