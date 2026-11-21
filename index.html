@@ -465,6 +465,11 @@ input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb
   .pstep { padding: 12px; border-bottom: 1px solid var(--line); } .pstep .pn { font-size: 22px; } .pstep .pl span { display: none; }
   main { padding: 20px 16px 140px; }
 }
+.pgrid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.pcard { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--panel); cursor: pointer; transition: border-color .15s var(--ease), background-color .15s var(--ease); min-width: 0; }
+.pcard:hover { border-color: color-mix(in srgb, var(--ink) 25%, var(--line)); } .pcard.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.pmail { font: 12px/1.5 var(--mono); margin-top: 6px; overflow-wrap: anywhere; }
+.compose { margin-top: 12px; } .compose textarea { font: inherit; line-height: 1.55; }
 </style>
 </head>
 <body>
@@ -1052,7 +1057,13 @@ async function pollTasks(force) {
   const wasRunning = S.tasks.some((t) => t.status === "running");
   S.tasks = tasks;
   renderTask(latest, !!running || force);
-  if (wasRunning && !running) { await loadUsers(); render(); }
+  if (wasRunning && !running) {
+    const openId = $("#peopleBox") ? S.drawerJob?.id : null;
+    await loadUsers(); render();
+    // people search finished while its job was open: show the results in place
+    const done = tasks.find((t) => t.type === "contacts" && t.status !== "running");
+    if (openId && (done?.result?.contactsFor ?? []).includes(openId)) openJob(openId);
+  }
   pollTimer = setTimeout(pollTasks, running ? 1200 : 15000); // background searches start on their own: keep an eye out
 }
 let taskHidden = false;
@@ -1280,9 +1291,7 @@ document.addEventListener("click", (e) => {
 });
 
 const findPeople = async (ids) => {
-  const mode = S.user.search.aiMode;
-  if (mode === "ask" && !(await modal({ title: "Use AI to find people?", body: `Looking up the recruiter and hiring manager uses AI to search the web (${Math.min(ids.length, 5)} job${ids.length > 1 ? "s" : ""}). Continue?`, ok: "Yes, find them", cancel: "Cancel" }))) return;
-  toast(mode === "off" ? "AI is off, so only LinkedIn searches are prepared" : "Searching for recruiters and hiring managers…");
+  toast("Searching for recruiters and hiring managers…");
   startTask({ type: "contacts", jobIds: ids.slice(0, 5) });
 };
 document.addEventListener("change", (e) => {
@@ -1373,16 +1382,95 @@ function actionButtons(j) {
 function peopleSection(j) {
   const c = j.contacts;
   const head = `<div class="row" style="margin-top:22px"><h2 style="flex:1;margin:0">People to contact</h2><button class="btn sm" data-act="people" data-id="${esc(j.id)}">${c ? "Search again" : "Find recruiter & hiring manager"}</button></div>`;
-  if (!c) return head + `<p class="muted" style="font-size:13px">Finds the recruiter and the likely hiring manager for this role from public profiles, and drafts a short LinkedIn note and email. AutoApply never sends anything. You choose who to contact.</p>`;
-  const roleChip = (r) => `<span class="chip ${r === "hiring manager" ? "matched" : r === "recruiter" ? "submitted" : ""}">${esc(r)}</span>`;
-  return head + `${c.notes ? `<details style="margin:6px 0 10px"><summary class="muted" style="cursor:pointer;font-size:12.5px">How these were found and how sure it is</summary><div class="muted" style="font-size:12.5px;white-space:pre-wrap;margin-top:6px">${esc(c.notes.replace(/\*\*/g, ""))}</div></details>` : ""}
-    ${c.contacts?.length ? `<div style="display:grid;gap:8px">${c.contacts.map((p) => `<div class="card" style="padding:10px 12px"><div class="row"><b style="flex:1">${esc(p.name)}</b>${roleChip(p.role)}<span class="chip">${esc(p.confidence)} confidence</span></div>
-      <div class="muted" style="font-size:13px">${esc(p.title)}</div><div style="font-size:12.5px;margin:4px 0">${esc(p.why)}</div>
-      <div class="row"><a class="btn sm" href="${esc(p.profileUrl)}" target="_blank" rel="noopener">Open profile ${ICON.ext}</a></div></div>`).join("")}</div>` : `<p class="muted">No one found with confidence. Try the searches below.</p>`}
-    <div class="row" style="margin-top:8px">${(c.links ?? []).map((l) => `<a class="btn sm ghost" href="${esc(l.url)}" target="_blank" rel="noopener">${ICON.search}${esc(l.label)}</a>`).join("")}</div>
-    ${c.linkedinNote ? `<h3 style="margin-top:14px">LinkedIn note <span class="muted" style="font-weight:400">(${c.linkedinNote.length}/300)</span></h3><pre>${esc(c.linkedinNote)}</pre><button class="btn sm" data-copy="${esc(c.linkedinNote)}">Copy note</button>` : ""}
-    ${c.emailBody ? `<h3 style="margin-top:14px">Email</h3><pre><b>${esc(c.emailSubject ?? "")}</b>\n\n${esc(c.emailBody)}</pre><button class="btn sm" data-copy="${esc(`${c.emailSubject ?? ""}\n\n${c.emailBody}`)}">Copy email</button>` : ""}`;
+  if (!c) return head + `<p class="muted" style="font-size:13px">Finds the recruiter and the likely hiring manager for this role on public LinkedIn profiles, suggests their work email, and writes a message you can edit and send.</p>`;
+  const people = c.contacts ?? [];
+  const sel = Math.min(S.peopleSel?.[j.id] ?? 0, Math.max(0, people.length - 1));
+  const roleChip = (r) => `<span class="chip ${r === "recruiter" ? "submitted" : r === "hiring manager" ? "matched" : ""}">${esc(r === "hiring manager" ? "Hiring manager" : r === "recruiter" ? "Recruiter" : "Team member")}</span>`;
+  const card = (p, i) => `<div class="pcard ${i === sel ? "on" : ""}" data-psel="${i}" data-job="${esc(j.id)}">
+      <div class="row"><b style="flex:1;min-width:0">${esc(p.name)}</b>${roleChip(p.role)}</div>
+      <div class="muted" style="font-size:13px">${esc(p.title ?? "")}</div>
+      ${p.email ? `<div class="pmail">${esc(p.email)}${p.emailSure ? "" : `<span class="muted"> · likely, not confirmed</span>`}</div>` : ""}
+      <div class="row" style="margin-top:8px">${p.profileUrl ? `<a class="btn sm" href="${esc(p.profileUrl)}" target="_blank" rel="noopener">LinkedIn ${ICON.ext}</a>` : ""}<button class="btn sm ${i === sel ? "primary" : ""}" data-psel="${i}" data-job="${esc(j.id)}">${i === sel ? "Writing to them" : "Write to them"}</button></div></div>`;
+  const sentList = (j.outreach ?? []).slice().reverse().map((o) => `<div class="rcpt" style="white-space:normal;margin-top:6px"><span class="stamp">${ICON.check}Sent</span>${esc(o.to)} · ${esc(new Date(o.sentAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}</div>`).join("");
+  const addBox = `<div class="row" style="margin:10px 0 12px;flex-wrap:nowrap"><input id="pAdd" placeholder="Paste a LinkedIn profile link, like linkedin.com/in/jane-doe" style="flex:1;min-width:0"><button class="btn" data-padd="${esc(j.id)}">Add</button></div>`;
+  return head + `<p class="muted" style="font-size:12.5px;margin:6px 0 4px">${esc(c.notes ?? "")}</p>${c.searched === false ? `<div class="row" style="margin-top:6px">${(c.links ?? []).map((l) => `<a class="btn sm" href="${esc(l.url)}" target="_blank" rel="noopener">${ICON.search}${esc(l.label)}</a>`).join("")}</div>` : ""}${addBox}
+    ${people.length ? `<div class="pgrid">${people.map(card).join("")}</div>${composer(j, people[sel])}` : ""}
+    ${sentList ? `<div style="margin-top:10px">${sentList}</div>` : ""}
+    ${c.searched === false ? "" : `<div class="row" style="margin-top:10px">${(c.links ?? []).map((l) => `<a class="btn sm ghost" href="${esc(l.url)}" target="_blank" rel="noopener">${ICON.search}${esc(l.label)}</a>`).join("")}</div>`}`;
 }
+
+// A message for one person about this job, written from the profile (no AI): what the role is, who is writing, and the
+// skills the posting asks for that the resume shows.
+function outreachDraft(j, person) {
+  const p = S.user.profile ?? {};
+  const me = [p.firstName, p.lastName].filter(Boolean).join(" ") || "Me";
+  const them = String(person?.name ?? "").split(" ")[0] || "there";
+  const desc = String(j.description ?? "").toLowerCase();
+  const skills = (Array.isArray(p.skills) ? p.skills : String(p.skills ?? "").split(/[,;]/)).map((s) => String(s).trim()).filter((s) => s && s.length < 40 && desc.includes(s.toLowerCase())).slice(0, 3);
+  const list = (a) => (a.length > 1 ? `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}` : a[0] ?? "");
+  const who = p.currentTitle ? `I'm a ${p.currentTitle}${p.currentCompany ? ` at ${p.currentCompany}` : ""}` : "";
+  const applied = j.status === "submitted" ? "I recently applied for" : "I'm applying for";
+  const role = `the ${j.title} role at ${j.company}`;
+  const why = skills.length ? `${who ? `${who}, and I` : "I"} work with ${list(skills)}, which the posting asks for.` : who ? `${who}.` : "";
+  const ask = person?.role === "hiring manager" ? "Would you be open to a short chat about the team and what you're looking for?"
+    : "Would you be open to a short chat, or could you point me to the right person on the hiring team?";
+  const sign = [me, p.phone, p.linkedin].filter(Boolean).join("\n");
+  const body = `Hi ${them},\n\n${applied} ${role}. ${why}\n\n${ask} I'm happy to send my resume here as well.\n\nThank you for your time,\n${sign}`.replace(/ \n/g, "\n").replace(/\n{3,}/g, "\n\n");
+  let note = `Hi ${them}, ${applied} ${role}. ${skills.length ? `I work with ${list(skills.slice(0, 2))}, which the posting asks for. ` : ""}I'd love to connect and learn more about the team. Thanks, ${p.firstName || me}`;
+  if (note.length > 300) note = `Hi ${them}, ${applied} ${role} and would love to connect and learn more about the team. Thanks, ${p.firstName || me}`;
+  return { subject: `${j.title} application: ${me}`, body, note: note.slice(0, 300) };
+}
+
+function composer(j, person) {
+  const key = `${j.id}|${person?.profileUrl ?? person?.email ?? person?.name}`;
+  const d = (S.drafts ??= {})[key] ??= { to: person?.email ?? "", ...outreachDraft(j, person) };
+  const canSend = !!S.user.mailSendFrom && !OFF;
+  const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(d.to)}&su=${encodeURIComponent(d.subject)}&body=${encodeURIComponent(d.body)}`;
+  const mode = S.composeMode ?? "email";
+  return `<div class="card compose" data-ckey="${esc(key)}" data-job="${esc(j.id)}" data-name="${esc(person?.name ?? "")}">
+    <div class="row" style="margin-bottom:12px"><b style="flex:1">Message to ${esc(person?.name ?? "")}</b><div class="seg"><button class="${mode === "email" ? "on" : ""}" data-cmode="email">Email</button><button class="${mode === "linkedin" ? "on" : ""}" data-cmode="linkedin">LinkedIn note</button></div></div>
+    ${mode === "email" ? `
+    <label class="f"><span>To</span><input data-cf="to" type="email" value="${esc(d.to)}" placeholder="name@company.com">${person?.emailAlts?.length ? `<small>${person.emailSure ? "" : "A best guess from the company's usual pattern. Other common forms: "}${person.emailAlts.slice(0, 3).map((a) => `<a class="l" data-calt="${esc(a)}">${esc(a)}</a>`).join(", ")}</small>` : ""}</label>
+    <label class="f" style="margin-top:12px"><span>Subject</span><input data-cf="subject" value="${esc(d.subject)}"></label>
+    <label class="f" style="margin-top:12px"><span>Message</span><textarea data-cf="body" rows="11">${esc(d.body)}</textarea></label>
+    <div class="row" style="margin-top:12px">${canSend ? `<button class="btn primary" data-csend>Send email</button><span class="muted" style="font-size:12.5px">From ${esc(S.user.mailSendFrom)}</span>` : `<a class="btn primary" href="${esc(gmail)}" target="_blank" rel="noopener" data-cgmail>Open in Gmail to send</a><a class="l" data-connectmail style="font-size:13px">Connect your email to send from here</a>`}<span class="spacer"></span><button class="btn sm ghost" data-creset>Start over</button></div>`
+    : `<label class="f"><span>Connection note <span class="muted" data-ncount>${d.note.length}/300</span></span><textarea data-cf="note" rows="5" maxlength="300">${esc(d.note)}</textarea><small>LinkedIn doesn't let other apps send messages. Copy the note, then on their profile press Connect, Add a note, and paste.</small></label>
+    <div class="row" style="margin-top:12px">${person?.profileUrl ? `<button class="btn primary" data-cli="${esc(person.profileUrl)}">Copy note and open LinkedIn</button>` : `<button class="btn primary" data-copy="${esc(d.note)}">Copy note</button>`}<span class="spacer"></span><button class="btn sm ghost" data-creset>Start over</button></div>`}
+  </div>`;
+}
+const redrawPeople = () => { const j = S.drawerJob; const el = $("#peopleBox"); if (j && el) el.innerHTML = peopleSection(j); };
+document.addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-psel], [data-cmode], [data-calt], [data-creset], [data-csend], [data-cli], [data-padd]"); if (!t || !S.drawerJob) return;
+  if (t.dataset.padd) {
+    const input = $("#pAdd")?.value.trim(); if (!input) return toast("Paste a LinkedIn profile link first", true);
+    try { const j = await api(`${U()}/jobs/${encodeURIComponent(t.dataset.padd)}/contacts`, { method: "POST", body: { input } }); S.drawerJob = { ...S.drawerJob, contacts: j.contacts }; (S.peopleSel ??= {})[j.id] = 0; redrawPeople(); }
+    catch (err) { fail(err); }
+    return;
+  }
+  const box = t.closest(".compose"); const key = box?.dataset.ckey; const d = key ? S.drafts?.[key] : null;
+  if (t.dataset.psel != null) { (S.peopleSel ??= {})[S.drawerJob.id] = Number(t.dataset.psel); return redrawPeople(); }
+  if (t.dataset.cmode) { S.composeMode = t.dataset.cmode; return redrawPeople(); }
+  if (t.dataset.calt && d) { d.to = t.dataset.calt; return redrawPeople(); }
+  if (t.hasAttribute("data-creset") && key) { delete S.drafts[key]; return redrawPeople(); }
+  if (t.dataset.cli && d) { try { await navigator.clipboard.writeText(d.note); toast("Note copied. Paste it after pressing Connect, then Add a note"); } catch { toast("Copy didn't work here. Select the note and copy it"); } window.open(t.dataset.cli, "_blank", "noopener"); return; }
+  if (t.hasAttribute("data-csend") && d) {
+    if (!d.to.trim()) return toast("Add who it goes to first", true);
+    t.disabled = true; t.textContent = "Sending…";
+    try {
+      const j = await api(`${U()}/jobs/${encodeURIComponent(box.dataset.job)}/outreach`, { method: "POST", body: { to: d.to.trim(), subject: d.subject, body: d.body, name: box.dataset.name } });
+      S.drawerJob = { ...S.drawerJob, outreach: j.outreach }; delete S.drafts[key];
+      toast(`Sent to ${d.to.trim()}`); redrawPeople();
+    } catch (err) { t.disabled = false; t.textContent = "Send email"; fail(err); }
+  }
+});
+document.addEventListener("input", (e) => {
+  const f = e.target.closest("[data-cf]"); if (!f) return;
+  const key = f.closest(".compose")?.dataset.ckey; const d = key && S.drafts?.[key]; if (!d) return;
+  d[f.dataset.cf] = f.value;
+  if (f.dataset.cf === "note") { const n = f.closest(".compose").querySelector("[data-ncount]"); if (n) n.textContent = `${f.value.length}/300`; }
+  const g = f.closest(".compose").querySelector("[data-cgmail]");
+  if (g) g.href = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(d.to)}&su=${encodeURIComponent(d.subject)}&body=${encodeURIComponent(d.body)}`;
+});
 
 // ---------------- email routed to this application ----------------
 const MAILKIND = { interview: "Interview", rejection: "Rejection", offer: "Offer", assessment: "Assessment", received: "Received", recruiter: "Recruiter" };
@@ -1400,6 +1488,7 @@ function mailSection(j) {
 function closeDrawer() { $("#drawer").innerHTML = ""; }
 async function openJob(id) {
   const j = await api(`${U()}/jobs/${encodeURIComponent(id)}`);
+  S.drawerJob = j;
   const r = (f) => `/api${U()}/receipts/${encodeURIComponent(id)}/${encodeURIComponent(f)}`;
   const imgs = j.receipts.filter((f) => f.endsWith(".png"));
   const docs = j.receipts.filter((f) => !f.endsWith(".png") && f !== "answers.json");
@@ -1410,7 +1499,7 @@ async function openJob(id) {
     <div class="row" style="margin-top:12px">${j.score != null ? `<span class="chip matched">${j.score}% match</span>` : ""}${statusChip(j.status)}${j.status === "submitted" ? stageChip(j.stage) : ""}${j.ats && isAdmin() ? `<span class="chip">${esc(j.ats)}</span>` : ""}</div>
     ${whyBox(j)}
     <div class="row" style="margin-top:14px">${explain(j)?.actions.length ? actionButtons(j).replace(/<button class="btn sm primary" data-act="apply"[^]*?<\/button>/, "") : actionButtons(j)}${j.status === "submitted" ? `${stageSelect(j)}<button class="btn sm ghost" data-act="undo" data-id="${esc(j.id)}">Mark as not applied</button>` : ""}</div>
-    ${peopleSection(j)}
+    <div id="peopleBox">${peopleSection(j)}</div>
     ${mailSection(j)}
     ${fit.summary ? `<h2>Why it's a match</h2><p>${esc(fit.summary)}</p>` : ""}
     ${fit.strengths?.length ? `<p><b>Strengths:</b> ${fit.strengths.map(esc).join("; ")}</p>` : ""}${fit.gaps?.length ? `<p><b>Gaps:</b> ${fit.gaps.map(esc).join("; ")}</p>` : ""}
@@ -2226,21 +2315,24 @@ VIEWS.questions = async (v) => {
 VIEWS.mail = async (v) => {
   const d = await api(`${U()}/mail/all`).catch(() => ({ connected: false, items: [] }));
   const tab = S.mailTab ?? "all";
-  const items = d.items ?? [], drafts = items.filter((m) => m.type === "draft"), got = items.filter((m) => m.type === "received");
-  const rows = tab === "drafts" ? drafts : tab === "received" ? got : items;
+  const items = d.items ?? [], drafts = items.filter((m) => m.type === "draft"), got = items.filter((m) => m.type === "received"), sent = items.filter((m) => m.type === "sent");
+  const rows = tab === "drafts" ? drafts : tab === "received" ? got : tab === "sent" ? sent : items;
   const when = (iso) => { const t = new Date(iso); return isNaN(t) ? "" : t.toDateString() === new Date().toDateString() ? t.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : t.toLocaleDateString([], { month: "short", day: "numeric" }); };
   const compose = (m) => `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent((m.to.match(/<([^>]+)>/)?.[1] ?? m.to))}&su=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`;
-  const row = (m) => m.type === "draft"
+  const row = (m) => m.type === "sent"
+    ? `<div class="mrow2"><div class="micon">${ICON.mail}</div><div style="min-width:0"><span class="stamp">${ICON.check}Sent</span> <span class="ms">${esc(m.subject)}</span><div class="mf">To ${esc(m.to)}${m.job ? ` · ${esc(m.job.company)} · ${esc(m.job.title)}` : ""}</div><div class="mp">${esc(m.body)}</div>
+        ${m.job ? `<div class="row" style="margin-top:8px"><button class="btn sm" data-open="${esc(m.job.id)}">Open application</button></div>` : ""}</div><div class="mwhen">${when(m.date)}</div></div>`
+    : m.type === "draft"
     ? `<div class="mrow2"><div class="micon">${ICON.mail}</div><div style="min-width:0"><span class="chip filled">Draft · not sent</span> <span class="ms">${esc(m.subject)}</span><div class="mf">To ${esc(m.to)}${m.job ? ` · ${esc(m.job.company)} · ${esc(m.job.title)}` : ""}</div><div class="mp">${esc(m.body)}</div>
         <div class="row" style="margin-top:8px"><a class="btn sm primary" href="${esc(compose(m))}" target="_blank" rel="noopener">Open in Gmail to send</a><button class="btn sm" data-copy="${esc(m.body)}">Copy</button>${m.job ? `<button class="btn sm ghost" data-open="${esc(m.job.id)}">Application</button>` : ""}</div></div><div class="mwhen">${when(m.date)}</div></div>`
     : `<div class="mrow2"><div class="micon">${ICON.mail}</div><div style="min-width:0"><span class="chip">${esc(MAILKIND[m.kind] ?? m.kind ?? "Email")}</span> <span class="ms">${esc(m.subject)}</span><div class="mf">${esc(m.from ?? "")}${m.job ? ` · ${esc(m.job.company)} · ${esc(m.job.title)}` : ""}</div>${m.snippet ? `<div class="mp">${esc(m.snippet)}</div>` : ""}
         ${m.job ? `<div class="row" style="margin-top:8px"><button class="btn sm" data-open="${esc(m.job.id)}">Open application</button></div>` : ""}</div><div class="mwhen">${when(m.date)}</div></div>`;
-  v.innerHTML = `<div class="row" style="align-items:flex-start"><div style="flex:1"><h1>Email</h1><p class="sub">Emails about the jobs AutoApply applied to for ${esc(S.user.profile.firstName || "this person")}, and reply drafts it wrote. Nothing else from the mailbox is kept, and AutoApply never sends email itself.</p></div>
+  v.innerHTML = `<div class="row" style="align-items:flex-start"><div style="flex:1"><h1>Email</h1><p class="sub">Emails about the jobs AutoApply applied to for ${esc(S.user.profile.firstName || "this person")}, reply drafts it wrote, and messages you sent to recruiters. Nothing else from the mailbox is kept, and AutoApply only sends an email when you press Send.</p></div>
       ${d.connected && !OFF ? `<button class="btn" id="mailCheck">Check for new email</button>` : ""}</div>
     ${d.connected ? `<div class="muted" style="font-size:13px;margin:-10px 0 14px">Connected to <b>${esc(d.email ?? "your mailbox")}</b>${d.lastSyncAt ? ` · last checked ${esc(new Date(d.lastSyncAt).toLocaleString())}` : ""}</div>`
       : `<div class="banner info"><div>${ICON.mail}</div><div style="flex:1"><b>No mailbox connected.</b> Connect ${esc(S.user.profile.firstName || "their")}'s email so replies about these applications show up here and verification codes are entered automatically. Other email is never saved.</div><button class="btn sm primary" data-connectmail>Connect Gmail</button></div>`}
-    <div class="tabs">${[["all", "All", items.length], ["received", "Received", got.length], ["drafts", "Drafts", drafts.length]].map(([k, l, n]) => `<button data-mtab="${k}" class="${tab === k ? "on" : ""}">${l}<span class="n">${n}</span></button>`).join("")}</div>
-    ${rows.length ? `<div class="card" style="padding:4px 14px">${rows.map(row).join("")}</div>` : `<div class="card empty"><div class="big">${ICON.inbox}</div><p>${tab === "drafts" ? "No reply drafts." : "No emails yet. Replies from employers appear here after AutoApply applies."}</p></div>`}`;
+    <div class="tabs">${[["all", "All", items.length], ["received", "Received", got.length], ["drafts", "Drafts", drafts.length], ["sent", "Sent", sent.length]].map(([k, l, n]) => `<button data-mtab="${k}" class="${tab === k ? "on" : ""}">${l}<span class="n">${n}</span></button>`).join("")}</div>
+    ${rows.length ? `<div class="card" style="padding:4px 14px">${rows.map(row).join("")}</div>` : `<div class="card empty"><div class="big">${ICON.inbox}</div><p>${tab === "drafts" ? "No reply drafts." : tab === "sent" ? "Nothing sent yet. Messages you send to recruiters from an application show up here." : "No emails yet. Replies from employers appear here after AutoApply applies."}</p></div>`}`;
   v.querySelectorAll("[data-mtab]").forEach((b) => b.onclick = () => { S.mailTab = b.dataset.mtab; render(); });
   v.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => openJob(b.dataset.open));
   $("#mailCheck") && ($("#mailCheck").onclick = async (e) => { e.target.disabled = true; toast("Checking email…"); try { const r = await api(`${U()}/mail/sync`, { method: "POST", body: {} }); toast(`Checked ${r.scanned} new email${r.scanned === 1 ? "" : "s"}${r.routed?.length ? `, ${r.routed.length} about your applications` : ""}`); } catch (err) { fail(err); } render(); });
@@ -2364,6 +2456,9 @@ VIEWS.online = async (v) => {
     <div class="card"><div class="card-head"><div class="cic">${ICON.online}</div><div><h2>More jobs: Adzuna search <span class="chip">Optional · free</span> ${c.adzunaSet ? `<span class="chip submitted">● On</span>` : ""}</h2><p>Adds jobs from most Canadian job boards to every search (on top of the employer boards AutoApply already knows). Get a free key at developer.adzuna.com → Register → copy the App ID and App Key.</p></div></div>
       <div class="form"><label class="f"><span>App ID</span><input id="adzId" placeholder="${c.adzunaSet ? "Saved. Paste to replace" : "e.g. 1a2b3c4d"}"></label><label class="f"><span>App Key</span>${pwField("adzKey", c.adzunaSet ? "Saved. Paste to replace" : "32-character key")}</label></div>
       <div class="row" style="margin-top:10px"><button class="btn" id="adzSave">Save</button></div></div>
+    <div class="card"><div class="card-head"><div class="cic">${ICON.team}</div><div><h2>Recruiter lookup: Brave Search <span class="chip">Optional</span> ${c.braveKeySet ? `<span class="chip submitted">● On</span>` : ""}</h2><p>Lets "Find recruiter & hiring manager" look up people at the company automatically. Without it, people open the LinkedIn search and paste the profile they choose. Brave includes a $5 credit each month, about 330 lookups; more than that is billed to your Brave account. Get a key at api-dashboard.search.brave.com → API keys.</p></div></div>
+      <div class="form"><label class="f"><span>API key</span>${pwField("braveKey", c.braveKeySet ? "Saved. Paste to replace" : "Paste the key from Brave")}</label></div>
+      <div class="row" style="margin-top:10px"><button class="btn" id="braveSave">Save</button>${c.braveKeySet ? `<button class="btn ghost danger" id="braveOff">Remove key</button>` : ""}</div></div>
     <div class="card"><div class="card-head"><div class="cic">${ICON.mail}</div><div><h2>Gmail connection <span class="chip">Optional</span></h2><p>One Google OAuth client for this AutoApply. Each person then connects their own Gmail (read-only) from their Profile. Create it in Google Cloud Console → APIs & Services → Credentials → <b>OAuth client ID</b>, type <b>Desktop app</b>, with the Gmail API enabled.</p></div></div>
       <div class="form"><label class="f"><span>Client ID ${gm.clientIdSet ? `<span class="chip submitted">saved</span>` : ""}</span><input id="gmId" placeholder="….apps.googleusercontent.com"></label>
       <label class="f"><span>Client secret ${gm.clientSecretSet ? `<span class="chip submitted">saved</span>` : ""}</span>${pwField("gmSecret", gm.clientSecretSet ? "Saved. Paste to replace" : "GOCSPX-…")}</label></div>
@@ -2380,6 +2475,11 @@ VIEWS.online = async (v) => {
       <div class="row"><button class="btn primary" id="sbSave">Save</button><button class="btn" id="sbTest" ${c.serviceKeySet ? "" : "disabled"}>Test connection</button><button class="btn" id="sbBackup" ${c.serviceKeySet ? "" : "disabled"}>Back up now</button><button class="btn ghost" id="sbRestore" ${c.serviceKeySet ? "" : "disabled"}>Restore from Supabase…</button></div>
     </div>`;
   const call = async (p, body = {}, msg) => { try { const r = await api(p, { method: "POST", body }); if (msg) toast(msg(r)); render(); } catch (e) { fail(e); } };
+  $("#braveSave").onclick = async () => {
+    const k = $("#braveKey").value.trim(); if (!k) return toast("Paste the key first", true);
+    try { await api("/cloud", { method: "PUT", body: { braveKey: k } }); toast("Saved. Recruiter lookups now search automatically"); render(); } catch (e) { fail(e); }
+  };
+  if ($("#braveOff")) $("#braveOff").onclick = async () => { try { await api("/cloud", { method: "PUT", body: { braveKey: "" } }); toast("Key removed"); render(); } catch (e) { fail(e); } };
   $("#adzSave").onclick = async () => {
     const body = {}; if ($("#adzId").value.trim()) body.adzunaAppId = $("#adzId").value.trim(); if ($("#adzKey").value.trim()) body.adzunaAppKey = $("#adzKey").value.trim();
     if (!body.adzunaAppId && !body.adzunaAppKey) return toast("Paste the App ID and App Key first", true);
